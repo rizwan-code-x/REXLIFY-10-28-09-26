@@ -1228,8 +1228,10 @@ export default function BillHistoryView({
                     type="button"
                     onClick={() => {
                       try {
-                        // eslint-disable-next-line no-eval
-                        const res = eval(calcDisplay);
+                        // Safe math evaluation without eval
+                        const sanitized = calcDisplay.replace(/[^0-9+\-*/.]/g, '');
+                        // eslint-disable-next-line no-new-func
+                        const res = new Function(`return (${sanitized || 0})`)();
                         setCalcDisplay(String(Number(res).toFixed(2).replace(/\.00$/, '')));
                       } catch (e) {
                         setCalcDisplay('Error');

@@ -1270,16 +1270,6 @@ function AppContent() {
         .light-mode .text-gray-400 {
           color: #475569 !important;
         }
-        }
-        .light-mode .bg-emerald-500\/20 {
-          background-color: rgba(124, 58, 237, 0.1) !important;
-        }
-        .light-mode .text-emerald-400 {
-          color: #7c3aed !important;
-        }
-        .light-mode .text-gray-400 {
-          color: #475569 !important;
-        }
         .golden-transparent-button:active {
           transform: translateY(1px);
         }

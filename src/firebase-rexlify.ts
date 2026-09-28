@@ -15,7 +15,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig, "rexlify-custom");
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+let analyticsInstance: any = null;
+if (typeof window !== 'undefined') {
+  try {
+    analyticsInstance = getAnalytics(app);
+  } catch (err) {
+    console.warn('Analytics initialization bypassed in restricted iframe environment:', err);
+  }
+}
+export const analytics = analyticsInstance;
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);
 

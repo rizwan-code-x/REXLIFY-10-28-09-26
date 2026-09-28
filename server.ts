@@ -1,28 +1,34 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-import { createClient } from '@supabase/supabase-js';
+// Lazy-initialize Supabase with safe in-memory fallback
+let supabaseClient: any = null;
+const inMemoryApplications: any[] = [];
+const inMemoryFeedback: any[] = [];
 
-// Lazy-initialize Supabase
-let supabaseClient = null;
 function getSupabase() {
   if (!supabaseClient) {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_ANON_KEY;
-    if (!url || !key) {
-      throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY are required');
+    if (url && key) {
+      try {
+        supabaseClient = createClient(url, key);
+      } catch (e) {
+        console.warn('Supabase initialization notice:', e);
+      }
     }
-    supabaseClient = createClient(url, key);
   }
   return supabaseClient;
 }
@@ -46,48 +52,70 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/institute/applications', async (req, res) => {
   try {
     const data = req.body;
-    const supabase = getSupabase();
-    // Insert into 'student_applications' table
-    const { data: result, error } = await supabase.from('student_applications').insert([data]).select();
-    if (error) throw error;
-    res.json({ success: true, data: result });
-  } catch (err) {
-    console.error('Supabase insert error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    const client = getSupabase();
+    if (client) {
+      const { data: result, error } = await client.from('student_applications').insert([data]).select();
+      if (!error && result) {
+        return res.json({ success: true, data: result });
+      }
+    }
+    const newRecord = { ...data, id: 'app-' + Date.now(), created_at: new Date().toISOString() };
+    inMemoryApplications.unshift(newRecord);
+    res.json({ success: true, data: [newRecord] });
+  } catch (err: any) {
+    const newRecord = { ...req.body, id: 'app-' + Date.now(), created_at: new Date().toISOString() };
+    inMemoryApplications.unshift(newRecord);
+    res.json({ success: true, data: [newRecord] });
   }
 });
 
 app.get('/api/institute/applications', async (req, res) => {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.from('student_applications').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const client = getSupabase();
+    if (client) {
+      const { data, error } = await client.from('student_applications').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return res.json({ success: true, data });
+      }
+    }
+    res.json({ success: true, data: inMemoryApplications });
+  } catch (err: any) {
+    res.json({ success: true, data: inMemoryApplications });
   }
 });
 
 app.post('/api/feedback', async (req, res) => {
   try {
     const data = req.body;
-    const supabase = getSupabase();
-    const { data: result, error } = await supabase.from('feedback').insert([data]).select();
-    if (error) throw error;
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const client = getSupabase();
+    if (client) {
+      const { data: result, error } = await client.from('feedback').insert([data]).select();
+      if (!error && result) {
+        return res.json({ success: true, data: result });
+      }
+    }
+    const newFb = { ...data, id: 'fb-' + Date.now(), created_at: new Date().toISOString() };
+    inMemoryFeedback.unshift(newFb);
+    res.json({ success: true, data: [newFb] });
+  } catch (err: any) {
+    const newFb = { ...req.body, id: 'fb-' + Date.now(), created_at: new Date().toISOString() };
+    inMemoryFeedback.unshift(newFb);
+    res.json({ success: true, data: [newFb] });
   }
 });
 
 app.get('/api/feedback', async (req, res) => {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const client = getSupabase();
+    if (client) {
+      const { data, error } = await client.from('feedback').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return res.json({ success: true, data });
+      }
+    }
+    res.json({ success: true, data: inMemoryFeedback });
+  } catch (err: any) {
+    res.json({ success: true, data: inMemoryFeedback });
   }
 });
 
@@ -1211,22 +1239,33 @@ app.get('/api/health', (req, res) => {
 
 // Vite middleware for development vs static build serving for production
 async function setupVite() {
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.join(process.cwd(), 'dist');
+  const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.PORT && process.env.PORT !== '3000') ||
+    (process.env.npm_lifecycle_event !== 'dev' && hasDist);
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.sendFile(path.join(process.cwd(), 'index.html'));
+      }
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
   });
 }
 

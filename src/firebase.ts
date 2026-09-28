@@ -9,7 +9,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore with experimentalForceLongPolling for reliable iframe and proxy connectivity
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-}, (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-rexlify-c98e0980-bf0c-451c-8db7-306421294bf7');
+}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Export Auth service
 export const auth = getAuth(app);
