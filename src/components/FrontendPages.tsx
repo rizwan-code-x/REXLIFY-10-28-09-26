@@ -170,7 +170,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
 }) => {
   // Application details view
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-  const [selectedShowcaseScreenshot, setSelectedShowcaseScreenshot] = useState<{ src: string; appName: string; appId: string; description: string; label: string; index: number } | null>(null);
 
   // APK Download simulation and installation guide states
   const [downloadingAppId, setDownloadingAppId] = useState<string | null>(null);
@@ -240,7 +239,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectedApp(null);
-        setSelectedShowcaseScreenshot(null);
         setShowInstallGuideModal(null);
       }
     };
@@ -498,72 +496,114 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
               onSimulateDownload={handleTriggerAndSimulateDownload}
             />
 
-          {/* Why REXLIFY Section */}
+          {/* Why REXLIFY Section - Architectural Core Concepts */}
           <motion.section 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-120px" }}
+            viewport={{ once: true, margin: "-100px" }}
             variants={staggerContainerVariants}
-            className="space-y-12"
+            className="space-y-10"
           >
-            <motion.div variants={fadeInUpVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-4 max-w-2xl text-left">
-                <span className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono tracking-widest uppercase inline-block">
+            <motion.div variants={fadeInUpVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-white/5">
+              <div className="space-y-3 max-w-2xl text-left">
+                <span className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono tracking-widest uppercase inline-block font-semibold">
                   Core Architecture
                 </span>
-                <h2 className="font-sora text-4xl md:text-5xl font-semibold text-white tracking-tight leading-tight">
+                <h2 className="font-sora text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
                   Architectural Core Concepts
                 </h2>
               </div>
-              <p className="font-sans text-gray-400 text-sm max-w-md pb-2 text-left md:text-right">
-                Discover Rizwan RR's design choices for building client-first applications.
+              <p className="font-sans text-gray-400 text-sm max-w-md pb-1 text-left md:text-right font-light leading-relaxed">
+                Foundational engineering principles designed by Rizwan RR for client-first performance.
               </p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Pillar 1: Next-Generation Technology */}
               <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={12} scaleOnHover={1.03} glowColor="rgba(16, 185, 129, 0.2)" className="h-full">
-                  <div className="bg-[#050510] p-8 rounded-[2rem] border border-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-all duration-500 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="h-14 w-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-black transition-all duration-500">
-                      <Cpu size={24} />
+                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(16, 185, 129, 0.2)" className="h-full">
+                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
+                    <div className="flex items-center justify-between">
+                      <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-black transition-all duration-300">
+                        <Cpu size={22} />
+                      </div>
+                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-emerald-400">
+                        NEURAL COMPUTE
+                      </span>
                     </div>
+
                     <div className="space-y-3">
-                      <h3 className="font-sora text-2xl font-semibold text-white">Next-Generation Technology</h3>
-                      <p className="text-gray-400 text-sm font-light leading-relaxed">
-                        Cutting-edge client-side AI algorithms and custom execution runtimes engineered from the ground up for portable platforms.
+                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-emerald-300 transition-colors">
+                        Next-Generation Technology
+                      </h3>
+                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
+                        Bespoke client-side AI runtimes and hyper-efficient neural architectures engineered for instant responsiveness on any device.
                       </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
+                      <span>INFERENCE</span>
+                      <span className="text-emerald-400 font-bold">&lt; 10ms Native Edge</span>
                     </div>
                   </div>
                 </Interactive3DTiltCard>
               </motion.div>
 
+              {/* Pillar 2: Sovereign Data Privacy */}
               <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={12} scaleOnHover={1.03} glowColor="rgba(245, 158, 11, 0.2)" className="h-full">
-                  <div className="bg-[#050510] p-8 rounded-[2rem] border border-white/10 hover:border-amber-500/50 hover:shadow-[0_0_40px_rgba(245,158,11,0.15)] transition-all duration-500 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-black transition-all duration-500">
-                      <Sparkles size={24} />
+                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(245, 158, 11, 0.2)" className="h-full">
+                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
+                    <div className="flex items-center justify-between">
+                      <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-black transition-all duration-300">
+                        <Sparkles size={22} />
+                      </div>
+                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-amber-400">
+                        EDGE & OFFLINE
+                      </span>
                     </div>
+
                     <div className="space-y-3">
-                      <h3 className="font-sora text-2xl font-semibold text-white">Sovereign Data Privacy</h3>
-                      <p className="text-gray-400 text-sm font-light leading-relaxed">
-                        Engineered to optimize speed and efficiency offline, ensuring private summaries, schedules, and calendars stay local and secure.
+                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                        Sovereign Data Privacy
+                      </h3>
+                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
+                        Zero external telemetry. 100% offline-capable execution ensures personal summaries, schedules, and cryptographic keys remain strictly local and secure on device.
                       </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
+                      <span>SECURITY</span>
+                      <span className="text-amber-400 font-bold">Zero-Latency Edge</span>
                     </div>
                   </div>
                 </Interactive3DTiltCard>
               </motion.div>
 
+              {/* Pillar 3: Refined Visual Craft & Scalable Core */}
               <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={12} scaleOnHover={1.03} glowColor="rgba(244, 63, 94, 0.2)" className="h-full">
-                  <div className="bg-[#050510] p-8 rounded-[2rem] border border-white/10 hover:border-rose-500/50 hover:shadow-[0_0_40px_rgba(244,63,94,0.15)] transition-all duration-500 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="h-14 w-14 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-black transition-all duration-500">
-                      <Sliders size={24} />
+                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(244, 63, 94, 0.2)" className="h-full">
+                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(244,63,94,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
+                    <div className="flex items-center justify-between">
+                      <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-black transition-all duration-300">
+                        <Sliders size={22} />
+                      </div>
+                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-rose-400">
+                        SCALABLE CORE
+                      </span>
                     </div>
+
                     <div className="space-y-3">
-                      <h3 className="font-sora text-2xl font-semibold text-white">Refined Visual Craft</h3>
-                      <p className="text-gray-400 text-sm font-light leading-relaxed">
-                        Pristine premium interfaces adhering to glassmorphism rules. Designed with gorgeous layouts, typography, and response.
+                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-rose-300 transition-colors">
+                        Refined Visual Craft
+                      </h3>
+                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
+                        Obsidian visual hierarchy engineered with responsive typography, buttery-smooth 60fps micro-interactions, and modular scalable codebases.
                       </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
+                      <span>EXPERIENCE</span>
+                      <span className="text-rose-400 font-bold">60fps Fluid Motion</span>
                     </div>
                   </div>
                 </Interactive3DTiltCard>
@@ -727,64 +767,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
                         <ExternalLink size={12} />
                       </button>
                     ) : null}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-
-          {/* INTERACTIVE APP SHOWCASE SCREENSHOT GRID FOR SIFRA & NEURAX */}
-          <motion.section 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-120px" }}
-            variants={staggerContainerVariants}
-            className="space-y-10"
-          >
-            <motion.div variants={fadeInUpVariants} className="flex flex-col sm:flex-row items-end justify-between gap-6">
-              <div className="text-left space-y-4 max-w-2xl">
-                <span className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono tracking-widest uppercase inline-block">
-                  Interactive UI Diagnostics
-                </span>
-                <h2 className="font-sora text-4xl md:text-5xl font-semibold text-white tracking-tight leading-tight">
-                  Mobile App Showcase
-                </h2>
-                <p className="text-gray-400 text-sm font-light">
-                  Inspect Sifra and NeuraX core views. Click on any screenshot tile to open the detailed inspector and retrieve its install binaries.
-                </p>
-              </div>
-            </motion.div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {showcaseScreenshots.map((item, index) => (
-                <motion.div
-                  key={index}
-                  variants={fadeInUpVariants}
-                  onClick={() => setSelectedShowcaseScreenshot({ ...item, index })}
-                  className="group relative rounded-3xl h-72 w-full cursor-pointer overflow-hidden bg-[#050505] transition-all duration-500 flex flex-col justify-end"
-                >
-                  {/* Screenshot Thumbnail with refererPolicy */}
-                  <img 
-                    src={item.src} 
-                    alt={item.label}
-                    className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 pointer-events-none"
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Subtle layout gradients */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent pointer-events-none" />
-                  
-                  <div className="p-5 relative z-10 w-full space-y-2 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                    <div className="flex items-center gap-1.5">
-                      <div className="shrink-0 h-5 w-5 bg-black/60 rounded flex items-center justify-center border border-white/10">
-                        {item.appId === 'sifra' ? <SifraLogo size={12} /> : <NeuraxLogo size={12} />}
-                      </div>
-                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-mono tracking-widest uppercase font-semibold text-emerald-400 bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20">
-                        {item.appName}
-                      </span>
-                    </div>
-                    <h4 className="font-sora text-sm font-semibold text-white truncate">
-                      {item.label}
-                    </h4>
                   </div>
                 </motion.div>
               ))}
@@ -2113,106 +2095,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
                 বুঝেছি ও সম্পন্ন করেছি
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* INTERACTIVE APP SHOWCASE SCREENSHOT DETAILS MODAL */}
-      {selectedShowcaseScreenshot && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-fadeIn overflow-y-auto">
-          <div className="bg-[#080814] p-6 sm:p-8 md:p-10 rounded-[2.5rem] max-w-4xl w-full border border-white/15 relative shadow-2xl flex flex-col gap-6 overflow-hidden my-auto">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-rose-500/10 blur-[100px] rounded-full pointer-events-none" />
-            
-            {/* Header controls */}
-            <div className="flex justify-between items-center border-b border-white/10 pb-4 relative z-10">
-              <div className="text-left space-y-1">
-                <span className="font-mono text-[10px] uppercase text-rose-400 tracking-widest block font-bold">
-                  HIGH-RESOLUTION UI SPECIFICATION
-                </span>
-                <h3 className="font-sora text-xl md:text-2xl font-bold text-white">
-                  {selectedShowcaseScreenshot.label}
-                </h3>
-              </div>
-              <button 
-                onClick={() => setSelectedShowcaseScreenshot(null)}
-                className="p-2.5 px-4 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:bg-white/15 text-xs font-mono font-bold transition-all cursor-pointer shadow-inner"
-              >
-                CLOSE [ESC]
-              </button>
-            </div>
-
-            {/* Content row: full preview image & technical specifics */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative z-10">
-              
-              {/* Detailed image preview */}
-              <div className="md:col-span-7 rounded-2xl border border-white/15 bg-black/60 overflow-hidden relative flex items-center justify-center p-2 shadow-2xl min-h-[320px] max-h-[480px]">
-                <img 
-                  src={selectedShowcaseScreenshot.src} 
-                  alt={selectedShowcaseScreenshot.label} 
-                  className="w-full h-full max-h-[450px] object-contain rounded-xl"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              {/* Specific metadata details */}
-              <div className="md:col-span-5 space-y-6 text-left flex flex-col justify-between py-2">
-                <div className="space-y-5">
-                  <div className="space-y-2">
-                    <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block font-bold">APPLICATION ARCHITECTURE</span>
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 bg-white/10 rounded-xl flex items-center justify-center border border-white/15">
-                        {selectedShowcaseScreenshot.appId === 'sifra' ? <SifraLogo size={20} /> : <NeuraxLogo size={20} />}
-                      </div>
-                      <span className="font-sora font-bold text-white text-xl block">
-                        {selectedShowcaseScreenshot.appName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <span className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block font-bold">VIEW DESCRIPTION</span>
-                    <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
-                      {selectedShowcaseScreenshot.description}
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 font-mono text-[10px] text-gray-300">
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span>AUDIT PHASE</span>
-                      <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">VERIFIED PRODUCTION</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span>RESOLUTION</span>
-                      <span className="text-white">LOSSLESS 4K MATRIX</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>COORDINATE MAP</span>
-                      <span className="text-white">NODE-0{selectedShowcaseScreenshot.index + 1}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* View Specification Button (View-Only Mode) */}
-                <div className="flex flex-col gap-2 pt-2">
-                  <button
-                    onClick={() => {
-                      const found = applications.find(a => a.id === selectedShowcaseScreenshot.appId);
-                      if (found) {
-                        setSelectedApp(found);
-                        setSelectedShowcaseScreenshot(null);
-                        setView('applications');
-                      }
-                    }}
-                    className="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Eye size={15} />
-                    <span>View Application Architecture</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
           </div>
         </div>
       )}

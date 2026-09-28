@@ -25,6 +25,9 @@ import { RizwanInnovationApp } from './components/innovation/RizwanInnovationApp
 import { RexlifyInstituteIntro } from './components/institute/RexlifyInstituteIntro';
 import { StudentPortalPage } from './components/institute/StudentPortalPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
+import { SecurityCheckpoint } from './components/SecurityCheckpoint';
+import { AdditionalSystemsPage } from './components/AdditionalSystemsPage';
+import { RexlifySocialMedia } from './components/RexlifySocialMedia';
 
 import { 
   Application, Update, Project, DocArticle, UserMessage, SEOSettings, WebsiteContent,
@@ -121,6 +124,44 @@ const OfflineBanner = () => {
   );
 };
 
+const TopScrollProgressBar: React.FC<{ view: ActiveView }> = ({ view }) => {
+  const barRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (view !== 'documentation' && view !== 'blog') return;
+
+    let rafId: number | null = null;
+    const handleScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = totalHeight > 0 ? (window.scrollY / totalHeight) * 100 : 0;
+        if (barRef.current) {
+          barRef.current.style.width = `${progress}%`;
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [view]);
+
+  if (view !== 'documentation' && view !== 'blog') return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 h-1 bg-white/[0.03] z-[100] pointer-events-none">
+      <div 
+        ref={barRef}
+        className="h-full bg-gradient-to-r from-[--primary-color] to-[--secondary-color] shadow-[0_0_10px_var(--secondary-color)] transition-all duration-75"
+        style={{ width: '0%' }}
+      />
+    </div>
+  );
+};
+
 function AppContent() {
   // Routing View state
   const [view, setView] = useState<ActiveView>('home');
@@ -157,7 +198,6 @@ function AppContent() {
     </div>
   );
 
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [showNewsletterModal, setShowNewsletterModal] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
@@ -800,20 +840,6 @@ function AppContent() {
     }
   }, [themeMode]);
 
-  // Scroll Progress dynamic tracker hook
-  useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (totalHeight > 0) {
-        setScrollProgress((window.scrollY / totalHeight) * 100);
-      } else {
-        setScrollProgress(0);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // Home View 30-sec Non-intrusive Newsletter toast check (Disabled to avoid cluttering the landing page experience)
   useEffect(() => {
     setShowNewsletterModal(false);
@@ -881,6 +907,31 @@ function AppContent() {
             </div>
           </div>
         </div>
+      );
+    }
+
+    if (view === 'security-checkpoint') {
+      return (
+        <SecurityCheckpoint 
+          setView={setView}
+          onPasskeySuccess={() => setView('admin-login')}
+        />
+      );
+    }
+
+    if (view === 'additional-systems') {
+      return (
+        <AdditionalSystemsPage 
+          setView={setView}
+        />
+      );
+    }
+
+    if (view === 'rexlify-social') {
+      return (
+        <RexlifySocialMedia 
+          setView={setView}
+        />
       );
     }
 
@@ -1159,7 +1210,7 @@ function AppContent() {
 
         /* LIGHT MODE COMPREHENSIVE OVERRIDES */
         body.light-mode-active {
-          background: linear-gradient(135deg, #ffffff 0%, #fdf2f8 35%, #f5f3ff 70%, #ffffff 100%) !important;
+          background: linear-gradient(135deg, #fff0f5 0%, #ffffff 40%, #ffe4e6 75%, #ffffff 100%) !important;
           color: #0f172a !important;
         }
 
@@ -1169,9 +1220,12 @@ function AppContent() {
         .light-mode h4, 
         .light-mode h5, 
         .light-mode h6,
-        .light-mode .text-white,
         .light-mode .font-sora,
         .light-mode .font-bold {
+          color: #0f172a !important;
+        }
+
+        .light-mode .text-white:not(#hero-main-heading):not(#hero-main-heading *):not(.hero-main-title):not(.hero-main-title *):not(#hero-subheading):not(#hero-subheading *):not(.hero-subtitle-text):not(.hero-subtitle-text *):not(button.bg-pink-600 *):not(button.bg-rose-600 *):not(button.bg-purple-600 *):not(button.bg-cyan-500 *) {
           color: #0f172a !important;
         }
 
@@ -1187,56 +1241,84 @@ function AppContent() {
         .light-mode .text-rose-500,
         .light-mode .text-rose-400,
         .light-mode .text-pink-400,
-        .light-mode .text-emerald-400,
-        .light-mode .text-emerald-500,
-        .light-mode .text-cyan-400 {
+        .light-mode .text-pink-500 {
           color: #be123c !important;
         }
         
         .light-mode .text-amber-400,
         .light-mode .text-amber-500 {
-          color: #d97706 !important;
+          color: #b45309 !important;
+        }
+
+        .light-mode .text-cyan-400,
+        .light-mode .text-cyan-500 {
+          color: #0e7490 !important;
+        }
+
+        .light-mode .text-emerald-400,
+        .light-mode .text-emerald-500 {
+          color: #047857 !important;
         }
 
         .light-mode .border-white\/10,
         .light-mode .border-white\/5,
+        .light-mode .border-white\/15,
+        .light-mode .border-white\/20,
         .light-mode .border-pink-500\/20,
         .light-mode .border-emerald-500\/20 {
-          border-color: rgba(168, 85, 247, 0.2) !important;
+          border-color: rgba(244, 114, 182, 0.35) !important;
         }
 
-        .light-mode svg:not(.text-amber-500):not(.text-rose-500) {
-          color: #7c3aed !important;
-        }
-        .light-mode svg.text-pink-400 {
-          color: #db2777 !important;
+        .light-mode svg:not(.text-amber-500):not(.text-rose-500):not(.text-pink-500):not(.text-pink-600) {
+          color: #be123c !important;
         }
 
+        /* Eliminate all leftover dark containers */
         .light-mode .glassmorphic-card,
         .light-mode .bg-\[\#050505\],
+        .light-mode .bg-\[\#070614\],
+        .light-mode .bg-\[\#070614\]\/90,
+        .light-mode .bg-\[\#07051a\],
+        .light-mode .bg-\[\#080718\],
+        .light-mode .bg-\[\#060e12\],
+        .light-mode .bg-\[\#0a0720\],
+        .light-mode .bg-\[\#0e082b\],
+        .light-mode .bg-\[\#080f24\],
+        .light-mode .bg-\[\#0c0818\],
+        .light-mode .bg-\[\#080512\],
+        .light-mode .bg-\[\#0b0826\],
+        .light-mode .bg-\[\#061021\],
+        .light-mode .bg-\[\#180e05\],
+        .light-mode .bg-\[\#0e0a1b\],
+        .light-mode .bg-\[\#120a1c\],
+        .light-mode .bg-\[\#05021a\],
         .light-mode .bg-black\/40,
+        .light-mode .bg-black\/60,
+        .light-mode .bg-black\/70,
+        .light-mode .bg-black\/80,
+        .light-mode .bg-black\/90,
         .light-mode .bg-white\/5 {
-          background: rgba(255, 255, 255, 0.88) !important;
+          background: rgba(255, 255, 255, 0.90) !important;
           backdrop-filter: blur(16px) !important;
-          border: 1px solid rgba(168, 85, 247, 0.18) !important;
-          box-shadow: 0 10px 30px -10px rgba(168, 85, 247, 0.12) !important;
+          border: 1px solid rgba(244, 114, 182, 0.35) !important;
+          box-shadow: 0 10px 30px -10px rgba(244, 114, 182, 0.15) !important;
         }
 
         .light-mode .glassmorphic-card:hover,
         .light-mode .bg-\[\#050505\]:hover {
           background: #ffffff !important;
-          border-color: rgba(236, 72, 153, 0.45) !important;
-          box-shadow: 0 15px 35px -5px rgba(236, 72, 153, 0.18), 0 0 15px rgba(168, 85, 247, 0.1) !important;
+          border-color: rgba(236, 72, 153, 0.55) !important;
+          box-shadow: 0 15px 35px -5px rgba(236, 72, 153, 0.22) !important;
         }
 
         .light-mode .nav-item-active {
-          background: rgba(168, 85, 247, 0.12) !important;
-          color: #7c3aed !important;
+          background: rgba(244, 114, 182, 0.18) !important;
+          color: #be123c !important;
         }
         
         .light-mode .bg-emerald-500\/10,
         .light-mode .bg-emerald-500\/5 {
-          background-color: rgba(168, 85, 247, 0.08) !important;
+          background-color: rgba(244, 114, 182, 0.1) !important;
         }
 
         .light-mode label, 
@@ -1249,23 +1331,13 @@ function AppContent() {
         .light-mode textarea::placeholder {
           color: #64748b !important;
         }
-        .light-mode .bg-[#111] {
-          background-color: #f1f5f9 !important;
-        }
-        .light-mode .bg-[#151515] {
-          background-color: #f8fafc !important;
-        }
+        .light-mode .bg-[#111],
+        .light-mode .bg-[#151515],
         .light-mode .bg-[#1a1a1a] {
-          background-color: #f1f5f9 !important;
+          background-color: #fff0f5 !important;
         }
         .light-mode .border-gray-800 {
-          border-color: rgba(168, 85, 247, 0.18) !important;
-        }
-        .light-mode .bg-emerald-500\/20 {
-          background-color: rgba(168, 85, 247, 0.1) !important;
-        }
-        .light-mode .text-emerald-400 {
-          color: #7c3aed !important;
+          border-color: rgba(244, 114, 182, 0.3) !important;
         }
         .light-mode .text-gray-400 {
           color: #475569 !important;
@@ -1278,15 +1350,8 @@ function AppContent() {
       {/* Global Ambient Light & Tactile Noise Background */}
       {content.themeBgEffect !== 'none' && <AmbientBackground isNeonTheme={isNeonTheme} />}
 
-      {/* Scroll-based Progress Bar at Viewport Top */}
-      {(view === 'documentation' || view === 'blog') && (
-        <div className="fixed top-0 left-0 right-0 h-1 bg-white/[0.03] z-[100] pointer-events-none">
-          <div 
-            className="h-full bg-gradient-to-r from-[--primary-color] to-[--secondary-color] shadow-[0_0_10px_var(--secondary-color)] transition-all duration-150"
-            style={{ width: `${scrollProgress}%` }}
-          />
-        </div>
-      )}
+      {/* Scroll-based Progress Bar at Viewport Top (Isolated self-updating component) */}
+      <TopScrollProgressBar view={view} />
 
       {/* Conditionally omit standard header/footer layout when inside Control Center, REXLIFY AI Suite, or RODP Platform */}
       {view !== 'admin-dashboard' && view !== 'rexlify-ai' && view !== 'rodp' && (

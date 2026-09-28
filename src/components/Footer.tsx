@@ -221,7 +221,14 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li className="mt-2 pt-2 border-t border-white/5">
                 <button
-                  onClick={() => handleNav(isAdminLoggedIn ? 'admin-dashboard' : 'admin-login')}
+                  onClick={() => {
+                    if (isAdminLoggedIn) {
+                      handleNav('admin-dashboard');
+                    } else {
+                      const hasPasskey = sessionStorage.getItem('rexlify_passkey_auth') === 'true';
+                      handleNav(hasPasskey ? 'admin-login' : 'security-checkpoint');
+                    }
+                  }}
                   id="rexlify-control-center-trigger-btn"
                   className="group flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-red-500/25 bg-red-950/20 text-rose-300 font-mono text-[10px] tracking-widest uppercase hover:bg-rose-950/40 hover:border-red-500/50 transition-all shadow-md shadow-rose-950/20 cursor-pointer"
                 >

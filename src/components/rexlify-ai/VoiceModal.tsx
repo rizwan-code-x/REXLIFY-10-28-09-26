@@ -714,7 +714,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         {state === 'speaking' ? (
           <button
             type="button"
-            onClick={executeBargeIn}
+            onClick={() => executeBargeIn()}
             className="px-6 py-2.5 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-rose-500/30 transition-all cursor-pointer flex items-center gap-2 active:scale-95"
           >
             <span>⏹ কথা থামান (Interrupt)</span>

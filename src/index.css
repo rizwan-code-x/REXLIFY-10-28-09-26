@@ -173,6 +173,94 @@
 }
 
 /* ==========================================================================
+   REXLIFY BRAND "R" LOGO CUSTOM ANIMATIONS
+   ========================================================================== */
+@keyframes rexlify-glow-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(244, 63, 94, 0.45));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.8)) drop-shadow(0 0 18px rgba(236, 72, 153, 0.5));
+    transform: scale(1.025);
+  }
+}
+
+@keyframes rexlify-dot-sparkle {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes rexlify-sheen {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(280%) skewX(-20deg);
+  }
+}
+
+@keyframes rexlify-badge-ambient {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(244, 63, 94, 0.25), 0 0 28px rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(244, 63, 94, 0.55), 0 0 42px rgba(249, 115, 22, 0.3);
+    border-color: rgba(244, 63, 94, 0.65);
+  }
+}
+
+/* Explicit CSS classes for reliable SVG logo rendering & GPU acceleration */
+.rexlify-badge-ambient {
+  animation: rexlify-badge-ambient 3.5s ease-in-out infinite;
+}
+
+.rexlify-sheen-slide {
+  animation: rexlify-sheen 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.rexlify-glow-breathe {
+  animation: rexlify-glow-breathe 2.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rexlify-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rexlify-dot-1 { animation: rexlify-dot-sparkle 1.8s ease-in-out infinite; }
+.rexlify-dot-2 { animation: rexlify-dot-sparkle 2.2s ease-in-out 0.15s infinite; }
+.rexlify-dot-3 { animation: rexlify-dot-sparkle 1.9s ease-in-out 0.3s infinite; }
+.rexlify-dot-4 { animation: rexlify-dot-sparkle 2.4s ease-in-out 0.45s infinite; }
+.rexlify-dot-5 { animation: rexlify-dot-sparkle 2.1s ease-in-out 0.2s infinite; }
+.rexlify-dot-6 { animation: rexlify-dot-sparkle 2.5s ease-in-out 0.5s infinite; }
+.rexlify-dot-7 { animation: rexlify-dot-sparkle 1.7s ease-in-out 0.35s infinite; }
+.rexlify-dot-8 { animation: rexlify-dot-sparkle 2.3s ease-in-out 0.1s infinite; }
+.rexlify-dot-9 { animation: rexlify-dot-sparkle 2.0s ease-in-out 0.6s infinite; }
+.rexlify-dot-10 { animation: rexlify-dot-sparkle 2.2s ease-in-out 0.25s infinite; }
+
+/* 60fps Scroll Performance Enhancements */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 400px;
+}
+
+/* ==========================================================================
    LUXURY LIGHT MODE OVERHAUL: Soft Pink & Golden Champagne Harmony
    ========================================================================== */
 body.light-mode-active {
@@ -478,5 +566,277 @@ body.light-mode-active #footer-social-email:hover {
   border-color: rgba(245, 158, 11, 0.7) !important;
   color: #92400e !important;
 }
+
+/* ==========================================================================
+   GLOBAL LIGHT MODE THOROUGH SYNCHRONIZATION: NO RESIDUAL DARK PANELS
+   ========================================================================== */
+body.light-mode-active .bg-\[\#070614\],
+body.light-mode-active .bg-\[\#070614\]\/90,
+body.light-mode-active .bg-\[\#07051a\],
+body.light-mode-active .bg-\[\#07051a\]\/98,
+body.light-mode-active .bg-\[\#07051a\]\/90,
+body.light-mode-active .bg-\[\#080718\],
+body.light-mode-active .bg-\[\#060e12\],
+body.light-mode-active .bg-\[\#0a0720\],
+body.light-mode-active .bg-\[\#0e082b\],
+body.light-mode-active .bg-\[\#080f24\],
+body.light-mode-active .bg-\[\#0c0818\],
+body.light-mode-active .bg-\[\#080512\],
+body.light-mode-active .bg-\[\#0b0826\],
+body.light-mode-active .bg-\[\#061021\],
+body.light-mode-active .bg-\[\#180e05\],
+body.light-mode-active .bg-\[\#0e0a1b\],
+body.light-mode-active .bg-\[\#120a1c\],
+body.light-mode-active .bg-\[\#05021a\],
+body.light-mode-active .bg-\[\#05021a\]\/95 {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  box-shadow: 0 10px 30px rgba(244, 114, 182, 0.08) !important;
+  color: #0f172a !important;
+}
+
+/* Light mode multi-line gradient text contrast enforcement */
+body.light-mode-active .text-transparent.bg-clip-text {
+  background-image: linear-gradient(135deg, #be123c 0%, #9d174d 40%, #6b21a8 100%) !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Light Mode Quick Access / Ecosystem Portals Styling */
+body.light-mode-active .quick-access-card {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(244, 114, 182, 0.45) !important;
+  box-shadow: 0 8px 25px rgba(244, 114, 182, 0.12) !important;
+}
+
+body.light-mode-active .quick-access-heading {
+  color: #0f172a !important;
+}
+
+body.light-mode-active .quick-access-sub {
+  color: #475569 !important;
+}
+
+body.light-mode-active .quick-access-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+body.light-mode-active .quick-access-desc {
+  color: #334155 !important;
+}
+
+body.light-mode-active .quick-access-link {
+  color: #be123c !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+body.light-mode-active .quick-access-icon {
+  background: rgba(255, 241, 242, 0.95) !important;
+  border-color: rgba(244, 114, 182, 0.4) !important;
+  color: #be123c !important;
+}
+
+/* Light Mode Sara AI Page Styling */
+body.light-mode-active .sara-header-banner {
+  background: linear-gradient(135deg, #fff0f5 0%, #ffffff 50%, #ffe4e6 100%) !important;
+  border-color: rgba(244, 114, 182, 0.45) !important;
+  box-shadow: 0 10px 35px rgba(244, 114, 182, 0.15) !important;
+}
+
+body.light-mode-active .sara-heading {
+  color: #0f172a !important;
+}
+
+body.light-mode-active .sara-subheading {
+  color: #334155 !important;
+}
+
+body.light-mode-active .sara-support-badge {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(244, 114, 182, 0.4) !important;
+  color: #0f172a !important;
+}
+
+body.light-mode-active .sara-mode-tab {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+body.light-mode-active .sara-mode-tab.active {
+  background: #db2777 !important;
+  color: #ffffff !important;
+  border-color: #db2777 !important;
+  box-shadow: 0 4px 15px rgba(219, 39, 119, 0.35) !important;
+}
+
+body.light-mode-active .sara-bubble-bot {
+  background: rgba(255, 241, 242, 0.95) !important;
+  border: 1px solid rgba(244, 114, 182, 0.4) !important;
+  color: #0f172a !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 10px rgba(244, 114, 182, 0.08) !important;
+}
+
+body.light-mode-active .sara-bubble-user {
+  background: #9333ea !important;
+  color: #ffffff !important;
+}
+
+body.light-mode-active .sara-input-box {
+  background: #ffffff !important;
+  border-color: rgba(244, 114, 182, 0.5) !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 15px rgba(244, 114, 182, 0.1) !important;
+}
+
+body.light-mode-active .sara-info-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  box-shadow: 0 10px 30px rgba(244, 114, 182, 0.1) !important;
+}
+
+body.light-mode-active .sara-info-title {
+  color: #0f172a !important;
+}
+
+body.light-mode-active .sara-info-desc {
+  color: #334155 !important;
+}
+
+body.light-mode-active .sara-info-subbox {
+  background: rgba(255, 245, 248, 0.95) !important;
+  border-color: rgba(244, 114, 182, 0.3) !important;
+}
+
+/* Light Mode Glassmorphic Buttons with Sharp Borders */
+body.light-mode-active .glassmorphic-btn,
+body.light-mode-active button.border-pink-300\/60,
+body.light-mode-active button.border-pink-300 {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(244, 114, 182, 0.5) !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.1) !important;
+}
+
+body.light-mode-active .glassmorphic-btn:hover,
+body.light-mode-active button.border-pink-300\/60:hover,
+body.light-mode-active button.border-pink-300:hover {
+  background: #ffffff !important;
+  border-color: #db2777 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 15px rgba(219, 39, 119, 0.2) !important;
+}
+
+/* ==================== UNIVERSAL LIGHT MODE REFINEMENTS ==================== */
+
+/* 1. Button Design Refinement: Eliminate all dark backgrounds in Light Mode */
+body.light-mode-active button:not([class*="bg-pink-"]):not([class*="bg-rose-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]):not([class*="bg-purple-"]):not([class*="bg-cyan-"]):not([class*="bg-blue-"]) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 10px rgba(244, 114, 182, 0.08) !important;
+}
+
+body.light-mode-active button:not([class*="bg-pink-"]):not([class*="bg-rose-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]):not([class*="bg-purple-"]):not([class*="bg-cyan-"]):not([class*="bg-blue-"]):hover {
+  background-color: #ffffff !important;
+  border-color: #db2777 !important;
+  color: #be123c !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(244, 114, 182, 0.2) !important;
+}
+
+/* 2. Section Component Backgrounds: Transform all cards to bright, light-toned containers */
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"],
+body.light-mode-active [class*="bg-\\[\\#050505\\]"],
+body.light-mode-active [class*="bg-\\[\\#030303\\]"],
+body.light-mode-active [class*="bg-\\[\\#060411\\]"],
+body.light-mode-active [class*="bg-\\[\\#0f071a\\]"],
+body.light-mode-active .checkpoint-modal-box,
+body.light-mode-active .rounded-3xl.border-white\\/10,
+body.light-mode-active .rounded-2xl.border-white\\/10,
+body.light-mode-active .rounded-3xl.bg-white\\/\\[0\\.02\\],
+body.light-mode-active .rounded-3xl.bg-white\\/\\[0\\.03\\] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 30px rgba(244, 114, 182, 0.1) !important;
+}
+
+/* Contrast adjustment for text inside dark-to-light card containers */
+body.light-mode-active .checkpoint-modal-box h1,
+body.light-mode-active .checkpoint-modal-box h2,
+body.light-mode-active .checkpoint-modal-box h3,
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"] h1,
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"] h2,
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"] h3,
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"] h4,
+body.light-mode-active .rounded-3xl.border-white\\/10 h3,
+body.light-mode-active .rounded-3xl.border-white\\/10 h4 {
+  color: #0f172a !important;
+}
+
+body.light-mode-active [class*="bg-\\[\\#07051a\\]"] p,
+body.light-mode-active .checkpoint-modal-box p,
+body.light-mode-active .rounded-3xl.border-white\\/10 p {
+  color: #334155 !important;
+}
+
+/* 3. Media Placeholders & Video Feed Containers in Light Mode */
+body.light-mode-active .aspect-video,
+body.light-mode-active .aspect-\\[9\\/16\\] {
+  border-color: rgba(244, 114, 182, 0.3) !important;
+  box-shadow: 0 8px 25px rgba(244, 114, 182, 0.12) !important;
+}
+
+body.light-mode-active iframe {
+  border-radius: 1rem;
+}
+
+/* 4. Inputs in Light Mode */
+body.light-mode-active input:not([type="checkbox"]):not([type="radio"]) {
+  background-color: #ffffff !important;
+  border-color: rgba(244, 114, 182, 0.4) !important;
+  color: #0f172a !important;
+}
+
+body.light-mode-active input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 5. Sticky bars and subnavbars in Light Mode */
+body.light-mode-active .sticky.top-0 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(244, 114, 182, 0.3) !important;
+  color: #0f172a !important;
+}
+
+body.light-mode-active .sticky.top-0 span.text-white {
+  color: #0f172a !important;
+}
+
+/* Meet Our Members CTA Button in Ecosystem Section */
+body.light-mode-active #meet-our-members-btn {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(244, 114, 182, 0.5) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 16px rgba(244, 114, 182, 0.12) !important;
+}
+
+body.light-mode-active #meet-our-members-btn:hover {
+  background: #ffffff !important;
+  border-color: #db2777 !important;
+  color: #be123c !important;
+  box-shadow: 0 6px 22px rgba(219, 39, 119, 0.25) !important;
+}
+
+body.light-mode-active #meet-our-members-btn svg {
+  color: #db2777 !important;
+}
+
+
 
 

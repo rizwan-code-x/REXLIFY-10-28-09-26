@@ -269,7 +269,7 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
     <div className="w-full max-w-6xl mx-auto space-y-8 py-6 select-none text-left animate-fadeIn">
       
       {/* Header Banner */}
-      <div className="relative rounded-[2.5rem] p-8 md:p-10 border border-white/10 bg-gradient-to-r from-[#0a0720] via-[#0e082b] to-[#080f24] shadow-2xl overflow-hidden">
+      <div className="relative rounded-[2.5rem] p-8 md:p-10 border border-white/10 bg-gradient-to-r from-[#0a0720] via-[#0e082b] to-[#080f24] shadow-2xl overflow-hidden sara-header-banner">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Bot size={180} className="text-purple-400" />
         </div>
@@ -281,16 +281,16 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
               SARA AI CO-PILOT PLATFORM
             </div>
 
-            <h1 className="font-sora text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            <h1 className="font-sora text-3xl sm:text-4xl font-extrabold text-white tracking-tight sara-heading">
               Sara AI Assistance Suite
             </h1>
 
-            <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
+            <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed sara-subheading">
               Interact with Rexlify&apos;s intelligent agent across 5 customized modes: Customer Care, Help Centre, Institute Advisor, Full Chat Agent, and Live Voice Assistant.
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1 text-xs font-mono shrink-0">
+          <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1 text-xs font-mono shrink-0 sara-support-badge">
             <div className="flex items-center gap-2 text-rose-300 font-bold">
               <Mail size={14} />
               <span>Official Support Desk:</span>
@@ -316,9 +316,9 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
               <button
                 key={mode.id}
                 onClick={() => setActiveMode(mode.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer sara-mode-tab ${
                   isActive
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 border border-purple-400/40 scale-105'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 border border-purple-400/40 scale-105 active'
                     : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/5'
                 }`}
               >
@@ -528,8 +528,8 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
                   <div
                     className={`max-w-[80%] rounded-2xl p-3.5 text-xs font-sans leading-relaxed space-y-1 ${
                       msg.sender === 'user'
-                        ? 'bg-purple-600 text-white rounded-tr-none'
-                        : 'bg-white/5 border border-white/10 text-gray-200 rounded-tl-none'
+                        ? 'bg-purple-600 text-white rounded-tr-none sara-bubble-user'
+                        : 'bg-white/10 border border-white/10 text-gray-200 rounded-tl-none sara-bubble-bot'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -563,7 +563,7 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder={`Ask Sara AI (${activeMode})...`}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-purple-500"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-purple-500 sara-input-box"
               />
               <button
                 onClick={() => handleSendMessage()}
@@ -582,22 +582,22 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
         <div className="lg:col-span-4 space-y-6">
           
           {/* Customer Care Official Contact Box */}
-          <div className="p-6 rounded-3xl bg-[#080718] border border-rose-500/30 space-y-4">
+          <div className="p-6 rounded-3xl bg-[#080718] border border-rose-500/30 space-y-4 sara-info-card">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-300">
                 <Headphones size={20} />
               </div>
               <div>
-                <h4 className="font-sora font-bold text-sm text-white">Customer Care Desk</h4>
+                <h4 className="font-sora font-bold text-sm text-white sara-info-title">Customer Care Desk</h4>
                 <span className="text-[10px] font-mono text-rose-400">Official Channel</span>
               </div>
             </div>
 
-            <p className="text-xs text-gray-300 font-light leading-relaxed">
+            <p className="text-xs text-gray-300 font-light leading-relaxed sara-info-desc">
               Our support team assists with ecosystem accounts, custom app builds, and business partnerships.
             </p>
 
-            <div className="p-3 rounded-xl bg-black/60 border border-white/10 space-y-1">
+            <div className="p-3 rounded-xl bg-black/60 border border-white/10 space-y-1 sara-info-subbox">
               <span className="text-[9px] font-mono text-gray-400 uppercase block">Direct Email Support:</span>
               <a 
                 href="mailto:rexlifyofficialsupportteam@gmail.com"
@@ -617,7 +617,7 @@ export const SaraAIPage: React.FC<SaraAIPageProps> = ({
           </div>
 
           {/* Quick FAQ Items */}
-          <div className="p-6 rounded-3xl bg-[#080718] border border-white/10 space-y-4">
+          <div className="p-6 rounded-3xl bg-[#080718] border border-white/10 space-y-4 sara-info-card">
             <h4 className="font-sora font-bold text-sm text-white flex items-center gap-2">
               <Zap size={16} className="text-amber-400" />
               Frequently Asked Questions

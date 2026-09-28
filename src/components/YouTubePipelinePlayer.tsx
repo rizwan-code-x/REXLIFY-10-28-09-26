@@ -211,19 +211,23 @@ export const YouTubePipelinePlayer: React.FC<YouTubePipelinePlayerProps> = ({
 
   // Scroll listener for Picture-in-Picture Mini-Dock
   useEffect(() => {
+    let rafId: number | null = null;
     const handleScroll = () => {
-      if (!stageContainerRef.current) return;
-      const rect = stageContainerRef.current.getBoundingClientRect();
-      // If the top stage has scrolled 300px above the viewport top
-      if (rect.bottom < 150) {
-        setIsScrolledPast(true);
-      } else {
-        setIsScrolledPast(false);
-      }
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!stageContainerRef.current) return;
+        const rect = stageContainerRef.current.getBoundingClientRect();
+        const shouldDock = rect.bottom < 150;
+        setIsScrolledPast(prev => prev !== shouldDock ? shouldDock : prev);
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Dual YouTube IFrame API Initialization

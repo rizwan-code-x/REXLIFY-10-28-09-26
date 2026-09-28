@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Cpu, Radio, Shield, Layers, Code, Play, ExternalLink, 
-  ArrowRight, Compass, UserCheck, Terminal, CheckCircle2, Award, Globe, ArrowLeft
+  ArrowRight, Compass, UserCheck, Terminal, CheckCircle2, Award, Globe, ArrowLeft,
+  Users
 } from 'lucide-react';
 import { ActiveView } from './Navbar';
 import { motion } from 'motion/react';
@@ -68,7 +69,7 @@ export const ExploreSystemPage: React.FC<ExploreSystemPageProps> = ({ setView })
       </div>
 
       {/* -------------------- HERO SECTION (100% EDGE-TO-EDGE FULLSCREEN VIDEO) -------------------- */}
-      <section className="relative w-full min-h-[95vh] flex flex-col justify-between overflow-hidden border-b border-cyan-500/20">
+      <section id="ecosystem" className="relative w-full min-h-[95vh] flex flex-col justify-between overflow-hidden border-b border-cyan-500/20">
         
         {/* Reusable Video Background with Glassmorphic Cyber Overlay */}
         <VideoBackground 
@@ -83,40 +84,8 @@ export const ExploreSystemPage: React.FC<ExploreSystemPageProps> = ({ setView })
           className="absolute inset-0 w-full h-full"
         />
 
-        {/* Top Floating Badge Bar */}
-        <div className="pt-8 px-6 sm:px-12 flex flex-wrap justify-between items-center gap-4 z-10 max-w-7xl mx-auto w-full pl-16 sm:pl-12">
-          <div className="flex items-center gap-4">
-            <RexlifyLogo size={36} />
-            <div className="h-6 w-px bg-white/20 hidden sm:block" />
-            <div className="flex items-center gap-2.5 bg-black/70 border border-cyan-500/30 px-3.5 py-1.5 rounded-2xl backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-              <Radio className="text-cyan-400 animate-pulse" size={18} />
-              <span className="font-mono text-xs font-extrabold tracking-widest text-cyan-300 uppercase">
-                REXLIFY ECOSYSTEM CORE
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setView('institute')}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 text-xs font-bold font-mono transition-all cursor-pointer shadow-md"
-            >
-              🎓 Rexlify Institute
-            </button>
-            <button
-              onClick={() => setView('faculty')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs font-bold font-mono transition-all cursor-pointer shadow-md"
-            >
-              <span>Teach</span>
-              <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
-                Hiring Active
-              </span>
-            </button>
-          </div>
-        </div>
-
         {/* Center Headline & Subtitle */}
-        <div className="max-w-5xl mx-auto px-6 py-16 text-center my-auto z-10 space-y-6">
+        <div className="max-w-5xl mx-auto px-6 pt-16 pb-20 text-center my-auto z-10 space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -171,6 +140,17 @@ export const ExploreSystemPage: React.FC<ExploreSystemPageProps> = ({ setView })
               <Compass size={16} />
               <span>EXPLORE ALL APPS</span>
             </button>
+
+            <a
+              href="https://sites.google.com/view/rexlifymini/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              id="meet-our-members-btn"
+              className="px-6 py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 backdrop-blur-md hover:border-pink-400/60 hover:shadow-[0_0_25px_rgba(244,63,94,0.35)] group"
+            >
+              <Users size={16} className="text-pink-400 group-hover:scale-110 transition-transform" />
+              <span>MEET OUR MEMBERS</span>
+            </a>
           </motion.div>
         </div>
 

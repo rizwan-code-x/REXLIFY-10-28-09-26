@@ -21,40 +21,49 @@ export const ReadingProgressBar: React.FC<ReadingProgressBarProps> = ({
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    let rafId: number | null = null;
+
     const handleScroll = () => {
-      if (targetRef && targetRef.current) {
-        const el = targetRef.current;
-        const rect = el.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        const totalHeight = el.offsetHeight;
-        
-        // When element is above or below viewport
-        if (rect.top > windowHeight * 0.5) {
-          setProgress(0);
-          setIsVisible(false);
-          return;
-        }
+      if (rafId) return;
 
-        setIsVisible(true);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
 
-        const scrollableDistance = totalHeight - windowHeight + 200;
-        if (scrollableDistance <= 0) {
-          setProgress(100);
-          return;
-        }
+        if (targetRef && targetRef.current) {
+          const el = targetRef.current;
+          const rect = el.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const totalHeight = el.offsetHeight;
+          
+          // When element is above or below viewport
+          if (rect.top > windowHeight * 0.5) {
+            setProgress(prev => prev === 0 ? prev : 0);
+            setIsVisible(prev => !prev ? prev : false);
+            return;
+          }
 
-        const currentOffset = Math.max(0, -rect.top + 100);
-        const percent = Math.min(100, Math.max(0, Math.round((currentOffset / scrollableDistance) * 100)));
-        setProgress(percent);
-      } else {
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        if (scrollHeight > 0) {
-          const percent = Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)));
-          setProgress(percent);
-          setIsVisible(scrollTop > 120);
+          setIsVisible(prev => prev ? prev : true);
+
+          const scrollableDistance = totalHeight - windowHeight + 200;
+          if (scrollableDistance <= 0) {
+            setProgress(prev => prev === 100 ? prev : 100);
+            return;
+          }
+
+          const currentOffset = Math.max(0, -rect.top + 100);
+          const percent = Math.min(100, Math.max(0, Math.round((currentOffset / scrollableDistance) * 100)));
+          setProgress(prev => prev === percent ? prev : percent);
+        } else {
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          if (scrollHeight > 0) {
+            const percent = Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)));
+            setProgress(prev => prev === percent ? prev : percent);
+            const shouldBeVisible = scrollTop > 120;
+            setIsVisible(prev => prev === shouldBeVisible ? prev : shouldBeVisible);
+          }
         }
-      }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -64,6 +73,7 @@ export const ReadingProgressBar: React.FC<ReadingProgressBarProps> = ({
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [targetRef]);
 

@@ -30,55 +30,52 @@ export const RexlifyLogo: React.FC<RexlifyLogoProps> = ({
 }) => {
   const numericSize = typeof size === 'number' ? size : parseInt(String(size), 10) || 40;
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  const [videoError, setVideoError] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
 
   React.useEffect(() => {
     if (videoRef.current) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
-      videoRef.current.play().catch(() => {
-        // Autoplay safe fallback
-      });
+      videoRef.current.volume = 0;
+      videoRef.current.play().catch(() => {});
     }
   }, []);
 
-  const badgeSize = numericSize;
+  const badgeSize = layout === 'vertical' ? numericSize * 1.5 : numericSize;
   const isVertical = layout === 'vertical';
 
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none transition-transform duration-200 hover:scale-[1.02] ${
+    <div className={`inline-flex items-center gap-2.5 select-none transition-transform duration-200 hover:scale-[1.02] group ${
       isVertical ? 'flex-col text-center' : 'flex-row'
     } ${className}`}>
-      {/* Dynamic Animated Video Emblem Badge */}
+      {/* Official Animated "R" Video Emblem Badge */}
       <div 
-        className="relative overflow-hidden rounded-2xl border border-pink-500/40 shadow-md shadow-pink-500/25 bg-black shrink-0 flex items-center justify-center group"
+        className="relative overflow-hidden rounded-2xl border border-pink-500/50 group-hover:border-pink-400 shadow-md shadow-pink-500/25 bg-black shrink-0 flex items-center justify-center transition-all duration-300 group-hover:shadow-[0_0_25px_rgba(244,63,94,0.55)] group-hover:scale-105"
         style={{
           width: `${badgeSize}px`,
           height: `${badgeSize}px`,
         }}
       >
-        {!videoError ? (
-          <video 
+        {!hasError ? (
+          <video
             ref={videoRef}
-            src="/1000158504_gwr_video_mvp.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
+            src="/1000158504_gwr_video_mvp.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
             preload="auto"
-            onError={() => setVideoError(true)}
-            className="w-full h-full object-cover pointer-events-none select-none"
+            onError={() => setHasError(true)}
+            className="w-full h-full object-cover pointer-events-none select-none scale-[1.08]"
           />
         ) : (
-          /* High-res vector fallback if video cannot load */
-          <div className="w-full h-full bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+          <div className="w-full h-full bg-gradient-to-br from-pink-600 via-rose-600 to-amber-500 flex items-center justify-center text-white font-black text-lg">
             R
           </div>
         )}
 
         {/* Ambient Ring & Glass Highlight */}
-        <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/20 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/20 pointer-events-none z-10" />
       </div>
 
       {showText && (
@@ -100,7 +97,7 @@ export const RexlifyLogo: React.FC<RexlifyLogoProps> = ({
             </span>
           </div>
           {(layout === 'full' || layout === 'vertical') && (
-            <span className="text-[9px] font-mono text-pink-300 uppercase tracking-widest mt-0.5">
+            <span className="text-[9px] font-mono text-pink-400 uppercase tracking-widest mt-0.5">
               Cognitive Core
             </span>
           )}

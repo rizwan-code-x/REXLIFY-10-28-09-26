@@ -66,44 +66,8 @@ export const RexlifyInstitute: React.FC<RexlifyInstituteProps> = ({ setView }) =
           className="absolute inset-0 w-full h-full"
         />
 
-        {/* Top Header with Hiring Active Badge */}
-        <div className="pt-8 px-6 sm:px-12 flex flex-wrap justify-between items-center gap-4 z-10 max-w-7xl mx-auto w-full pl-16 sm:pl-12">
-          <div className="flex items-center gap-4">
-            <RexlifyLogo size={36} />
-            <div className="h-6 w-px bg-white/20 hidden sm:block" />
-            <div className="flex items-center gap-2 bg-black/70 border border-cyan-500/30 px-3.5 py-1.5 rounded-2xl backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-              <GraduationCap className="text-cyan-400 animate-pulse" size={18} />
-              <span className="font-mono text-xs font-extrabold tracking-widest text-cyan-300 uppercase">
-                REXLIFY INSTITUTE
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setView('institute-intro')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 text-xs font-bold font-mono transition-all cursor-pointer shadow-lg active:scale-95"
-              title="View Official Institute Intro Page"
-            >
-              <Sparkles size={14} className="text-cyan-400" />
-              <span>OFFICIAL INTRO</span>
-            </button>
-
-            <button
-              onClick={() => setView('faculty')}
-              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs font-bold font-mono transition-all cursor-pointer shadow-lg"
-            >
-              <Briefcase size={14} />
-              <span className="hidden sm:inline">JOIN FACULTY TEAM</span>
-              <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-1 shadow-[0_0_10px_rgba(245,158,11,0.5)] animate-pulse">
-                HIRING ACTIVE
-              </span>
-            </button>
-          </div>
-        </div>
-
         {/* Center Hero Overlay Content */}
-        <div className="max-w-5xl mx-auto px-6 py-12 text-center my-auto z-10 space-y-6">
+        <div className="max-w-5xl mx-auto px-6 pt-16 pb-20 text-center my-auto z-10 space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

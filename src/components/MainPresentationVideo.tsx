@@ -16,6 +16,8 @@ export const MainPresentationVideo: React.FC = () => {
   const isIntersectingRef = useRef(false);
 
   useEffect(() => {
+    let hasLoadedApi = false;
+
     const initYT = () => {
       if (window.YT && window.YT.Player) {
         playerRef.current = new window.YT.Player('presentation-yt-player', {
@@ -61,14 +63,39 @@ export const MainPresentationVideo: React.FC = () => {
       }
     };
 
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-      window.onYouTubeIframeAPIReady = initYT;
+    const loadApi = () => {
+      if (hasLoadedApi) return;
+      hasLoadedApi = true;
+      if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+        window.onYouTubeIframeAPIReady = initYT;
+      } else {
+        initYT();
+      }
+    };
+
+    // Lazy load the API when nearing viewport (300px threshold)
+    const element = containerRef.current;
+    if (element && 'IntersectionObserver' in window) {
+      const loadObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          loadApi();
+          loadObserver.disconnect();
+        }
+      }, { rootMargin: '300px' });
+      loadObserver.observe(element);
+      return () => {
+        loadObserver.disconnect();
+        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
+      };
     } else {
-      initYT();
+      loadApi();
     }
 
     return () => {

@@ -34,15 +34,22 @@ export const Hero: React.FC<HeroProps> = ({
 }) => {
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+  const rafId = useRef<number | null>(null);
   const [activeComingSoon, setActiveComingSoon] = useState<ComingSoonProduct | null>(null);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-    setMouseOffset({ x, y });
+    const x = (((e.clientX - rect.left) / rect.width) * 2 - 1).toFixed(3);
+    const y = (((e.clientY - rect.top) / rect.height) * 2 - 1).toFixed(3);
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      if (containerRef.current) {
+        containerRef.current.style.setProperty('--hmx', x);
+        containerRef.current.style.setProperty('--hmy', y);
+      }
+    });
   }, []);
 
   // Products coming soon definition
@@ -106,7 +113,7 @@ export const Hero: React.FC<HeroProps> = ({
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover -z-20 opacity-40 filter saturate-125"
+        className="absolute inset-0 w-full h-full object-cover -z-20 opacity-35 gpu-accelerated pointer-events-none"
       >
         <source src="https://cdn.dribbble.com/userupload/14351043/file/original-e8f92507edede186d6fa91bf0aec6760.mp4" type="video/mp4" />
       </video>
@@ -114,21 +121,21 @@ export const Hero: React.FC<HeroProps> = ({
 
       {/* Dynamic Cursor Parallax Gradient Orbs */}
       <div 
-        className="absolute top-0 left-1/2 -z-10 h-[550px] w-[550px] rounded-full bg-rose-600/15 blur-[140px] pointer-events-none transition-transform duration-700 ease-out"
+        className="absolute top-0 left-1/2 -z-10 h-[550px] w-[550px] rounded-full bg-rose-600/15 blur-[120px] pointer-events-none transition-transform duration-500 ease-out"
         style={{
-          transform: `translate(calc(-50% + ${mouseOffset.x * 40}px), ${mouseOffset.y * 40}px)`
+          transform: `translate(calc(-50% + calc(var(--hmx, 0) * 35px)), calc(var(--hmy, 0) * 35px))`
         }}
       />
       <div 
-        className="absolute top-20 right-10 -z-10 h-[380px] w-[380px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none transition-transform duration-700 ease-out"
+        className="absolute top-20 right-10 -z-10 h-[380px] w-[380px] rounded-full bg-cyan-500/10 blur-[100px] pointer-events-none transition-transform duration-500 ease-out"
         style={{
-          transform: `translate(${mouseOffset.x * -35}px, ${mouseOffset.y * -35}px)`
+          transform: `translate(calc(var(--hmx, 0) * -30px), calc(var(--hmy, 0) * -30px))`
         }}
       />
       <div 
-        className="absolute bottom-10 left-10 -z-10 h-[400px] w-[400px] rounded-full bg-amber-500/10 blur-[130px] pointer-events-none transition-transform duration-700 ease-out"
+        className="absolute bottom-10 left-10 -z-10 h-[400px] w-[400px] rounded-full bg-amber-500/10 blur-[100px] pointer-events-none transition-transform duration-500 ease-out"
         style={{
-          transform: `translate(${mouseOffset.x * 30}px, ${mouseOffset.y * 30}px)`
+          transform: `translate(calc(var(--hmx, 0) * 25px), calc(var(--hmy, 0) * 25px))`
         }}
       />
 
@@ -408,85 +415,84 @@ export const Hero: React.FC<HeroProps> = ({
         {/* New Quick Access Section Row right below Published Apps */}
         <QuickAccessSection setView={setView} />
 
-        {/* Rexlify Institute Featured Card Section on Homepage - Cleaned Title Badge (No rotating icon) */}
+        {/* Rexlify Institute & Faculty Recruitment Side-by-Side Flex Layout */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.55, ease: "easeOut" }}
-          className="w-full max-w-5xl mt-6"
+          className="w-full max-w-5xl mt-6 flex flex-col lg:flex-row gap-5 items-stretch"
         >
-          <div className="relative rounded-3xl p-6 sm:p-8 border border-cyan-500/30 bg-gradient-to-r from-[#07051a] via-[#0b0826] to-[#061021] shadow-2xl overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-              <GraduationCap size={160} className="text-cyan-400" />
+          {/* Left: Rexlify Institute Overview (50% desktop) */}
+          <div className="w-full lg:w-1/2 relative rounded-3xl p-6 sm:p-7 border border-cyan-500/30 bg-gradient-to-br from-[#07051a] via-[#0b0826] to-[#061021] shadow-2xl overflow-hidden group flex flex-col justify-between">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+              <GraduationCap size={130} className="text-cyan-400" />
             </div>
 
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 text-left">
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-mono text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
-                  <span>MASTER PRACTICAL TECH SKILLS</span>
-                </div>
-                <h3 className="font-sora text-2xl sm:text-3xl font-extrabold text-white">
-                  Rexlify Institute
-                </h3>
-                <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
-                  Join our comprehensive, flexible certificate programs. Gain hands-on experience and real-world expertise through our 1-Month Hybrid Development &amp; AI Assistant tracks.
-                </p>
+            <div className="relative z-10 space-y-3 text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-mono text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
+                <span>MASTER PRACTICAL TECH SKILLS</span>
               </div>
+              <h3 className="font-sora text-2xl sm:text-3xl font-extrabold text-white">
+                Rexlify Institute
+              </h3>
+              <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
+                Join our comprehensive, flexible certificate programs. Gain hands-on experience and real-world expertise through our 1-Month Hybrid Development &amp; AI Assistant tracks.
+              </p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-center gap-3 w-full md:w-auto shrink-0">
-                <button
-                  onClick={() => setView('institute')}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-sora font-extrabold text-xs uppercase tracking-wider shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <BookOpen size={16} />
-                  <span>LEARN MORE</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setView('institute');
-                    setTimeout(() => {
-                      const el = document.getElementById('core-programs');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }, 200);
-                  }}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>VIEW COURSES</span>
-                </button>
-              </div>
+            <div className="relative z-10 flex flex-wrap items-center gap-3 pt-5 mt-auto">
+              <button
+                onClick={() => setView('institute')}
+                className="flex-1 min-w-[130px] px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-sora font-extrabold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <BookOpen size={15} />
+                <span>LEARN MORE</span>
+              </button>
+              <button
+                onClick={() => {
+                  setView('institute');
+                  setTimeout(() => {
+                    const el = document.getElementById('core-programs');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }, 200);
+                }}
+                className="flex-1 min-w-[130px] px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>VIEW COURSES</span>
+              </button>
             </div>
           </div>
-        </motion.div>
 
-        {/* Faculty Recruitment Callout Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.65, ease: "easeOut" }}
-          className="w-full max-w-5xl mt-6"
-        >
-          <div className="rounded-2xl p-5 border border-amber-500/30 bg-gradient-to-r from-[#180e05] via-[#0e0a1b] to-[#120a1c] shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
-                <Briefcase size={20} />
-              </div>
-              <div>
-                <span className="font-sora font-bold text-xs sm:text-sm text-white block">
-                  Empower the Next Generation of Tech Leaders — Join the Rexlify Faculty Team
-                </span>
-                <span className="text-[11px] text-gray-400 font-mono">
-                  Looking for mentors &amp; instructors for our 1-Month Hybrid Development Programs.
-                </span>
-              </div>
+          {/* Right: Empower Next Generation / Apply as Instructor (50% desktop) */}
+          <div className="w-full lg:w-1/2 relative rounded-3xl p-6 sm:p-7 border border-amber-500/30 bg-gradient-to-br from-[#180e05] via-[#0e0a1b] to-[#120a1c] shadow-2xl overflow-hidden group flex flex-col justify-between">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+              <Briefcase size={130} className="text-amber-400" />
             </div>
 
-            <button
-              onClick={() => setView('faculty')}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-sora font-bold text-xs uppercase tracking-wider shrink-0 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
-            >
-              <span>APPLY AS INSTRUCTOR</span>
-              <ArrowRight size={14} />
-            </button>
+            <div className="relative z-10 space-y-3 text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
+                <span>FACULTY RECRUITMENT</span>
+                <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-1 animate-pulse">
+                  HIRING ACTIVE
+                </span>
+              </div>
+              <h3 className="font-sora text-xl sm:text-2xl font-extrabold text-white leading-tight">
+                Empower the Next Generation of Tech Leaders
+              </h3>
+              <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
+                Join the Rexlify Faculty Team. We are seeking passionate mentors &amp; instructors for our 1-Month Hybrid Development Programs to shape tomorrow&apos;s digital pioneers.
+              </p>
+            </div>
+
+            <div className="relative z-10 pt-5 mt-auto">
+              <button
+                onClick={() => setView('faculty')}
+                className="w-full px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black font-sora font-extrabold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>APPLY AS INSTRUCTOR</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
           </div>
         </motion.div>
 

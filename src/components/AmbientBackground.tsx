@@ -27,127 +27,91 @@ interface AmbientNode {
 
 export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonTheme = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const glowLayerRef = useRef<HTMLDivElement>(null);
 
   // Target and smoothed mouse coordinates (0 to 1 normalized & pixel coordinates)
-  const targetPos = useRef({ x: 0.5, y: 0.35, px: 0, py: 0 });
-  const smoothedPos = useRef({ x: 0.5, y: 0.35, px: 0, py: 0 });
-  const [interactiveGlowStyle, setInteractiveGlowStyle] = useState<{
-    x: number;
-    y: number;
-    intensity: number;
-  }>({
-    x: 50,
-    y: 35,
-    intensity: 1,
-  });
+  const targetPos = useRef({ x: 0.5, y: 0.35 });
+  const smoothedPos = useRef({ x: 0.5, y: 0.35 });
 
   const [clickPulses, setClickPulses] = useState<ClickPulse[]>([]);
   const [nodes, setNodes] = useState<AmbientNode[]>([]);
   const rafId = useRef<number | null>(null);
 
-  // Initialize subtle ambient nodes
+  // Initialize subtle ambient nodes (reduced count for smooth 60fps)
   useEffect(() => {
     const palette = isNeonTheme
       ? ['rgba(124, 58, 237, 0.15)', 'rgba(219, 39, 119, 0.12)', 'rgba(14, 165, 233, 0.15)']
       : [
-          'rgba(244, 63, 94, 0.15)',   // subtle rose
-          'rgba(217, 119, 6, 0.12)',   // subtle amber
-          'rgba(56, 189, 248, 0.14)',  // subtle sky/cyan
-          'rgba(168, 85, 247, 0.12)',  // subtle violet
-          'rgba(255, 255, 255, 0.18)', // subtle starlight
+          'rgba(244, 63, 94, 0.12)',   // subtle rose
+          'rgba(217, 119, 6, 0.10)',   // subtle amber
+          'rgba(56, 189, 248, 0.12)',  // subtle sky/cyan
+          'rgba(168, 85, 247, 0.10)',  // subtle violet
         ];
 
-    const initialNodes: AmbientNode[] = Array.from({ length: 22 }).map((_, i) => {
+    const initialNodes: AmbientNode[] = Array.from({ length: 14 }).map((_, i) => {
       const baseX = Math.random() * 100;
       const baseY = Math.random() * 100;
       return {
         id: `node-${i}`,
         baseX,
         baseY,
-        size: Math.random() * 2.2 + 0.8,
+        size: Math.random() * 2 + 1,
         color: palette[Math.floor(Math.random() * palette.length)],
-        duration: Math.random() * 18 + 22,
-        delay: Math.random() * -20,
-        opacity: Math.random() * 0.4 + 0.2,
+        duration: Math.random() * 14 + 18,
+        delay: Math.random() * -15,
+        opacity: Math.random() * 0.35 + 0.15,
       };
     });
 
     setNodes(initialNodes);
   }, [isNeonTheme]);
 
-  // High-performance smooth 60/120fps tracking loop with lerp
+  // High-performance smooth tracking without triggering React component re-renders
   useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        targetPos.current.px = rect.width * 0.5;
-        targetPos.current.py = rect.height * 0.35;
-      }
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      const w = window.innerWidth || 1920;
+      const h = window.innerHeight || 1080;
 
-      const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const normY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-
-      targetPos.current = {
-        x: normX,
-        y: normY,
-        px: clientX - rect.left,
-        py: clientY - rect.top,
-      };
+      targetPos.current.x = Math.max(0, Math.min(1, clientX / w));
+      targetPos.current.y = Math.max(0, Math.min(1, clientY / h));
     };
 
     const onClick = (e: MouseEvent) => {
       if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
       const pulseColors = isNeonTheme
-        ? ['rgba(124, 58, 237, 0.3)', 'rgba(219, 39, 119, 0.25)', 'rgba(14, 165, 233, 0.3)']
-        : ['rgba(244, 63, 94, 0.22)', 'rgba(56, 189, 248, 0.22)', 'rgba(217, 119, 6, 0.18)', 'rgba(168, 85, 247, 0.2)'];
+        ? ['rgba(124, 58, 237, 0.25)', 'rgba(219, 39, 119, 0.2)']
+        : ['rgba(244, 63, 94, 0.18)', 'rgba(56, 189, 248, 0.18)', 'rgba(217, 119, 6, 0.15)'];
 
       const newPulse: ClickPulse = {
         id: `pulse-${Date.now()}-${Math.random()}`,
         x: clickX,
         y: clickY,
         color: pulseColors[Math.floor(Math.random() * pulseColors.length)],
-        maxRadius: Math.random() * 120 + 220,
+        maxRadius: Math.random() * 80 + 160,
       };
 
-      setClickPulses((prev) => [...prev.slice(-6), newPulse]);
+      setClickPulses((prev) => [...prev.slice(-3), newPulse]);
     };
 
     window.addEventListener('mousemove', onPointerMove, { passive: true });
     window.addEventListener('touchmove', onPointerMove, { passive: true });
-    window.addEventListener('click', onClick);
+    window.addEventListener('click', onClick, { passive: true });
 
-    // Lerp animation frame loop
-    let lastRenderTime = 0;
-    const animate = (time: number) => {
-      // Lerp factor
-      const lerp = 0.055;
+    // Native DOM style updates via requestAnimationFrame - bypasses React re-render cycle completely
+    const animate = () => {
+      const lerp = 0.05;
       smoothedPos.current.x += (targetPos.current.x - smoothedPos.current.x) * lerp;
       smoothedPos.current.y += (targetPos.current.y - smoothedPos.current.y) * lerp;
-      smoothedPos.current.px += (targetPos.current.px - smoothedPos.current.px) * lerp;
-      smoothedPos.current.py += (targetPos.current.py - smoothedPos.current.py) * lerp;
 
-      // Throttle React state update to ~30-40fps for high efficiency while keeping silky smoothness
-      if (time - lastRenderTime > 20) {
-        lastRenderTime = time;
-        setInteractiveGlowStyle({
-          x: smoothedPos.current.x * 100,
-          y: smoothedPos.current.y * 100,
-          intensity: 1,
-        });
+      if (glowLayerRef.current) {
+        const xPct = (smoothedPos.current.x * 100).toFixed(1);
+        const yPct = (smoothedPos.current.y * 100).toFixed(1);
+        glowLayerRef.current.style.background = `radial-gradient(600px circle at ${xPct}% ${yPct}%, rgba(99, 102, 241, 0.05) 0%, rgba(56, 189, 248, 0.03) 30%, transparent 70%)`;
       }
 
       rafId.current = requestAnimationFrame(animate);
@@ -156,7 +120,6 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
     rafId.current = requestAnimationFrame(animate);
 
     return () => {
-      window.removeEventListener('resize', updateDimensions);
       window.removeEventListener('mousemove', onPointerMove);
       window.removeEventListener('touchmove', onPointerMove);
       window.removeEventListener('click', onClick);
@@ -169,7 +132,7 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
     if (clickPulses.length === 0) return;
     const timer = setTimeout(() => {
       setClickPulses((prev) => prev.slice(1));
-    }, 1400);
+    }, 1200);
     return () => clearTimeout(timer);
   }, [clickPulses]);
 
@@ -177,81 +140,38 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
     <div
       ref={containerRef}
       className="fixed inset-0 w-full h-full pointer-events-none overflow-hidden z-0 select-none"
-      style={{ willChange: 'transform' }}
     >
-      {/* 1. Subtle Procedural Ambient Light Noise Texture (High-End Tactile Film Grain) */}
-      <svg
-        className="fixed inset-0 w-full h-full opacity-[0.038] mix-blend-overlay pointer-events-none z-20"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <filter id="rexlify-ambient-noise">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.80"
-            numOctaves="3"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#rexlify-ambient-noise)" />
-      </svg>
-
-      {/* 2. Interactive Cursor-Responsive Ambient Spotlight (Smooth Dynamic Follow) */}
+      {/* 1. Interactive Cursor-Responsive Ambient Spotlight (Updated directly on DOM, zero React re-renders) */}
       {!isNeonTheme && (
         <div
-          className="absolute -inset-[300px] pointer-events-none transition-opacity duration-700 ease-out z-0"
-          style={{
-            background: `
-              radial-gradient(
-                700px circle at ${interactiveGlowStyle.x}% ${interactiveGlowStyle.y}%,
-                rgba(99, 102, 241, 0.075) 0%,
-                rgba(56, 189, 248, 0.045) 25%,
-                rgba(244, 63, 94, 0.025) 50%,
-                transparent 75%
-              )
-            `,
-            willChange: 'background',
-          }}
+          ref={glowLayerRef}
+          className="absolute inset-0 pointer-events-none transition-opacity duration-500 ease-out z-0"
+          style={{ willChange: 'background' }}
         />
       )}
 
-      {/* 3. Deep Fluid Ambient Atmospheric Drift Luminaries (Organic studio depth) */}
+      {/* 2. Deep Fluid Ambient Atmospheric Drift Luminaries (Hardware accelerated, zero blur filter overhead) */}
       {!isNeonTheme && (
         <>
           {/* Top-Left Ambient Luminary */}
           <div
-            className="absolute top-[-10%] left-[5%] w-[600px] h-[600px] rounded-full blur-[140px] opacity-40 pointer-events-none animate-pulse -z-10"
+            className="absolute top-[-5%] left-[5%] w-[450px] h-[450px] rounded-full pointer-events-none -z-10 gpu-accelerated"
             style={{
-              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.04) 55%, transparent 75%)',
-              animationDuration: '14s',
-              transform: `translate3d(${(interactiveGlowStyle.x - 50) * 0.15}px, ${(interactiveGlowStyle.y - 50) * 0.15}px, 0)`,
-              transition: 'transform 0.4s ease-out',
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.02) 45%, transparent 70%)',
             }}
           />
 
           {/* Bottom-Right Ambient Luminary */}
           <div
-            className="absolute bottom-[-10%] right-[5%] w-[650px] h-[650px] rounded-full blur-[160px] opacity-35 pointer-events-none -z-10"
+            className="absolute bottom-[-5%] right-[5%] w-[500px] h-[500px] rounded-full pointer-events-none -z-10 gpu-accelerated"
             style={{
-              background: 'radial-gradient(circle, rgba(14, 165, 233, 0.10) 0%, rgba(244, 63, 94, 0.03) 55%, transparent 75%)',
-              transform: `translate3d(${(interactiveGlowStyle.x - 50) * -0.2}px, ${(interactiveGlowStyle.y - 50) * -0.2}px, 0)`,
-              transition: 'transform 0.5s ease-out',
-            }}
-          />
-
-          {/* Center Subtle Warm Amber Luxury Glow */}
-          <div
-            className="absolute top-[40%] left-[45%] w-[500px] h-[500px] rounded-full blur-[150px] opacity-25 pointer-events-none -z-10"
-            style={{
-              background: 'radial-gradient(circle, rgba(217, 119, 6, 0.07) 0%, transparent 65%)',
-              transform: `translate3d(${(interactiveGlowStyle.x - 50) * 0.08}px, ${(interactiveGlowStyle.y - 50) * 0.08}px, 0)`,
-              transition: 'transform 0.6s ease-out',
+              background: 'radial-gradient(circle, rgba(14, 165, 233, 0.06) 0%, rgba(244, 63, 94, 0.02) 45%, transparent 70%)',
             }}
           />
         </>
       )}
 
-      {/* 4. Click / Interaction Ambient Shockwave Pulses */}
+      {/* 3. Click / Interaction Ambient Shockwave Pulses */}
       <AnimatePresence>
         {clickPulses.map((pulse) => (
           <motion.div
@@ -261,7 +181,7 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
               top: pulse.y,
               width: 0,
               height: 0,
-              opacity: 0.7,
+              opacity: 0.5,
               translateX: '-50%',
               translateY: '-50%',
             }}
@@ -272,14 +192,13 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
             }}
             exit={{ opacity: 0 }}
             transition={{
-              duration: 1.2,
-              ease: [0.16, 1, 0.3, 1], // fluid ease-out
+              duration: 0.8,
+              ease: [0.16, 1, 0.3, 1],
             }}
             style={{
               position: 'absolute',
               borderRadius: '50%',
               background: `radial-gradient(circle, ${pulse.color} 0%, transparent 70%)`,
-              filter: 'blur(20px)',
               pointerEvents: 'none',
               zIndex: 5,
             }}
@@ -287,42 +206,22 @@ export const AmbientBackground: React.FC<{ isNeonTheme?: boolean }> = ({ isNeonT
         ))}
       </AnimatePresence>
 
-      {/* 5. Minimalist Ambient Luminous Micro-Motes (Delicate floating nodes) */}
+      {/* 4. Minimalist Ambient Luminous Micro-Motes (Static / Lightweight CSS rendering for smooth 60fps) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-10">
-        {nodes.map((node) => {
-          const driftX = (interactiveGlowStyle.x - 50) * 0.08;
-          const driftY = (interactiveGlowStyle.y - 50) * 0.08;
-
-          return (
-            <motion.div
-              key={node.id}
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: [node.opacity * 0.3, node.opacity, node.opacity * 0.3],
-                scale: [0.9, 1.15, 0.9],
-                x: `${node.baseX + driftX}%`,
-                y: `${node.baseY + driftY}%`,
-              }}
-              transition={{
-                duration: node.duration,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: node.delay,
-              }}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: node.size,
-                height: node.size,
-                backgroundColor: node.color,
-                borderRadius: '50%',
-                boxShadow: node.size > 2 ? `0 0 10px ${node.color}` : `0 0 4px ${node.color}`,
-                willChange: 'transform, opacity',
-              }}
-            />
-          );
-        })}
+        {nodes.map((node) => (
+          <div
+            key={node.id}
+            className="absolute rounded-full pointer-events-none transition-opacity duration-1000"
+            style={{
+              left: `${node.baseX}%`,
+              top: `${node.baseY}%`,
+              width: `${node.size}px`,
+              height: `${node.size}px`,
+              backgroundColor: node.color,
+              opacity: node.opacity,
+            }}
+          />
+        ))}
       </div>
     </div>
   );
