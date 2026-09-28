@@ -1,0 +1,10 @@
+{
+  "name": "Remix rizwanroushan0-gmail.com 10",
+  "description": "Rexify is a next generation Technology ecosystem engineering Cutting its ai architecture Full stack application And intelligent digital platforms Explore live projects like Sifra ai And discover the future of universal tech accessibility",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "entities": {
+    "Notice": {
+      "title": "Notice",
+      "description": "Notice board message created by the Super Admin / CEO",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 100 },
+        "body": { "type": "string", "maxLength": 5000 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "body", "status", "createdAt"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "User inquiry submitted from the client-side Notice details screen",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "mobile": { "type": "string", "maxLength": 20 },
+        "address": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "mobile", "message", "createdAt"]
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "Physical shop / cyber cafe branch meta-information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "mobile": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string" },
+        "subscriptionType": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer record for the CRM",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "totalSpending": { "type": "number" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Booking slot for services",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "date": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "status": { "type": "string" },
+        "shopId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Operation tasks assigned to branch staff",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "priority": { "type": "string" },
+        "frequency": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "shopId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Café services and their prices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Raw material stock e.g. papers, inks",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "stock": { "type": "number" },
+        "unit": { "type": "string" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Employee or Operator credentials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billed invoice for a service transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paymentStatus": { "type": "string" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Finance": {
+      "title": "Finance",
+      "description": "Income/expense records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Vault": {
+      "title": "Vault",
+      "description": "Documents securely uploaded for customers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Log of SMS, Email or WhatsApp triggers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "message": { "type": "string" },
+        "shopId": { "type": "string" }
+      }
+    },
+    "SecurityLog": {
+      "title": "SecurityLog",
+      "description": "System access audit trail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" }
+      }
+    },
+    "SessionLog": {
+      "title": "SessionLog",
+      "description": "User login/logout sessions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    },
+    "AIKnowledge": {
+      "title": "AIKnowledge",
+      "description": "Uploaded knowledge base segments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "List of all system notices"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "User inquiries/leads submitted through notices"
+    },
+    "/shops/{shopId}": {
+      "schema": "Shop",
+      "description": "Café branch registries"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "CRM customer list"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Booking slots"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Assigned branch staff tasks"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Café service configurations"
+    },
+    "/inventories/{inventoryId}": {
+      "schema": "Inventory",
+      "description": "Branch raw stocks"
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Staff employee list"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Invoices billing register"
+    },
+    "/finance/{financeId}": {
+      "schema": "Finance",
+      "description": "Accounting bookkeeping"
+    },
+    "/vault/{vaultId}": {
+      "schema": "Vault",
+      "description": "Customer document vaults"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Notification messaging log"
+    },
+    "/securityLogs/{logId}": {
+      "schema": "SecurityLog",
+      "description": "System security telemetry trail"
+    },
+    "/sessionLogs/{logId}": {
+      "schema": "SessionLog",
+      "description": "Real-time user logins list"
+    },
+    "/aiKnowledge/{knowledgeId}": {
+      "schema": "AIKnowledge",
+      "description": "Extracted expert context blocks"
+    }
+  }
+}

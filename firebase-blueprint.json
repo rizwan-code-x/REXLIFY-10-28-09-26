@@ -1,0 +1,361 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with Google Auth details, favorites, and saved AI scans",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "lastLogin": { "type": "string", "maxLength": 50 },
+        "bio": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["uid", "email"]
+    },
+    "ImageAnalysis": {
+      "title": "ImageAnalysis",
+      "description": "Gemini image analysis logs and results",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "prompt": { "type": "string", "maxLength": 2000 },
+        "mode": { "type": "string", "maxLength": 50 },
+        "analysisResult": { "type": "string", "maxLength": 10000 },
+        "summary": { "type": "string", "maxLength": 1000 },
+        "modelUsed": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "prompt", "analysisResult", "createdAt"]
+    },
+    "UserMessage": {
+      "title": "UserMessage",
+      "description": "Contact forms, suggestions, and inquiries",
+      "type": "object",
+      "properties": {
+        "senderName": { "type": "string", "maxLength": 100 },
+        "senderEmail": { "type": "string", "maxLength": 150 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "message": { "type": "string", "maxLength": 5000 },
+        "date": { "type": "string", "maxLength": 50 },
+        "isImportant": { "type": "boolean" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["senderName", "senderEmail", "subject", "category", "message", "date", "isImportant", "isRead"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "Newsletter subscriber emails",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 150 },
+        "subscribedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["email"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Platform configurations and dynamic UI lists",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "list": { "type": "array" },
+        "data": { "type": "object" },
+        "url": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Services offered or monitored by the system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System notifications and alert logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Tasks and workflow items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "maxLength": 50 },
+        "assignedTo": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Appointments and calendar slots",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "SecurityLog": {
+      "title": "SecurityLog",
+      "description": "Security audit and system activity logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "event": { "type": "string", "maxLength": 200 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "level": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "AiKnowledge": {
+      "title": "AiKnowledge",
+      "description": "AI knowledge base articles and vectors",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 10000 },
+        "category": { "type": "string", "maxLength": 100 }
+      }
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Inventory items and stock levels",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" }
+      }
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer records and contact info",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 }
+      }
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "Shop profiles and merchant stores",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "ownerId": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Invoices and billing records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 },
+        "customerId": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Branch staff members and operators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "role": { "type": "string", "maxLength": 50 },
+        "shopId": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "Finance": {
+      "title": "Finance",
+      "description": "Financial records and balance sheets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "maxLength": 50 },
+        "amount": { "type": "number" },
+        "shopId": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "VaultItem": {
+      "title": "VaultItem",
+      "description": "Documents and certificates in the vault",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "shopId": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Official notices and announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "date": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Customer and client inquiries",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 5000 }
+      }
+    },
+    "GroupMessage": {
+      "title": "GroupMessage",
+      "description": "Real-time group chat messages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 5000 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      }
+    },
+    "GroupSettings": {
+      "title": "GroupSettings",
+      "description": "Group chat administrative settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "onlyAdminsCanPost": { "type": "boolean" },
+        "isGroupMuted": { "type": "boolean" }
+      }
+    },
+    "SessionLog": {
+      "title": "SessionLog",
+      "description": "User login session logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 50 }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles indexed by Firebase Auth UID"
+    },
+    "/image_analyses/{analysisId}": {
+      "schema": "ImageAnalysis",
+      "description": "Saved Gemini image analyses"
+    },
+    "/messages/{messageId}": {
+      "schema": "UserMessage",
+      "description": "User messages and inquiries"
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": "Subscriber",
+      "description": "Newsletter subscribers"
+    },
+    "/config/{configId}": {
+      "schema": "Config",
+      "description": "System config and platform data"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Services list and status"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Notifications and alert logs"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks and workflow items"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Appointments and calendar slots"
+    },
+    "/securityLogs/{logId}": {
+      "schema": "SecurityLog",
+      "description": "Security logs and system audits"
+    },
+    "/sessionLogs/{logId}": {
+      "schema": "SessionLog",
+      "description": "Session logs and connection tracking"
+    },
+    "/aiKnowledge/{knowledgeId}": {
+      "schema": "AiKnowledge",
+      "description": "AI knowledge base items"
+    },
+    "/inventories/{inventoryId}": {
+      "schema": "Inventory",
+      "description": "Inventories and stock tracking"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer accounts"
+    },
+    "/shops/{shopId}": {
+      "schema": "Shop",
+      "description": "Shops and storefronts"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Invoices and transaction records"
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Staff roster and assignments"
+    },
+    "/finance/{financeId}": {
+      "schema": "Finance",
+      "description": "Financial accounting records"
+    },
+    "/vault/{vaultId}": {
+      "schema": "VaultItem",
+      "description": "Secure vault documents"
+    },
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "System notices and broadcast alerts"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "Customer support inquiries"
+    },
+    "/groupMessages/{messageId}": {
+      "schema": "GroupMessage",
+      "description": "Real-time group messaging feed"
+    },
+    "/groupSettings/{settingId}": {
+      "schema": "GroupSettings",
+      "description": "Group chat configuration parameters"
+    }
+  }
+}

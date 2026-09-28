@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Test connection doc
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner(userId) || isSignedIn();
+    }
+
+    // Image Analyses Collection
+    match /image_analyses/{analysisId} {
+      allow read: if true;
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // Contact Messages Collection
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn();
+    }
+
+    // Newsletter Subscribers Collection
+    match /subscribers/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn();
+    }
+
+    // Config Collection
+    match /config/{configId} {
+      allow read, write: if true;
+    }
+
+    // Services Collection
+    match /services/{serviceId} {
+      allow read, write: if true;
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
+
+    // Tasks Collection
+    match /tasks/{taskId} {
+      allow read, write: if true;
+    }
+
+    // Appointments Collection
+    match /appointments/{appointmentId} {
+      allow read, write: if true;
+    }
+
+    // Security Logs Collection
+    match /securityLogs/{logId} {
+      allow read, write: if true;
+    }
+
+    // AI Knowledge Collection
+    match /aiKnowledge/{knowledgeId} {
+      allow read, write: if true;
+    }
+
+    // Inventories Collection
+    match /inventories/{inventoryId} {
+      allow read, write: if true;
+    }
+
+    // Customers Collection
+    match /customers/{customerId} {
+      allow read, write: if true;
+    }
+
+    // Shops Collection
+    match /shops/{shopId} {
+      allow read, write: if true;
+    }
+
+    // Invoices Collection
+    match /invoices/{invoiceId} {
+      allow read, write: if true;
+    }
+  }
+}
