@@ -65,7 +65,7 @@ export default function BillingView({
   });
 
   // 2. Multi-Service items cart (অনলাইন সেবা সমূহ) loaded from localStorage if present
-  const [cartItems, setCartItems] = useState<{ id: string; name: string; price: number }[]>(() => {
+  const [cartItems, setCartItems] = useState<{ id: string; name: string; price: number; quantity?: number; unitPrice?: number; description?: string; workDone?: string; }[]>(() => {
     try {
       const saved = localStorage.getItem('rodp_billing_cartItems');
       return saved ? JSON.parse(saved) : [{ id: `cart_${Date.now()}_0`, name: '', price: 0 }];
@@ -215,42 +215,62 @@ export default function BillingView({
 
   const invoiceRef = useRef<HTMLDivElement>(null);
 
+  // Safe item name extractor to prevent [object Object] and extract human-readable text
+  const extractItemName = (name: any): string => {
+    if (!name) return '';
+    if (typeof name === 'string') {
+      if (name.includes('[object Object]')) {
+        return name.replace(/\[object Object\]/g, 'Service Item').trim();
+      }
+      return name;
+    }
+    if (typeof name === 'object') {
+      return name.name || name.title || name.serviceName || name.label || 'Service Item';
+    }
+    return String(name);
+  };
+
   // Trigger feedback toast
   const triggerFeedback = (msg: string) => {
     setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(null), 3000);
   };
 
-  const handleServiceSearchChange = (val: string) => {
+  const handleServiceSearchChange = (valOrEvent: string | React.ChangeEvent<HTMLInputElement>) => {
+    const val = typeof valOrEvent === 'string' ? valOrEvent : (valOrEvent?.target?.value || '');
     setBuilderItemName(val);
     if (!val.trim()) {
       setFilteredServiceSuggestions([]);
       return;
     }
     const filtered = services.filter(s => !s.disabled).filter(s => {
-      const cleanName = s.name.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
+      const sName = typeof s.name === 'string' ? s.name : ((s.name as any)?.name || '');
+      const cleanName = sName.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
       return cleanName.toLowerCase().includes(val.toLowerCase());
     });
     setFilteredServiceSuggestions(filtered.slice(0, 5));
   };
 
   const handleServiceSearchFocus = () => {
-    const val = builderItemName;
+    const val = typeof builderItemName === 'string' ? builderItemName : '';
     if (!val.trim()) {
       setFilteredServiceSuggestions([]);
       return;
     }
     const filtered = services.filter(s => !s.disabled).filter(s => {
-      const cleanName = s.name.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
+      const sName = typeof s.name === 'string' ? s.name : ((s.name as any)?.name || '');
+      const cleanName = sName.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
       return cleanName.toLowerCase().includes(val.toLowerCase());
     });
     setFilteredServiceSuggestions(filtered.slice(0, 5));
   };
 
   const selectServiceSuggestion = (svc: ServiceModule) => {
-    const cleanName = svc.name.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
+    const rawName = typeof svc.name === 'string' ? svc.name : ((svc.name as any)?.name || 'Service Item');
+    const cleanName = rawName.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim();
     setBuilderItemName(cleanName);
-    setBuilderItemPrice(String(svc.price || 100));
+    setBuilderItemPrice(String(svc.price !== undefined ? svc.price : 100));
+    setBuilderItemQuantity(1);
     setFilteredServiceSuggestions([]);
     triggerFeedback(`✅ Selected service: ${cleanName}`);
   };
@@ -359,18 +379,19 @@ export default function BillingView({
   };
 
   const handleAddOrUpdateItem = () => {
-    if (!builderItemName.trim()) {
+    const cleanBuilderName = extractItemName(builderItemName).trim();
+    if (!cleanBuilderName) {
       alert('অনুগ্রহ করে সার্ভিসের নাম লিখুন!');
       return;
     }
-    const priceNum = parseFloat(builderItemPrice) || 0;
-    const qty = builderItemQuantity || 1;
+    const priceNum = Math.max(0, parseFloat(builderItemPrice) || 0);
+    const qty = Math.max(1, builderItemQuantity || 1);
     const totalItemPrice = priceNum * qty;
     
     const qtyText = qty > 1 ? ` (${qty} pcs @ ₹${priceNum}/pc)` : '';
     const workText = builderWorkDone.trim() ? ` - Work: ${builderWorkDone.trim()}` : '';
     const descText = builderItemDescription.trim() ? ` - Note: ${builderItemDescription.trim()}` : '';
-    const finalName = `${builderItemName.trim()}${workText}${qtyText}${descText}`;
+    const finalName = `${cleanBuilderName}${workText}${qtyText}${descText}`;
     
     if (editingItemIndex !== null) {
       const updated = [...cartItems];
@@ -396,7 +417,7 @@ export default function BillingView({
         description: builderItemDescription.trim(),
         workDone: builderWorkDone.trim()
       };
-      const filteredCart = cartItems.filter(item => item.name.trim() !== '');
+      const filteredCart = cartItems.filter(item => extractItemName(item.name).trim() !== '');
       setCartItems([...filteredCart, newItem]);
       triggerFeedback('✅ Item successfully added!');
     }
@@ -411,16 +432,17 @@ export default function BillingView({
 
   const handleEditAddedItem = (index: number) => {
     const item = cartItems[index] as any;
+    const rawName = extractItemName(item.name);
     if (item.workDone !== undefined) {
-      setBuilderItemName(item.name.split(' - Work: ')[0] || item.name);
+      setBuilderItemName(rawName.split(' - Work: ')[0] || rawName);
       setBuilderWorkDone(item.workDone || '');
-      setBuilderItemPrice(String(item.unitPrice || item.price));
+      setBuilderItemPrice(String(item.unitPrice !== undefined ? item.unitPrice : item.price));
       setBuilderItemQuantity(item.quantity || 1);
       setBuilderItemDescription(item.description || '');
     } else {
-      const cleanName = item.name.split(' (')[0].split(' - ')[0];
+      const cleanName = rawName.split(' (')[0].split(' - ')[0];
       setBuilderItemName(cleanName);
-      setBuilderItemPrice(String(item.unitPrice || item.price));
+      setBuilderItemPrice(String(item.unitPrice !== undefined ? item.unitPrice : item.price));
       setBuilderItemQuantity(item.quantity || 1);
       setBuilderItemDescription(item.description || '');
       setBuilderWorkDone('');
@@ -699,7 +721,10 @@ export default function BillingView({
     }
 
     // Validate that there is at least one non-empty item
-    const validItems = cartItems.filter(item => item.name.trim() !== '');
+    const validItems = cartItems.filter(item => {
+      const n = extractItemName(item.name).trim();
+      return n !== '' && n !== '[object Object]';
+    });
     if (validItems.length === 0) {
       alert('অনুগ্রহ করে অন্তত একটি সার্ভিস বা কাজের নাম যুক্ত করুন।');
       return;
@@ -713,9 +738,9 @@ export default function BillingView({
     // No restriction on multiple invoice generation for the same customer on the same day as per user request.
     // We allow generating multiple bills under the same name/mobile and automatically update the profile.
 
-    const subtotal = validItems.reduce((sum, item) => sum + item.price, 0);
-    const finalDiscount = Math.min(discountAmount, subtotal);
-    const totalAmount = subtotal - finalDiscount;
+    const subtotal = validItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+    const finalDiscount = Math.min(Number(discountAmount) || 0, subtotal);
+    const totalAmount = Math.max(0, subtotal - finalDiscount);
 
     // Calculate sequential invoice code
     let nextInvoiceNum = 1;
@@ -734,9 +759,9 @@ export default function BillingView({
     // Build items payload
     const itemsPayload: InvoiceItem[] = validItems.map((item, idx) => ({
       id: `svc_item_${Date.now()}_${idx}`,
-      name: item.name.trim(),
-      quantity: item.quantity || 1,
-      price: item.price,
+      name: extractItemName(item.name).trim(),
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      price: Math.max(0, Number(item.price) || 0),
       gstRate: 0,
       discount: 0
     }));
@@ -1495,10 +1520,10 @@ Ledger Status  : ${activeInvoice.paymentStatus.toUpperCase()}
               <input
                 type="number" onWheel={(e) => e.currentTarget.blur()}
                 min={0}
-                value={builderItemPrice || ''}
-                onChange={(e) => setBuilderItemPrice(Number(e.target.value))}
+                value={builderItemPrice}
+                onChange={(e) => setBuilderItemPrice(e.target.value)}
                 placeholder=""
-                className="w-full text-xs font-bold py-2.5 px-3.5 rounded-xl border-2 border-pink-500/40 bg-white text-slate-900 focus:outline-none"
+                className="w-full text-xs font-bold py-2.5 px-3.5 rounded-xl border-2 border-pink-500/40 bg-white text-slate-900 focus:outline-none focus:border-pink-500"
               />
             </div>
 
@@ -1509,9 +1534,9 @@ Ledger Status  : ${activeInvoice.paymentStatus.toUpperCase()}
                 type="number" onWheel={(e) => e.currentTarget.blur()}
                 min={1}
                 value={builderItemQuantity}
-                onChange={(e) => setBuilderItemQuantity(Number(e.target.value))}
+                onChange={(e) => setBuilderItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 placeholder=""
-                className="w-full text-xs font-bold py-2.5 px-3.5 rounded-xl border-2 border-pink-500/40 bg-white text-slate-900 focus:outline-none"
+                className="w-full text-xs font-bold py-2.5 px-3.5 rounded-xl border-2 border-pink-500/40 bg-white text-slate-900 focus:outline-none focus:border-pink-500"
               />
             </div>
 
@@ -1525,6 +1550,22 @@ Ledger Status  : ${activeInvoice.paymentStatus.toUpperCase()}
                 placeholder=""
                 className="w-full text-xs font-bold py-2.5 px-3.5 rounded-xl border-2 border-pink-500/40 bg-white text-slate-900 focus:outline-none"
               />
+            </div>
+
+            {/* Live Calculation Preview */}
+            <div className="md:col-span-2 flex items-center justify-between p-3.5 rounded-xl bg-slate-950/70 border border-pink-500/25 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-slate-300 font-bold text-[11px]">
+                  আইটেম হিসাব (Item Total Preview):
+                </span>
+              </div>
+              <span className="font-mono font-black text-emerald-400 text-sm">
+                ₹{((parseFloat(builderItemPrice) || 0) * (builderItemQuantity || 1)).toFixed(2)}
+                <span className="text-[10px] text-slate-400 font-normal ml-2 font-sans">
+                  (₹{parseFloat(builderItemPrice) || 0} × {builderItemQuantity || 1} Unit)
+                </span>
+              </span>
             </div>
           </div>
 
@@ -1725,7 +1766,7 @@ Ledger Status  : ${activeInvoice.paymentStatus.toUpperCase()}
                       {index + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-black text-slate-200 truncate">{item.name}</p>
+                      <p className="text-xs font-black text-slate-200 truncate">{extractItemName(item.name)}</p>
                       {item.description && (
                         <p className="text-[9px] text-slate-500 font-medium truncate mt-0.5">
                           📝 {item.description}
@@ -2123,7 +2164,7 @@ Ledger Status  : ${activeInvoice.paymentStatus.toUpperCase()}
                     {activeInvoice.items.map((item, index) => (
                       <div key={index} className="grid grid-cols-12 gap-2 text-[10px] text-slate-800 font-bold border-b border-slate-50 pb-2">
                         <span className="col-span-1 font-mono text-slate-400">{index + 1}</span>
-                        <span className="col-span-9">{item.name}</span>
+                        <span className="col-span-9">{extractItemName(item.name)}</span>
                         <span className="col-span-2 text-right font-mono text-slate-900">₹{item.price}</span>
                       </div>
                     ))}

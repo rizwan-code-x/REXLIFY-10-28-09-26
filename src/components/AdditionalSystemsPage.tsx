@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActiveView } from './Navbar';
 import { RexlifyLogo, SifraLogo, NeuraxLogo } from './Logo';
+import { APP_LINKS } from '../config/appLinks';
 
 interface AdditionalSystemsPageProps {
   setView: (view: ActiveView) => void;
@@ -278,8 +279,12 @@ export const AdditionalSystemsPage: React.FC<AdditionalSystemsPageProps> = ({ se
   });
 
   const handleOpenApp = (app: AppStoreItem) => {
-    if (app.iconType === 'noorax') {
-      setNooraxModalOpen(true);
+    if (app.iconType === 'noorax' || app.id === 'app-noorax-ai') {
+      window.open(APP_LINKS.noorax, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (app.iconType === 'neurax' || app.id === 'app-neurax') {
+      window.open(APP_LINKS.neurax, '_blank', 'noopener,noreferrer');
       return;
     }
     setView(app.actionView);

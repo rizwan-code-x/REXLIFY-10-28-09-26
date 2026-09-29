@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { Layers, Star, Cpu, ShieldCheck, Zap, Sparkles } from 'lucide-react';
 import { ProductItem } from '../../types';
 import { NeuraxLogo, SifraLogo, NooraxLogo } from '../Logo';
+import { APP_LINKS } from '../../config/appLinks';
+import { SIFRA_AI_LIVE_URL } from '../ExploreAppsHub';
 
 const fadeInUpVariants = {
   hidden: { opacity: 0, y: 35 },
@@ -120,6 +122,18 @@ export const ProductsPage: React.FC<{ products: ProductItem[] }> = () => {
                   <span className="text-purple-300 font-bold">{spec.value}</span>
                 </div>
               ))}
+            </div>
+
+            <div className="pt-4">
+              <a
+                href={prod.id === 'noorax-vision' ? APP_LINKS.noorax : SIFRA_AI_LIVE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all"
+              >
+                <span>Launch {prod.name}</span>
+                <span>&rarr;</span>
+              </a>
             </div>
           </motion.div>
         ))}

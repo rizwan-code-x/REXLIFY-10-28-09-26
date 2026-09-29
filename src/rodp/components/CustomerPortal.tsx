@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playBookingSuccessSound } from '../lib/audioService';
-import { Appointment, Invoice, DocumentVaultItem, NotificationLog, Task, ServiceModule, AIKnowledgeItem } from '../types';
+import { Appointment, Invoice, DocumentVaultItem, NotificationLog, Task, ServiceModule, AIKnowledgeItem, Notice } from '../types';
 import { MOCK_SHOPS } from '../mockData';
 
 interface CustomerPortalProps {
@@ -21,6 +21,7 @@ interface CustomerPortalProps {
   invoices: Invoice[];
   vault: DocumentVaultItem[];
   notifications: NotificationLog[];
+  notices?: Notice[];
   addAppointment: (app: Appointment) => void;
   addVaultItem: (item: DocumentVaultItem) => void;
   deleteVaultItem?: (id: string) => void;
@@ -877,7 +878,8 @@ export default function CustomerPortal({
   setLanguageSetting: propSetLanguageSetting,
   services,
   aiKnowledge = [],
-  shops = []
+  shops = [],
+  notices = []
 }: CustomerPortalProps) {
   
   // Dynamic services list: falls back to static SHOP_SERVICES if empty
@@ -1151,6 +1153,7 @@ export default function CustomerPortal({
       id: `apt_ai_${Date.now()}`,
       tokenNumber: tokenNum,
       name: currentUser.name || 'Customer',
+      customerName: currentUser.name || 'Customer',
       mobileNumber: currentUser.mobile || '9593388785',
       serviceType: pendingCaptchaBookingData?.serviceType || '🆔 Digital CSC Service',
       date: pendingCaptchaBookingData?.date || new Date().toISOString().split('T')[0],
@@ -1158,6 +1161,8 @@ export default function CustomerPortal({
       status: 'Pending',
       centerId: branchId,
       shopId: branchId,
+      branchId: branchId,
+      branchName: branchName,
       createdAt: new Date().toISOString(),
       price: 150
     };
@@ -1642,13 +1647,16 @@ export default function CustomerPortal({
     const newAppointment: Appointment = {
       id: refId,
       name: wizardFullName || profileName || currentUser.name || 'Rizwan Customer',
+      customerName: wizardFullName || profileName || currentUser.name || 'Rizwan Customer',
       mobileNumber: wizardMobile || profileMobile || currentUser.mobile || '+91 9999999999',
       serviceType: `${wizardService.name} - ${selectedSubService}`,
       date: new Date().toISOString().split('T')[0],
       timeSlot: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'In Progress',
       notes: wizardCustomDetail || `Online Self-Booking for ${selectedSubService}`,
-      shopId: 'rodp_main_shop',
+      shopId: 'shop_1',
+      branchId: 'shop_1',
+      branchName: 'RIZWAN ONLINE DREAMS (Head Office)',
       createdAt: new Date().toISOString()
     };
 
@@ -2128,6 +2136,64 @@ export default function CustomerPortal({
                   </div>
                 </div>
               </div>
+
+              {/* LIVE NOTICES & OFFICIAL BROADCASTS SECTION (Points 07, 09) */}
+              {notices && notices.filter(n => n.status !== 'inactive').length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-[#dfac5d] uppercase tracking-widest flex items-center gap-1.5">
+                      <BellRing size={12} className="text-amber-400 animate-bounce" />
+                      লাইভ নোটিশ ও ঘোষণা (Official Notices)
+                    </span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                      Live Realtime Sync
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {notices.filter(n => n.status !== 'inactive').map((notice) => (
+                      <div 
+                        key={notice.id} 
+                        className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-900/60 to-purple-950/20 border border-amber-500/30 backdrop-blur-xl relative overflow-hidden group shadow-lg"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {notice.noticeType && (
+                                <span className="px-2 py-0.5 text-[8px] font-black uppercase rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                                  {notice.noticeType}
+                                </span>
+                              )}
+                              <h4 className="text-xs font-black text-amber-200 tracking-tight">
+                                {notice.title}
+                              </h4>
+                            </div>
+                            <p className="text-[11px] text-slate-300 font-medium leading-relaxed whitespace-pre-line">
+                              {notice.body}
+                            </p>
+                            {notice.tagline && (
+                              <p className="text-[9px] text-[#dfac5d] font-bold italic mt-1">
+                                📌 {notice.tagline}
+                              </p>
+                            )}
+                          </div>
+                          {notice.rate && (
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 font-mono font-black text-amber-400 text-xs shrink-0">
+                              {notice.rate}
+                            </span>
+                          )}
+                        </div>
+                        {notice.createdAt && (
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[8px] text-slate-500 font-mono">
+                            <span>Notice ID: {notice.noticeNumber || notice.id.slice(-6)}</span>
+                            <span>{new Date(notice.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* TWO LARGE ACTION CARDS SIDE-BY-SIDE */}
               <div className="grid grid-cols-2 gap-3">

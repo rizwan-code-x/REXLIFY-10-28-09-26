@@ -14,6 +14,7 @@ import {
 import { Application } from '../types';
 import { NeuraxLogo, SifraLogo, NooraxLogo, RexlifyLogo, RodpLogo } from './Logo';
 import { useToast } from '../context/ToastContext';
+import { APP_LINKS } from '../config/appLinks';
 
 interface ExploreAppsHubProps {
   applications: Application[];
@@ -171,8 +172,14 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
     }
 
     if (app.id === 'neurax' || app.id.toLowerCase().includes('neurax')) {
-      setView('neurax');
-      toastSuccess('Launching NeuraX AI', 'Entering high-velocity neural core workspace.');
+      window.open(APP_LINKS.neurax, '_blank', 'noopener,noreferrer');
+      toastSuccess('Launching NeuraX', 'Opening official live NeuraX engine.');
+      return;
+    }
+
+    if (app.id === 'noorax' || app.id.toLowerCase().includes('noorax')) {
+      window.open(APP_LINKS.noorax, '_blank', 'noopener,noreferrer');
+      toastSuccess('Launching NoorAX', 'Opening official live NoorAX Islamic AI platform.');
       return;
     }
 
@@ -478,6 +485,28 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
                       >
                         <ExternalLink size={13} />
                         <span>Launch Sifra AI</span>
+                      </a>
+                    ) : isNeuraX ? (
+                      <a
+                        href={APP_LINKS.neurax}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Open NeuraX</span>
+                      </a>
+                    ) : isNoorax ? (
+                      <a
+                        href={APP_LINKS.noorax}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Open NoorAX</span>
                       </a>
                     ) : isLive ? (
                       <button
@@ -1119,16 +1148,25 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
                       Launch Sifra AI
                     </button>
                   ) : selectedAppModal.id === 'neurax' ? (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        setView('neurax');
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
+                    <a
+                      href={APP_LINKS.neurax}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
                     >
-                      <ArrowUpRight size={14} />
+                      <ExternalLink size={14} />
                       Launch NeuraX AI
-                    </button>
+                    </a>
+                  ) : selectedAppModal.id === 'noorax' ? (
+                    <a
+                      href={APP_LINKS.noorax}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
+                    >
+                      <ExternalLink size={14} />
+                      Launch NoorAX AI
+                    </a>
                   ) : selectedAppModal.id.includes('rizwan-innovation') || selectedAppModal.id.includes('rizwan-enovation') ? (
                     <button
                       onClick={() => {

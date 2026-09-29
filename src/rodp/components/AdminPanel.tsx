@@ -305,7 +305,8 @@ export default function AdminPanel({
   const handleClearanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setClearanceError(null);
-    if (clearancePassword === 'RTX@ROD007') {
+    const cPass = clearancePassword.trim();
+    if (cPass === 'RTX@ROD007' || cPass === 'Rizwan@REXLIFY007' || cPass === 'RTX@0012352' || cPass === 'RODP@RRR123') {
       setIsCleared(true);
     } else {
       setClearanceError('❌ INVALID ACCESS TOKEN: CEO Clearance Refused.');
@@ -1617,11 +1618,11 @@ export default function AdminPanel({
                   <div className="space-y-1.5 text-[11px]">
                     <h4 className={`font-black text-xs ${textPrimaryClass} flex items-center gap-1.5`}>
                       <User size={13} className="text-amber-500" />
-                      <span>{appt.name}</span>
+                      <span>{appt.name || appt.customerName || 'Customer'}</span>
                     </h4>
                     <p className="opacity-70 flex items-center gap-1.5 font-semibold">
                       <Phone size={11} />
-                      <span>{appt.mobileNumber || appt.mobile}</span>
+                      <span>{appt.mobileNumber || appt.customerMobile || appt.mobile || 'N/A'}</span>
                     </p>
                     {appt.address && (
                       <p className="opacity-60 flex items-center gap-1.5 truncate text-[10px]">

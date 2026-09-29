@@ -505,7 +505,7 @@ export default function CeoBranchVaultView({
             <span>CEO AUTHENTICATED</span>
           </div>
           <p className="text-[9px] font-mono text-slate-500 dark:text-slate-400 mt-1">
-            Passkey: RTX@ROD007 Clearance
+            Passkey: RTX@RODP007 Clearance
           </p>
         </div>
       </div>

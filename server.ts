@@ -36,13 +36,24 @@ function getSupabase() {
 // Auth API to hide passwords
 app.post('/api/auth/login', (req, res) => {
   const { role, password } = req.body;
-  if (role === 'ceo' && password === 'REXLIFY@RRR0012352') {
+  const trimmed = (password || '').trim();
+  if (role === 'ceo' && trimmed === 'Rizwan@REXLIFY007') {
     return res.json({ success: true, token: 'ceo-token-valid' });
-  } else if (role === 'teacher' && password === 'RTECH@1234') {
+  } else if (role === 'teacher' && trimmed === 'RTECH@1234') {
     return res.json({ success: true, token: 'teacher-token-valid' });
-  } else if (role === 'rexlify-ai' && (password === 'RRR@123' || password === 'RTECH@123')) {
+  } else if (role === 'rexlify-ai' && (trimmed === 'RRR@123' || trimmed === 'RTECH@123')) {
     return res.json({ success: true, token: 'rexlify-ai-token-valid' });
-  } else if (role === 'rodp-admin' && password === 'RODP@RRR123') {
+  } else if (
+    role === 'rodp-admin' && 
+    (
+      trimmed === 'RTX@0012352' || 
+      trimmed === 'RTX@ROD007' || 
+      trimmed === 'ROD001' || 
+      trimmed.toUpperCase() === 'ROD001' || 
+      trimmed === 'RODP@RRR123' || 
+      trimmed === 'Rizwan@REXLIFY007'
+    )
+  ) {
     return res.json({ success: true, token: 'rodp-admin-token-valid' });
   }
   return res.status(401).json({ success: false, error: 'Invalid Credentials' });

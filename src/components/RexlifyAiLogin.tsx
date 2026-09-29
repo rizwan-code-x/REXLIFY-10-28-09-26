@@ -33,7 +33,7 @@ export const RexlifyAiLogin: React.FC<RexlifyAiLoginProps> = ({ setView, onSucce
         console.error("Error fetching password from RTDB:", err);
       }
 
-      if (password === validPassword || password === 'RTECH@123' || password === 'REXLIFY@RRR0012352') {
+      if (password === validPassword || password === 'RTECH@123' || password === 'Rizwan@REXLIFY007') {
         onSuccess();
         setView('rexlify-ai');
       } else {

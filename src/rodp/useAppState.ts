@@ -289,6 +289,79 @@ export function useAppState() {
     };
   }, []);
 
+  // Universal Firebase Realtime Database Synchronization (Points 06-16)
+  // Ensures instant bidirectional synchronization between Admin/CEO Panel and User Apps without manual reload
+  useEffect(() => {
+    let unsubAppts: (() => void) | null = null;
+    let unsubNotices: (() => void) | null = null;
+    let unsubInvoices: (() => void) | null = null;
+
+    import('../firebase-rexlify').then(({ rtdb }) => {
+      if (!rtdb) return;
+      import('firebase/database').then(({ ref, onValue }) => {
+        // 1. Realtime Appointments Listener (Admin & User reflection)
+        const apptRef = ref(rtdb, 'rodp_appointments');
+        unsubAppts = onValue(apptRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setAppointments([]);
+            localStorage.setItem('rodp_appointments', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: Appointment[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            setAppointments(list);
+            localStorage.setItem('rodp_appointments', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB appointments stream warning:', err));
+
+        // 2. Realtime Notices Listener (CEO/Admin -> User App reflection)
+        const noticeRef = ref(rtdb, 'rodp_notices');
+        unsubNotices = onValue(noticeRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setNotices([]);
+            localStorage.setItem('rodp_notices', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: Notice[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            setNotices(list);
+            localStorage.setItem('rodp_notices', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB notices stream warning:', err));
+
+        // 3. Realtime Invoices Listener
+        const invRef = ref(rtdb, 'rodp_invoices');
+        unsubInvoices = onValue(invRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setInvoices([]);
+            localStorage.setItem('rodp_invoices', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: Invoice[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            setInvoices(list);
+            localStorage.setItem('rodp_invoices', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB invoices stream warning:', err));
+      });
+    }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
+
+    return () => {
+      if (unsubAppts) unsubAppts();
+      if (unsubNotices) unsubNotices();
+      if (unsubInvoices) unsubInvoices();
+    };
+  }, []);
+
   const loadLocalFallbacks = () => {
     // Local storage sync
     const getOrSet = (key: string, defaultVal: any) => {
@@ -622,19 +695,18 @@ export function useAppState() {
     appointments,
     addAppointment: async (record: Appointment) => {
       await addRecord('appointments', record, setAppointments, appointments);
-      // Sync to New Realtime Database for cross-panel visibility
+      // Sync to Realtime Database for instant cross-panel visibility (Points 11, 15)
       import('../firebase-rexlify').then(async ({ rtdb }) => {
-        const { push, ref } = await import('firebase/database');
         if (rtdb) {
-          const apptRef = ref(rtdb, 'rodp_appointments');
-          push(apptRef, {
+          const { set, ref } = await import('firebase/database');
+          const apptRef = ref(rtdb, 'rodp_appointments/' + record.id);
+          set(apptRef, {
             ...record,
-            createdAt: Date.now()
+            updatedAt: Date.now()
           }).catch(err => console.error("RTDB Sync error:", err));
         }
       }).catch(err => console.error("Could not load RTDB", err));
 
-      
       // Sync to Google Workspace if active token is set
       const token = getWorkspaceToken();
       if (token) {
@@ -678,7 +750,27 @@ export function useAppState() {
         }
       }
     },
-    updateAppointment: (id: string, updates: any) => updateRecord('appointments', id, updates, setAppointments, appointments),
+    updateAppointment: (id: string, updates: any) => {
+      updateRecord('appointments', id, updates, setAppointments, appointments);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_appointments/' + id), {
+            ...updates,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB appt update warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
+    deleteAppointment: (id: string) => {
+      deleteRecord('appointments', id, setAppointments, appointments);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_appointments/' + id)).catch(err => console.warn('RTDB appt delete warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
     
     tasks,
     addTask: (record: Task) => addRecord('tasks', record, setTasks, tasks),
@@ -699,9 +791,39 @@ export function useAppState() {
     updateStaff: (id: string, updates: any) => updateRecord('staff', id, updates, setStaff, staff),
     
     invoices,
-    addInvoice: (record: Invoice) => addRecord('invoices', record, setInvoices, invoices),
-    updateInvoice: (id: string, updates: any) => updateRecord('invoices', id, updates, setInvoices, invoices),
-    deleteInvoice,
+    addInvoice: (record: Invoice) => {
+      addRecord('invoices', record, setInvoices, invoices);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_invoices/' + record.id), {
+            ...record,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB invoice save error:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
+    updateInvoice: (id: string, updates: any) => {
+      updateRecord('invoices', id, updates, setInvoices, invoices);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_invoices/' + id), {
+            ...updates,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB invoice update error:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
+    deleteInvoice: (invoice: Invoice) => {
+      deleteInvoice(invoice);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_invoices/' + invoice.id)).catch(err => console.warn('RTDB invoice delete error:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
 
     trashItems,
     addTrashItem,
@@ -727,9 +849,39 @@ export function useAppState() {
     deleteAIKnowledgeItem: (id: string) => deleteRecord('aiKnowledge', id, setAiKnowledge, aiKnowledge),
     
     notices,
-    addNotice: (record: Notice) => addRecord('notices', record, setNotices, notices),
-    updateNotice: (id: string, updates: any) => updateRecord('notices', id, updates, setNotices, notices),
-    deleteNotice: (id: string) => deleteRecord('notices', id, setNotices, notices),
+    addNotice: (record: Notice) => {
+      addRecord('notices', record, setNotices, notices);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_notices/' + record.id), {
+            ...record,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB notice save warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
+    updateNotice: (id: string, updates: any) => {
+      updateRecord('notices', id, updates, setNotices, notices);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_notices/' + id), {
+            ...updates,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB notice update warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
+    deleteNotice: (id: string) => {
+      deleteRecord('notices', id, setNotices, notices);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_notices/' + id)).catch(err => console.warn('RTDB notice remove warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB', err));
+    },
 
     inquiries,
     addInquiry: (record: Inquiry) => addRecord('inquiries', record, setInquiries, inquiries),

@@ -12,6 +12,7 @@ import { Interactive3DTiltCard } from './Interactive3DTiltCard';
 import { Language, TRANSLATIONS } from '../translations';
 import { QuickAccessSection } from './QuickAccessSection';
 import { ComingSoonModal, ComingSoonProduct } from './ComingSoonModal';
+import { APP_LINKS } from '../config/appLinks';
 
 interface HeroProps {
   heroTitle: string;
@@ -273,31 +274,41 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               </div>
 
-              {/* Card 2: NeuraX AI - Triggers Coming Soon Modal */}
-              <div 
-                onClick={() => setActiveComingSoon(neuraxProduct)}
-                className="flex items-center gap-2.5 p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all duration-300 cursor-pointer group" 
-                title="NeuraX Core - Coming Soon"
+              {/* Card 2: NeuraX AI - Live Official Web App */}
+              <a 
+                href={APP_LINKS.neurax}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-400 hover:bg-amber-500/20 transition-all duration-300 cursor-pointer group shadow-lg shadow-amber-950/20 active:scale-95" 
+                title="NeuraX Core - Launch Official Web Application"
               >
                 <NeuraxLogo size={32} />
                 <div className="text-left font-mono truncate">
-                  <div className="text-xs font-bold text-white group-hover:text-rose-300 truncate">NeuraX AI</div>
-                  <div className="text-[9px] text-amber-400 font-semibold">Coming Soon</div>
+                  <div className="text-xs font-bold text-white group-hover:text-amber-300 truncate">NeuraX AI</div>
+                  <div className="text-[9px] text-amber-400 font-semibold flex items-center gap-1">
+                    <span>Open</span>
+                    <span>&rarr;</span>
+                  </div>
                 </div>
-              </div>
+              </a>
 
-              {/* Card 3: NoraX AI / Noorax Vision - Triggers Coming Soon Modal */}
-              <div 
-                onClick={() => setActiveComingSoon(nooraxProduct)}
-                className="flex items-center gap-2.5 p-3 rounded-2xl bg-pink-500/5 border border-pink-500/20 hover:border-pink-500/50 hover:bg-pink-500/15 transition-all duration-300 cursor-pointer group" 
-                title="Noorax Vision / NoraX AI - Coming Soon"
+              {/* Card 3: NoorAX AI - Live Official Islamic AI Platform */}
+              <a 
+                href={APP_LINKS.noorax}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/20 transition-all duration-300 cursor-pointer group shadow-lg shadow-emerald-950/20 active:scale-95" 
+                title="NoorAX Vision - Launch Official Islamic AI Platform"
               >
                 <NooraxLogo size={32} />
                 <div className="text-left font-mono truncate">
-                  <div className="text-xs font-bold text-white group-hover:text-pink-300 truncate">NoraX AI</div>
-                  <div className="text-[9px] text-amber-400 font-semibold">Coming Soon</div>
+                  <div className="text-xs font-bold text-white group-hover:text-emerald-300 truncate">NoorAX AI</div>
+                  <div className="text-[9px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <span>Open</span>
+                    <span>&rarr;</span>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               {/* Card 4: ROD Platform (Rizwan Online Dreams Platform - RODP) */}
               <div 

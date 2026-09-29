@@ -61,6 +61,7 @@ export interface Shop {
   branchDescription?: string; // Branch description
   distanceFromHeadOffice?: string; // Distance from Head Office e.g. "0 km", "3 km", "7 km"
   geoCoords?: { lat: number; lng: number };
+  profileConfirmed?: boolean;
 }
 
 export interface ServiceModule {
@@ -98,6 +99,10 @@ export interface Appointment {
   paymentStatus?: string;
   price?: number;
   centerId?: string;
+  customerName?: string;
+  shopName?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface Task {
@@ -203,6 +208,11 @@ export interface Invoice {
   remainingBalance?: number;
   payments?: PaymentHistoryItem[];
   lastPaymentDate?: string;
+  paymentDueDate?: string;
+  promiseNote?: string;
+  branchName?: string;
+  isSyncedToSheets?: boolean;
+  sheetSyncedAt?: string;
   notes?: string;
   generatedBy?: string;
 }

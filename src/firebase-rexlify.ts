@@ -1,20 +1,21 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getDatabase, ref, push, onValue } from "firebase/database";
+import { getDatabase, ref, push, onValue, set, update, get } from "firebase/database";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDATj8_GldGciQ33guPCQrAj3IxtTwYlaQ",
-  authDomain: "rexlify.firebaseapp.com",
-  databaseURL: "https://rexlify-default-rtdb.firebaseio.com",
-  projectId: "rexlify",
-  storageBucket: "rexlify.firebasestorage.app",
-  messagingSenderId: "534760684113",
-  appId: "1:534760684113:web:e44169db00403da57f1670",
-  measurementId: "G-R76EFXWSG0"
+  apiKey: "AIzaSyBZdP1OCLY6-NmERN_ORGppIWaWyzYMeyY",
+  authDomain: "rexlify-508511.firebaseapp.com",
+  databaseURL: "https://rexlify-508511-default-rtdb.firebaseio.com",
+  projectId: "rexlify-508511",
+  storageBucket: "rexlify-508511.firebasestorage.app",
+  messagingSenderId: "216051445770",
+  appId: "1:216051445770:web:8e4f4450f8d68920e6aff3",
+  measurementId: "G-VDZRLGXW7N"
 };
 
-const app = initializeApp(firebaseConfig, "rexlify-custom");
+const existingApps = getApps();
+const app = existingApps.find(a => a.name === "rexlify-custom") || initializeApp(firebaseConfig, "rexlify-custom");
 let analyticsInstance: any = null;
 if (typeof window !== 'undefined') {
   try {

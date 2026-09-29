@@ -672,7 +672,14 @@ export default function LoginView({
     }
 
     const enteredPass = ceoPassword.trim();
-    if (enteredPass === 'RTX@0012352' || enteredPass === 'RTX@ROD007' || enteredPass === 'ROD001' || enteredPass.toUpperCase() === 'ROD001') {
+    if (
+      enteredPass === 'Rizwan@REXLIFY007' || 
+      enteredPass === 'RTX@0012352' || 
+      enteredPass === 'RTX@ROD007' || 
+      enteredPass === 'ROD001' || 
+      enteredPass.toUpperCase() === 'ROD001' || 
+      enteredPass === 'RODP@RRR123'
+    ) {
       setCeoFailCount(0);
       setCeoLockoutUntil(0);
       localStorage.removeItem('rodp_ceo_fail_count');

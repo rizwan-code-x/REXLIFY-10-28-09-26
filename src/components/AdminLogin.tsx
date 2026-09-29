@@ -97,6 +97,9 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ setView, onLoginSuccess 
           localStorage.removeItem('rexlify_admin_lockout_until');
           if (loginMode === 'ceo') {
             onLoginSuccess('ceo');
+            localStorage.setItem('rodp_logged_in', 'true');
+            localStorage.setItem('rodp_logged_in_user', JSON.stringify({ role: 'super_admin', name: 'Rizwan RR (CEO)', email: 'rizwanroushan0@gmail.com' }));
+            localStorage.setItem('rodp_target_tab', 'super_admin_panel');
             setView('admin-dashboard');
           } else if (loginMode === 'teacher') {
             onLoginSuccess('teacher');
@@ -107,7 +110,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ setView, onLoginSuccess 
           } else if (loginMode === 'rodp-admin') {
             // Auto-login to RODP as super_admin
             localStorage.setItem('rodp_logged_in', 'true');
-            localStorage.setItem('rodp_logged_in_user', JSON.stringify({ role: 'super_admin', name: 'Rizwan Roushan', email: 'rtsuroj@gmail.com' }));
+            localStorage.setItem('rodp_logged_in_user', JSON.stringify({ role: 'super_admin', name: 'Rizwan RR (CEO)', email: 'rizwanroushan0@gmail.com' }));
+            localStorage.setItem('rodp_target_tab', 'super_admin_panel');
             onLoginSuccess('rodp-admin');
             setView('rodp');
           }

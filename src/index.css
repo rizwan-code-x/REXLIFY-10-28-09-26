@@ -16,6 +16,19 @@
   --color-burgundy-light: #f43f5e;
 }
 
+/* Smooth Rendering & Hardware Acceleration Fix */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-card, .animated-block, .glassmorphic-card, .interactive-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
 @layer base {
   html, body {
     background-color: #0a0a0f;

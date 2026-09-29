@@ -175,7 +175,21 @@ export default function App({ onBack }: AppProps = {}) {
     return true;
   })();
 
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [currentTab, setCurrentTab] = useState(() => {
+    const target = localStorage.getItem('rodp_target_tab');
+    if (target) {
+      localStorage.removeItem('rodp_target_tab');
+      return target;
+    }
+    const raw = localStorage.getItem('rodp_logged_in_user');
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        if (u.role === 'super_admin') return 'super_admin_panel';
+      } catch (e) {}
+    }
+    return 'dashboard';
+  });
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -1126,6 +1140,7 @@ export default function App({ onBack }: AppProps = {}) {
             services={services}
             aiKnowledge={aiKnowledge}
             shops={shops}
+            notices={notices}
           />
         );
       case 'ai_assistant':

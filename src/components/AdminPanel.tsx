@@ -16,6 +16,13 @@ import {
   Send, Briefcase, ShoppingBag, PenTool, PlayCircle, Maximize2, Minimize2, HelpCircle
 , Users } from 'lucide-react';
 import { 
+  subscribeRODPApplications, 
+  updateRODPApplicationStatus, 
+  deleteRODPApplication, 
+  submitRODPApplication, 
+  RODPApplication 
+} from '../services/rodpService';
+import { 
   Application, Update, Project, DocArticle, UserMessage, SEOSettings, WebsiteContent, AppStatus, ProjectStatus, UpdateCategory, DocCategory,
   ServiceItem, ProductItem, BlogItem, VideoCenterItem, AdvertisementItem, SocialMediaLink, FAQItem
 } from '../types';
@@ -130,6 +137,7 @@ interface AdminPanelProps {
   socialMediaLinks: SocialMediaLink[];
   onUpdateSocialMediaLinks: (links: SocialMediaLink[]) => void;
   onLogout: () => void;
+  onNavigateToRodp?: () => void;
 }
 
 
@@ -144,7 +152,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateFaqs, onUpdateMessages, onUpdateSEO, onUpdateContent, onUpdateServices, onUpdateProducts,
   onUpdateBlogPosts, onUpdateVideos, onUpdateAds, onUpdateMaintenanceMode,
   onUpdateShowcaseScreenshots, onUpdatePlatformFeatures, onUpdateApkDownloadLink,
-  onUpdateCustomUiComponents, onUpdateSocialMediaLinks, onLogout
+  onUpdateCustomUiComponents, onUpdateSocialMediaLinks, onLogout, onNavigateToRodp
 }) => {
 
   const [sysStatus, setSysStatus] = useState({
@@ -1369,6 +1377,7 @@ We have completed our latest cycle on: ${topic}.`
   // Sidebar list definitions
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Sliders size={15} /> },
+    { id: 'rodp-portal', label: 'RODP Portal Access', icon: <ShieldAlert size={15} className="text-amber-400" /> },
     { id: 'sifra-ai', label: 'Sifra AI Studio', icon: <Sparkles size={15} className="text-amber-400 animate-pulse" /> },
     { id: 'applications', label: 'App Manager', icon: <Cpu size={15} /> },
     { id: 'architecture', label: 'Architecture & Features', icon: <Layers size={15} /> },
@@ -1388,8 +1397,22 @@ We have completed our latest cycle on: ${topic}.`
     { id: 'institute', label: 'Institute & Feedback', icon: <Users size={15} /> },
   ];
 
+  // RODP Portal Live Applications State (Restricted to verified CEO session)
+  const [rodpApps, setRodpApps] = useState<RODPApplication[]>([]);
+  const [rodpFilter, setRodpFilter] = useState<'all' | 'pending' | 'in_progress' | 'approved' | 'rejected'>('all');
+  const [isSimulatingRODP, setIsSimulatingRODP] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeRODPApplications((apps) => {
+      setRodpApps(apps);
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
   // FAQ Management State
-    // Feedback and Institute Apps state
+  // Feedback and Institute Apps state
   const [studentApps, setStudentApps] = useState<any[]>([]);
   const [instituteFeedbacks, setInstituteFeedbacks] = useState<any[]>([]);
 
@@ -1544,6 +1567,63 @@ We have completed our latest cycle on: ${topic}.`
             <div className="text-left space-y-1">
               <h1 className="font-sora text-3xl font-extrabold text-white tracking-tight">System Status Brief</h1>
               <p className="text-pink-200/70 text-xs font-light">Comprehensive analysis of the REXLIFY physical distribution framework.</p>
+            </div>
+
+            {/* RODP Seamless Portal Direct Access Hero Banner for Verified CEO */}
+            <div className="bg-gradient-to-r from-amber-950/70 via-orange-950/40 to-yellow-950/40 backdrop-blur-2xl p-6 sm:p-8 rounded-[2.5rem] border border-amber-500/40 relative overflow-hidden shadow-[0_0_35px_rgba(245,158,11,0.2)]">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none" />
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                <div className="space-y-2 text-left">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider">
+                      CEO SEAMLESS DIRECT ACCESS
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                      Zero Additional Password Required
+                    </span>
+                  </div>
+                  <h3 className="font-sora text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    RODP Admin Portal Access
+                  </h3>
+                  <p className="text-amber-200/80 text-xs font-light max-w-2xl leading-relaxed">
+                    Direct cryptographic gateway into the Rizwan Online Dreams Platform admin matrix. Manage live client applications, retail operations, customer CRM, staff logs, and billing ledger with Chief Executive authority.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    id="ceo-switch-rodp-tab-btn"
+                    onClick={() => setActiveTab('rodp-portal')}
+                    className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer hover:border-amber-400/50"
+                  >
+                    View Live Requests ({rodpApps.length})
+                  </button>
+
+                  <button
+                    type="button"
+                    id="ceo-direct-rodp-portal-btn"
+                    onClick={() => {
+                      localStorage.setItem('rodp_logged_in', 'true');
+                      localStorage.setItem('rodp_logged_in_user', JSON.stringify({
+                        role: 'super_admin',
+                        name: 'Rizwan RR (CEO)',
+                        email: 'rizwanroushan0@gmail.com'
+                      }));
+                      localStorage.setItem('rodp_target_tab', 'super_admin_panel');
+                      if (onNavigateToRodp) {
+                        onNavigateToRodp();
+                      }
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-black font-sora font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-xl shadow-amber-500/30 hover:scale-105 flex items-center gap-2 cursor-pointer"
+                  >
+                    <ShieldAlert size={16} />
+                    <span>Open RODP Admin Panel</span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             
@@ -2002,7 +2082,350 @@ We have completed our latest cycle on: ${topic}.`
           </div>
         )}
 
-        {/* ----------------- NEWSLETTER SUBSCRIBERS PANEL ----------------- */}
+        {/* ----------------- RODP PORTAL ACCESS & REALTIME REQUESTS (CEO RESTRICTED) ----------------- */}
+        {activeTab === 'rodp-portal' && (
+          <div className="space-y-10 animate-fadeIn text-left">
+            {/* Top Header */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b border-pink-500/20 pb-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldAlert size={12} className="text-amber-400" />
+                    RESTRICTED CEO CONSOLE
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    Realtime Firebase RTDB Stream Active
+                  </span>
+                </div>
+                <h1 className="font-sora text-3xl md:text-4xl font-black text-white tracking-tight">
+                  RODP Portal Access & Live Pipeline
+                </h1>
+                <p className="text-amber-200/70 text-sm font-light max-w-2xl leading-relaxed">
+                  Full super administrative surveillance of the Rizwan Online Dreams Platform. Direct seamless dashboard transition with zero password friction and real-time live application handling.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  id="simulate-rodp-app-btn"
+                  onClick={async () => {
+                    setIsSimulatingRODP(true);
+                    const sampleServices = [
+                      'Aadhaar Biometric Correction',
+                      'PAN Card Fasttrack Filing',
+                      'CSC Digital Seva Registration',
+                      'West Bengal Khadyasathi E-KYC',
+                      'Instant Passport Courier Form'
+                    ];
+                    const randomService = sampleServices[Math.floor(Math.random() * sampleServices.length)];
+                    const sampleNames = ['Tanmoy Ghosh', 'Farhana Yasmin', 'Bikash Mondal', 'Sumitra Sen', 'Md. Asif Ikbal'];
+                    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+                    const randomMobile = '98' + Math.floor(10000000 + Math.random() * 90000000);
+                    
+                    const res = await submitRODPApplication({
+                      applicantName: randomName,
+                      contactNumber: randomMobile,
+                      serviceRequested: randomService,
+                      branchName: 'Head Office (ROD001)',
+                      status: 'pending',
+                      notes: 'Online digital token generated via client self-serve matrix.'
+                    });
+                    setIsSimulatingRODP(false);
+                    if (res.success) {
+                      triggerToast('⚡ Test service request dispatched to Firebase RTDB!');
+                    } else {
+                      triggerToast('Could not dispatch test request: ' + (res.error || 'Network error'));
+                    }
+                  }}
+                  disabled={isSimulatingRODP}
+                  className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 hover:border-amber-400/50"
+                  title="Submit a simulated client request to test real-time RTDB sync"
+                >
+                  <Sparkles size={14} className={isSimulatingRODP ? "animate-spin text-amber-400" : "text-amber-400"} />
+                  <span>{isSimulatingRODP ? "Submitting..." : "+ Simulate Request"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="direct-open-rodp-admin-panel-btn"
+                  onClick={() => {
+                    localStorage.setItem('rodp_logged_in', 'true');
+                    localStorage.setItem('rodp_logged_in_user', JSON.stringify({
+                      role: 'super_admin',
+                      name: 'Rizwan RR (CEO)',
+                      email: 'rizwanroushan0@gmail.com'
+                    }));
+                    localStorage.setItem('rodp_target_tab', 'super_admin_panel');
+                    if (onNavigateToRodp) {
+                      onNavigateToRodp();
+                    }
+                  }}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-black font-sora font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-xl shadow-amber-500/30 hover:scale-105 flex items-center gap-2 cursor-pointer"
+                >
+                  <ShieldAlert size={16} />
+                  <span>Direct RODP Admin Access</span>
+                  <ArrowUpRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-white/10 text-left">
+                <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block font-bold">Total Inbound Requests</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-white">{rodpApps.length}</span>
+                  <span className="text-xs font-mono text-amber-400">Live RTDB</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-amber-500/20 text-left">
+                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest block font-bold">Pending Clearance</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-amber-400">
+                    {rodpApps.filter(a => a.status === 'pending').length}
+                  </span>
+                  <span className="text-xs font-mono text-amber-300/70">Action Required</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-blue-500/20 text-left">
+                <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest block font-bold">In Processing</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-blue-400">
+                    {rodpApps.filter(a => a.status === 'in_progress').length}
+                  </span>
+                  <span className="text-xs font-mono text-blue-300/70">Active Queue</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-emerald-500/20 text-left">
+                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest block font-bold">Approved / Settled</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-emerald-400">
+                    {rodpApps.filter(a => a.status === 'approved').length}
+                  </span>
+                  <span className="text-xs font-mono text-emerald-300/70">Completed</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Tabs & Real-time Live Table */}
+            <div className="bg-white/5 backdrop-blur-2xl p-6 sm:p-8 rounded-[2.5rem] border border-white/10 space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(['all', 'pending', 'in_progress', 'approved', 'rejected'] as const).map((filterKey) => {
+                    const count = filterKey === 'all' 
+                      ? rodpApps.length 
+                      : rodpApps.filter(a => a.status === filterKey).length;
+                    return (
+                      <button
+                        key={filterKey}
+                        onClick={() => setRodpFilter(filterKey)}
+                        className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                          rodpFilter === filterKey
+                            ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                            : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {filterKey.replace('_', ' ')} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="text-xs font-mono text-gray-400">
+                  Showing {rodpFilter === 'all' ? rodpApps.length : rodpApps.filter(a => a.status === rodpFilter).length} of {rodpApps.length} records
+                </div>
+              </div>
+
+              {/* Applications List */}
+              {rodpApps.filter(a => rodpFilter === 'all' || a.status === rodpFilter).length === 0 ? (
+                <div className="py-16 text-center space-y-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
+                  <div className="p-4 rounded-full bg-amber-500/10 text-amber-400 inline-block">
+                    <ShieldAlert size={36} />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-sora font-bold text-white text-lg">No Applications In Queue</h3>
+                    <p className="text-gray-400 text-xs font-light max-w-md mx-auto leading-relaxed">
+                      Client applications submitted through the RODP portal will sync here instantly. Use the button below to generate a test submission.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await submitRODPApplication({
+                        applicantName: 'Rizwan Client Demo',
+                        contactNumber: '9832109876',
+                        serviceRequested: 'Aadhaar Biometric Verification',
+                        branchName: 'Head Office (ROD001)',
+                        status: 'pending',
+                        notes: 'Initial test client request dispatched from CEO console.'
+                      });
+                      triggerToast('⚡ Test service request created!');
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Plus size={14} />
+                    <span>Create Sample Application</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-sans">
+                    <thead>
+                      <tr className="border-b border-white/10 text-[10px] font-mono text-gray-400 uppercase tracking-widest">
+                        <th className="pb-3 px-3">Applicant Name</th>
+                        <th className="pb-3 px-3">Contact</th>
+                        <th className="pb-3 px-3">Service Requested</th>
+                        <th className="pb-3 px-3">Branch / Location</th>
+                        <th className="pb-3 px-3">Submitted</th>
+                        <th className="pb-3 px-3">Status</th>
+                        <th className="pb-3 px-3 text-right">Quick Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {rodpApps
+                        .filter(a => rodpFilter === 'all' || a.status === rodpFilter)
+                        .map((app) => {
+                          const dateStr = app.submittedAt 
+                            ? new Date(typeof app.submittedAt === 'number' ? app.submittedAt : Date.now()).toLocaleString() 
+                            : 'Just now';
+                          return (
+                            <tr key={app.firebaseId || app.id} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="py-4 px-3 font-medium text-white">
+                                {app.applicantName}
+                              </td>
+                              <td className="py-4 px-3 font-mono text-amber-300">
+                                {app.contactNumber}
+                              </td>
+                              <td className="py-4 px-3 text-gray-200">
+                                {app.serviceRequested}
+                              </td>
+                              <td className="py-4 px-3 text-gray-400 font-mono text-[11px]">
+                                {app.branchName || 'Central HQ'}
+                              </td>
+                              <td className="py-4 px-3 text-gray-400 font-mono text-[10px] whitespace-nowrap">
+                                {dateStr}
+                              </td>
+                              <td className="py-4 px-3">
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider inline-block ${
+                                  app.status === 'approved' 
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : app.status === 'in_progress'
+                                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                    : app.status === 'rejected'
+                                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                }`}>
+                                  {app.status.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="py-4 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {app.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (app.firebaseId) {
+                                          await updateRODPApplicationStatus(app.firebaseId, 'approved');
+                                          triggerToast(`Application for ${app.applicantName} approved!`);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] font-bold transition-all cursor-pointer"
+                                      title="Approve request"
+                                    >
+                                      Approve
+                                    </button>
+                                  )}
+
+                                  {app.status !== 'in_progress' && app.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (app.firebaseId) {
+                                          await updateRODPApplicationStatus(app.firebaseId, 'in_progress');
+                                          triggerToast(`Application for ${app.applicantName} marked in-progress!`);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 font-mono text-[10px] font-bold transition-all cursor-pointer"
+                                      title="Mark in progress"
+                                    >
+                                      Process
+                                    </button>
+                                  )}
+
+                                  {app.status !== 'rejected' && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (app.firebaseId) {
+                                          await updateRODPApplicationStatus(app.firebaseId, 'rejected');
+                                          triggerToast(`Application for ${app.applicantName} rejected.`);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-mono text-[10px] font-bold transition-all cursor-pointer"
+                                      title="Reject request"
+                                    >
+                                      Reject
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (app.firebaseId && confirm(`Delete application record for ${app.applicantName}?`)) {
+                                        await deleteRODPApplication(app.firebaseId);
+                                        triggerToast(`Application record deleted.`);
+                                      }
+                                    }}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all cursor-pointer"
+                                    title="Delete record"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Restricted Visibility Security Notice */}
+            <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-950/20 text-xs font-light text-amber-200/80 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <ShieldAlert size={18} className="text-amber-400 shrink-0" />
+                <span>
+                  <strong>Restricted Visibility Protocol:</strong> Real-time streaming channel (<code className="text-amber-300 font-mono">rodp_portal/applications</code>) is exclusively piped to the Chief Executive Officer console. Public endpoints cannot decrypt or poll this channel.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('rodp_logged_in', 'true');
+                  localStorage.setItem('rodp_logged_in_user', JSON.stringify({
+                    role: 'super_admin',
+                    name: 'Rizwan RR (CEO)',
+                    email: 'rizwanroushan0@gmail.com'
+                  }));
+                  localStorage.setItem('rodp_target_tab', 'super_admin_panel');
+                  if (onNavigateToRodp) {
+                    onNavigateToRodp();
+                  }
+                }}
+                className="text-amber-300 hover:text-white font-mono text-xs underline cursor-pointer"
+              >
+                Launch Full RODP Matrix &rarr;
+              </button>
+            </div>
+          </div>
+        )}
         {activeTab === 'subscribers' && (
           <div className="space-y-12 animate-fadeIn">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-pink-500/20 pb-8">

@@ -117,7 +117,9 @@ export default function AppointmentsView({
   gdriveToken = null,
   services = []
 }: AppointmentsViewProps) {
-  const [selectedDate, setSelectedDate] = useState('2026-06-24'); // Current workspace date
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayDateStr); // Current workspace date
+  const [filterDateScope, setFilterDateScope] = useState<'all' | 'today' | 'selected'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [currentView, setCurrentView] = useState<'daily' | 'weekly' | 'monthly' | 'timeline'>('daily');
   const [isBooking, setIsBooking] = useState(false);
@@ -212,23 +214,37 @@ export default function AppointmentsView({
     '03:00 PM - 03:30 PM', '04:00 PM - 04:30 PM'
   ];
 
-  const weekDays = [
-    { name: 'Mon', date: '2026-06-22' },
-    { name: 'Tue', date: '2026-06-23' },
-    { name: 'Wed', date: '2026-06-24' },
-    { name: 'Thu', date: '2026-06-25' },
-    { name: 'Fri', date: '2026-06-26' },
-    { name: 'Sat', date: '2026-06-27' },
-    { name: 'Sun', date: '2026-06-28' },
-  ];
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const mondayOffset = (currentDayOfWeek + 6) % 7;
+  const mondayDate = new Date(now);
+  mondayDate.setDate(now.getDate() - mondayOffset);
 
-  const monthlyDays = Array.from({ length: 30 }, (_, i) => {
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekDays = dayNames.map((dName, idx) => {
+    const d = new Date(mondayDate);
+    d.setDate(mondayDate.getDate() + idx);
+    return {
+      name: dName,
+      date: d.toISOString().split('T')[0]
+    };
+  });
+
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthlyDays = Array.from({ length: daysInMonth }, (_, i) => {
     const dayNum = i + 1;
-    return `2026-06-${String(dayNum).padStart(2, '0')}`;
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
   });
 
   const filteredAppointments = appointments.filter(a => {
-    const matchesDate = currentView === 'monthly' ? true : a.date === selectedDate;
+    let matchesDate = true;
+    if (filterDateScope === 'today') {
+      matchesDate = a.date === todayDateStr;
+    } else if (filterDateScope === 'selected' && currentView !== 'monthly') {
+      matchesDate = a.date === selectedDate;
+    }
     const matchesStatus = filterStatus === 'All' || a.status === filterStatus;
     return matchesDate && matchesStatus;
   });
@@ -495,30 +511,58 @@ export default function AppointmentsView({
           ))}
         </div>
 
+        {/* Date Scope Filter */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+          <button
+            onClick={() => { playSynthSound('click'); setFilterDateScope('all'); }}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              filterDateScope === 'all' ? 'bg-cyan-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            All Bookings ({appointments.length})
+          </button>
+          <button
+            onClick={() => { playSynthSound('click'); setFilterDateScope('today'); setSelectedDate(todayDateStr); }}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              filterDateScope === 'today' ? 'bg-emerald-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Today ({appointments.filter(a => a.date === todayDateStr).length})
+          </button>
+          <button
+            onClick={() => { playSynthSound('click'); setFilterDateScope('selected'); }}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              filterDateScope === 'selected' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            By Date
+          </button>
+        </div>
+
         {/* Date Selector Navigation */}
         <div className="flex items-center gap-3">
           <button 
             onClick={() => {
               playSynthSound('click');
-              const prevDay = Number(selectedDate.split('-')[2]) - 1;
-              if (prevDay >= 1) {
-                setSelectedDate(`2026-06-${String(prevDay).padStart(2, '0')}`);
-              }
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+              setFilterDateScope('selected');
             }}
             className="p-2 rounded-lg border border-slate-800 bg-[#0a0a0c]/50 text-slate-400 hover:text-white cursor-pointer"
           >
             <ChevronLeft size={15} />
           </button>
           <span className="text-xs font-black text-cyan-400 font-mono uppercase tracking-wider bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-            {selectedDate === '2026-06-24' ? '📅 Today (24 Jun)' : `📅 ${selectedDate}`}
+            {selectedDate === todayDateStr ? `📅 Today (${todayDateStr})` : `📅 ${selectedDate}`}
           </span>
           <button 
             onClick={() => {
               playSynthSound('click');
-              const nextDay = Number(selectedDate.split('-')[2]) + 1;
-              if (nextDay <= 30) {
-                setSelectedDate(`2026-06-${String(nextDay).padStart(2, '0')}`);
-              }
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+              setFilterDateScope('selected');
             }}
             className="p-2 rounded-lg border border-slate-800 bg-[#0a0a0c]/50 text-slate-400 hover:text-white cursor-pointer"
           >
@@ -766,13 +810,13 @@ export default function AppointmentsView({
                           >
                             <h4 className="text-sm font-black text-slate-100 flex items-center gap-1.5 hover:text-cyan-400 transition-colors">
                               <User size={14} className="text-cyan-400" />
-                              {app.name}
+                              {app.name || (app as any).customerName || 'Customer'}
                             </h4>
                           </button>
                           
                           <p className="text-slate-400 text-[10px] font-bold flex items-center gap-1.5">
                             <Phone size={12} className="text-slate-500" />
-                            {app.mobileNumber}
+                            {app.mobileNumber || (app as any).customerMobile || (app as any).phone || 'Not Provided'}
                           </p>
                           {app.address && (
                             <p className="text-slate-400 text-[10px] font-bold flex items-center gap-1.5">

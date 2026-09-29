@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles } from 'lucide-react';
+import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles, Users } from 'lucide-react';
 import { RexlifyLogo, NeuraxLogo, SifraLogo } from './Logo';
 import { Language, TRANSLATIONS, SUPPORTED_LANGUAGES, LanguageOption } from '../translations';
 import { Application, Project, BlogItem, DocArticle } from '../types';
@@ -63,8 +63,9 @@ interface NavbarProps {
   projects: Project[];
   blogPosts: BlogItem[];
   documents?: DocArticle[];
-  themeMode: 'deep-space' | 'neon-cyber';
+  themeMode: 'deep-space' | 'neon-cyber' | 'premium-mixed';
   toggleThemeMode: () => void;
+  onSelectThemeMode?: (mode: 'deep-space' | 'neon-cyber' | 'premium-mixed') => void;
   is3DMode: boolean;
   toggle3DMode: () => void;
 }
@@ -82,6 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   documents = [],
   themeMode,
   toggleThemeMode,
+  onSelectThemeMode,
   is3DMode,
   toggle3DMode
 }) => {
@@ -97,6 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
   const isLightMode = themeMode === 'neon-cyber';
+  const isPremiumMode = themeMode === 'premium-mixed';
   const isHomePage = currentView === 'home';
 
   const VIEW_TITLES: Partial<Record<ActiveView, string>> = {
@@ -221,8 +224,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const currentLangOption = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
 
-  const menuItems: { id: ActiveView; label: string }[] = [
+  const menuItems: { id: ActiveView | 'meet-members'; label: string; isExternal?: boolean; href?: string }[] = [
     { id: 'home', label: t.ecoGateway },
+    { id: 'meet-members', label: '👥 Meet Our Members (Official Portal)', isExternal: true, href: 'https://sites.google.com/view/rexlifymini/home' },
     { id: 'additional-systems', label: '📱 Explore Our Additional Systems' },
     { id: 'rexlify-social', label: '🎬 Rexlify Social Media (Reels)' },
     { id: 'portfolio', label: `✨ ${t.portfolio}` },
@@ -399,7 +403,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {/* Float Dropdown results popover */}
               {isSearchFocused && navSearch && (
-                <div className={`absolute top-12 left-0 right-0 max-h-96 overflow-y-auto border rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-50 text-left space-y-4 animate-fadeIn no-scrollbar ${
+                <div 
+                  onMouseDown={(e) => e.preventDefault()}
+                  className={`absolute top-12 left-0 right-0 max-h-96 overflow-y-auto border rounded-2xl shadow-2xl backdrop-blur-xl p-3 z-50 text-left space-y-4 animate-fadeIn no-scrollbar ${
                   isLightMode
                     ? 'bg-white/95 border-pink-200 text-gray-900 shadow-pink-500/10'
                     : 'bg-[#05021a]/95 border-rose-500/20 text-white'
@@ -601,31 +607,87 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Smooth Dark Mode / Light Mode Switcher */}
-            <button
-              type="button"
-              onClick={toggleThemeMode}
-              id="navbar-theme-toggle-btn"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none text-xs font-semibold ${
-                isLightMode
-                  ? 'border-pink-200 bg-white/80 hover:bg-pink-50 text-gray-800'
-                  : 'border-white/10 bg-black/40 hover:bg-white/5 hover:border-purple-500/30 text-gray-200'
+            {/* Meet Our Members Navbar Action */}
+            <a
+              href="https://sites.google.com/view/rexlifymini/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              id="navbar-meet-our-members-btn"
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all duration-200 text-xs font-semibold cursor-pointer ${
+                themeMode === 'premium-mixed'
+                  ? 'bg-gradient-to-r from-pink-500/15 via-white/80 to-amber-500/15 border-amber-400/40 text-black hover:border-amber-500 hover:shadow-md'
+                  : isLightMode
+                  ? 'border-pink-200 bg-white/80 hover:bg-pink-50 text-gray-800 hover:text-pink-600'
+                  : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-amber-400/40 text-gray-200 hover:text-amber-300'
               }`}
-              aria-label="Toggle Dark/Light Mode"
-              title={themeMode === 'neon-cyber' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              title="Meet Our Members - Official Community"
             >
-              {themeMode === 'neon-cyber' ? (
-                <>
-                  <Sun size={14} className="text-amber-500" />
-                  <span className="font-mono text-xs font-bold tracking-wider hidden sm:inline text-amber-700">LIGHT</span>
-                </>
-              ) : (
-                <>
-                  <Moon size={14} className="text-purple-400" />
-                  <span className="font-mono text-xs font-bold tracking-wider hidden sm:inline text-purple-300">DARK</span>
-                </>
-              )}
-            </button>
+              <Users size={13} className="text-amber-400 shrink-0" />
+              <span>Meet Our Members</span>
+              <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+
+            {/* 3-Mode Theme Selector: 🌙 Dark | ☀️ Light | ✨ Premium */}
+            <div 
+              id="navbar-theme-3mode-selector"
+              className={`flex items-center p-0.5 rounded-xl border transition-all ${
+                themeMode === 'premium-mixed'
+                  ? 'bg-white/90 border-amber-300 shadow-sm'
+                  : isLightMode
+                  ? 'bg-white/90 border-pink-200 shadow-sm'
+                  : 'bg-black/50 border-white/10'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => onSelectThemeMode ? onSelectThemeMode('deep-space') : toggleThemeMode()}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                  themeMode === 'deep-space'
+                    ? 'bg-purple-600/30 text-purple-300 border border-purple-500/50 shadow-sm'
+                    : isLightMode || themeMode === 'premium-mixed'
+                    ? 'text-gray-500 hover:text-gray-900'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Switch to Dark Mode"
+              >
+                <Moon size={12} className={themeMode === 'deep-space' ? "text-purple-400" : "text-gray-400"} />
+                <span className="hidden xl:inline">Dark</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectThemeMode ? onSelectThemeMode('neon-cyber') : toggleThemeMode()}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                  themeMode === 'neon-cyber'
+                    ? 'bg-pink-500/20 text-pink-700 border border-pink-400/60 shadow-sm'
+                    : isLightMode || themeMode === 'premium-mixed'
+                    ? 'text-gray-500 hover:text-gray-900'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Switch to Light Mode"
+              >
+                <Sun size={12} className={themeMode === 'neon-cyber' ? "text-amber-500" : "text-gray-400"} />
+                <span className="hidden xl:inline">Light</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectThemeMode ? onSelectThemeMode('premium-mixed') : toggleThemeMode()}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                  themeMode === 'premium-mixed'
+                    ? 'bg-gradient-to-r from-pink-500/25 via-amber-400/25 to-yellow-400/25 text-black border border-amber-400 font-extrabold shadow-sm'
+                    : isLightMode
+                    ? 'text-gray-500 hover:text-amber-600'
+                    : 'text-gray-400 hover:text-amber-400'
+                }`}
+                title="Switch to Premium Pink-Gold Mixed Mode"
+              >
+                <Sparkles size={12} className={themeMode === 'premium-mixed' ? "text-amber-500" : "text-gray-400"} />
+                <span className="hidden xl:inline">Premium</span>
+              </button>
+            </div>
 
             {/* Admin Dashboard link if logged in */}
             {isAdminLoggedIn ? (
@@ -735,28 +797,56 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Theme Toggle within Menu */}
-              <button
-                type="button"
-                onClick={toggleThemeMode}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                  isLightMode
-                    ? 'border-pink-300 bg-white hover:bg-pink-50 text-gray-800'
-                    : 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-200'
-                }`}
-              >
-                {isLightMode ? (
-                  <>
-                    <Sun size={14} className="text-amber-500" />
-                    <span>LIGHT</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon size={14} className="text-purple-400" />
-                    <span>DARK</span>
-                  </>
-                )}
-              </button>
+              {/* 3-Mode Theme Selector within Menu */}
+              <div className={`flex items-center p-0.5 rounded-xl border text-xs font-bold transition-all ${
+                themeMode === 'premium-mixed'
+                  ? 'bg-white/90 border-amber-300 shadow-sm'
+                  : isLightMode
+                  ? 'border-pink-300 bg-white'
+                  : 'border-white/10 bg-white/5'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => onSelectThemeMode ? onSelectThemeMode('deep-space') : toggleThemeMode()}
+                  className={`p-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${
+                    themeMode === 'deep-space'
+                      ? 'bg-purple-600/30 text-purple-300 border border-purple-500/50'
+                      : 'text-gray-400'
+                  }`}
+                  title="Dark Mode"
+                >
+                  <Moon size={13} className={themeMode === 'deep-space' ? "text-purple-400" : "text-gray-400"} />
+                  <span className="text-[10px] hidden sm:inline">Dark</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectThemeMode ? onSelectThemeMode('neon-cyber') : toggleThemeMode()}
+                  className={`p-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${
+                    themeMode === 'neon-cyber'
+                      ? 'bg-pink-500/20 text-pink-700 border border-pink-400/60'
+                      : 'text-gray-400'
+                  }`}
+                  title="Light Mode"
+                >
+                  <Sun size={13} className={themeMode === 'neon-cyber' ? "text-amber-500" : "text-gray-400"} />
+                  <span className="text-[10px] hidden sm:inline">Light</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectThemeMode ? onSelectThemeMode('premium-mixed') : toggleThemeMode()}
+                  className={`p-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${
+                    themeMode === 'premium-mixed'
+                      ? 'bg-gradient-to-r from-pink-500/25 via-amber-400/25 to-yellow-400/25 text-black border border-amber-400 font-extrabold'
+                      : 'text-gray-400'
+                  }`}
+                  title="Premium Mixed Mode"
+                >
+                  <Sparkles size={13} className={themeMode === 'premium-mixed' ? "text-amber-500" : "text-gray-400"} />
+                  <span className="text-[10px] hidden sm:inline">Premium</span>
+                </button>
+              </div>
 
               {/* Close Button with ESC label */}
               <button
@@ -891,11 +981,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {menuItems.map((item) => {
+                  if (item.isExternal && item.href) {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-left px-4 py-3.5 rounded-2xl text-xs font-semibold transition-all border cursor-pointer flex items-center justify-between group bg-gradient-to-r from-pink-500/10 via-amber-500/10 to-yellow-500/10 border-amber-400/40 text-amber-300 hover:border-amber-400 hover:text-white"
+                      >
+                        <span className="truncate">{item.label}</span>
+                        <ArrowUpRight size={14} className="text-amber-400 shrink-0" />
+                      </a>
+                    );
+                  }
                   const isActive = currentView === item.id;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => handleNavClick(item.id)}
+                      onClick={() => handleNavClick(item.id as ActiveView)}
                       id={`fullscreen-menu-item-${item.id}`}
                       className={`text-left px-4 py-3.5 rounded-2xl text-xs font-semibold transition-all border cursor-pointer flex items-center justify-between group ${
                         isActive 

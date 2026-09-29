@@ -5,6 +5,7 @@
 
 import { AlertTriangle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import Lenis from 'lenis';
 import { 
   ActiveView,
   Navbar 
@@ -162,6 +163,8 @@ const TopScrollProgressBar: React.FC<{ view: ActiveView }> = ({ view }) => {
   );
 };
 
+export type ThemeMode = 'deep-space' | 'neon-cyber' | 'premium-mixed';
+
 function AppContent() {
   // Routing View state
   const [view, setView] = useState<ActiveView>('home');
@@ -170,8 +173,16 @@ function AppContent() {
   const [language, setLanguage] = useState<Language>('en');
   const [subscribers, setSubscribers] = useState<string[]>([]);
 
-  // Extended Custom States
-  const [themeMode, setThemeMode] = useState<'deep-space' | 'neon-cyber'>('deep-space');
+  // Extended Custom States with 3-Mode Theme System
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem('rexlify_theme_mode') as ThemeMode;
+      if (saved === 'deep-space' || saved === 'neon-cyber' || saved === 'premium-mixed') {
+        return saved;
+      }
+    } catch (_) {}
+    return 'deep-space';
+  });
   const [is3DMode, setIs3DMode] = useState<boolean>(true);
 
   const { status, loading } = useSystemStatus();
@@ -825,20 +836,57 @@ function AppContent() {
     setView('home');
   };
 
-  // Toggle theme mode
+  // 3-Mode Theme Controls (Dark, Light, Premium Mixed)
   const handleToggleThemeMode = () => {
-    const nextMode = themeMode === 'deep-space' ? 'neon-cyber' : 'deep-space';
+    let nextMode: ThemeMode = 'neon-cyber';
+    if (themeMode === 'deep-space') nextMode = 'neon-cyber';
+    else if (themeMode === 'neon-cyber') nextMode = 'premium-mixed';
+    else if (themeMode === 'premium-mixed') nextMode = 'deep-space';
     setThemeMode(nextMode);
     localStorage.setItem('rexlify_theme_mode', nextMode);
   };
 
+  const handleSelectThemeMode = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    localStorage.setItem('rexlify_theme_mode', mode);
+  };
+
   useEffect(() => {
+    document.body.classList.remove('light-mode-active', 'premium-mode-active');
     if (themeMode === 'neon-cyber') {
       document.body.classList.add('light-mode-active');
-    } else {
-      document.body.classList.remove('light-mode-active');
+    } else if (themeMode === 'premium-mixed') {
+      document.body.classList.add('premium-mode-active');
     }
   }, [themeMode]);
+
+  // Lenis Smooth Scroll Engine (Zero Lag & 60/120 FPS Butter-Smooth Experience)
+  useEffect(() => {
+    let lenis: Lenis | null = null;
+    let rafId: number;
+
+    try {
+      lenis = new Lenis({
+        duration: 1.1,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        touchMultiplier: 1.5,
+      });
+
+      function raf(time: number) {
+        lenis?.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
+      rafId = requestAnimationFrame(raf);
+    } catch (e) {
+      console.warn('Lenis smooth scroll notice:', e);
+    }
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (lenis) lenis.destroy();
+    };
+  }, []);
 
   // Home View 30-sec Non-intrusive Newsletter toast check (Disabled to avoid cluttering the landing page experience)
   useEffect(() => {
@@ -1006,6 +1054,17 @@ function AppContent() {
           socialMediaLinks={socialMediaLinks}
           onUpdateSocialMediaLinks={handleUpdateSocialMediaLinks}
           onLogout={handleLogout}
+          onNavigateToRodp={() => {
+            localStorage.setItem('rodp_logged_in', 'true');
+            localStorage.setItem('rodp_logged_in_user', JSON.stringify({
+              role: 'super_admin',
+              name: 'Rizwan RR (CEO)',
+              email: 'rizwanroushan0@gmail.com'
+            }));
+            localStorage.setItem('rodp_target_tab', 'super_admin_panel');
+            setView('rodp');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       );
     }
@@ -1367,7 +1426,7 @@ function AppContent() {
           projects={projects}
           blogPosts={blogPosts}
           themeMode={themeMode}
-          
+          onSelectThemeMode={handleSelectThemeMode}
           is3DMode={is3DMode}
           toggle3DMode={() => setIs3DMode(!is3DMode)}
           toggleThemeMode={handleToggleThemeMode}
