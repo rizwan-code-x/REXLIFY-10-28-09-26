@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import { CustomerCRM, Shop, Staff, Notice, Inquiry } from '../types';
 import { playTechIndustryLoginSound } from '../lib/audioService';
+import { SecureExitModal } from '../../components/SecureExitModal';
 
 interface LoginViewProps {
   onLoginSuccess: (role: 'super_admin' | 'shop_owner' | 'staff' | 'customer', name: string, email: string, permissions?: string[], mobile?: string, shopId?: string) => void;
+  onExitToRexlify?: () => void;
   theme: 'light' | 'dark';
   customers?: CustomerCRM[];
   addCustomer?: (cust: CustomerCRM) => void;
@@ -40,10 +42,14 @@ export default function LoginView({
   updateGroupMessage,
   deleteGroupMessage,
   groupSettings = { onlyAdminsCanPost: false, isGroupMuted: false },
-  updateGroupSettings
+  updateGroupSettings,
+  onExitToRexlify
 }: LoginViewProps) {
   // Navigation State
   const [view, setView] = useState<'selection' | 'customer_gate' | 'office_gate'>('selection');
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [registeredCustomerInfo, setRegisteredCustomerInfo] = useState<CustomerCRM | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Notice Details View and Inquiry Form State
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
@@ -549,17 +555,17 @@ export default function LoginView({
     }
   };
 
-  // Simplified Customer Login & Registration Handlers
+  // Customer Login & Registration Handlers (Points 06-10)
   const handleCustomerLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const nameVal = custName.trim();
+    const inputVal = custName.trim();
     const pinVal = customerPassword.trim();
 
-    if (!nameVal || !pinVal) {
-      setErrorMsg('আপনার নাম এবং ৪ সংখ্যার পাসওয়ার্ড লিখুন। (Please enter Name & 4-Digit Password)');
+    if (!inputVal || !pinVal) {
+      setErrorMsg('ইউজারনেম / আইডি / ইমেইল এবং ৪ সংখ্যার পাসওয়ার্ড দিন। (Please enter Username/ID & 4-Digit Password)');
       return;
     }
 
@@ -571,10 +577,26 @@ export default function LoginView({
     setIsLoggingIn(true);
 
     setTimeout(() => {
-      const customer = customers.find(c => 
-        c.name.toLowerCase() === nameVal.toLowerCase() && 
-        (c.password === pinVal || c.password === `RODP-PASS-${pinVal}` || pinVal === '1234' || (c.password && c.password.endsWith(pinVal)))
-      );
+      const cleanQuery = inputVal.toLowerCase();
+      const customer = customers.find(c => {
+        const matchesIdentifier = 
+          (c.username && c.username.toLowerCase() === cleanQuery) ||
+          (c.rodpAddress && c.rodpAddress.toLowerCase() === cleanQuery) ||
+          (c.email && c.email.toLowerCase() === cleanQuery) ||
+          (c.customId && c.customId.toLowerCase() === cleanQuery) ||
+          (c.name && c.name.toLowerCase() === cleanQuery) ||
+          (c.mobile && c.mobile.replace(/\D/g, '') === cleanQuery.replace(/\D/g, ''));
+        
+        if (!matchesIdentifier) return false;
+        const matchesPin = (
+          c.password === pinVal || 
+          c.securityPin === pinVal || 
+          c.password === `RODP-PASS-${pinVal}` || 
+          pinVal === '1234' || 
+          (c.password && c.password.endsWith(pinVal))
+        );
+        return matchesPin;
+      });
 
       setIsLoggingIn(false);
 
@@ -589,16 +611,16 @@ export default function LoginView({
           onLoginSuccess(
             'customer',
             customer.name,
-            customer.email || `${customer.mobile}@rodp.com`,
+            customer.rodpAddress || customer.email || `${customer.mobile}@rodp.com`,
             [],
             customer.mobile,
             'shop_1'
           );
-        }, 1200);
+        }, 1000);
       } else {
-        setErrorMsg('সার্ভারে এই নাম এবং ৪ সংখ্যার পাসওয়ার্ডের কোনো আইডি পাওয়া যায়নি। দয়া করে সঠিক তথ্য দিন অথবা নতুন রেজিস্টার করুন।');
+        setErrorMsg('সার্ভারে এই তথ্য ও ৪ সংখ্যার পাসওয়ার্ডের কোনো অ্যাকাউন্ট পাওয়া যায়নি। সঠিক তথ্য দিন অথবা রেজিস্টার করুন।');
       }
-    }, 1500);
+    }, 1200);
   };
 
   const handleCustomerRegisterSubmit = (e: React.FormEvent) => {
@@ -609,6 +631,7 @@ export default function LoginView({
     const nameVal = custName.trim();
     const addrVal = custAddress.trim();
     const pinVal = customerPassword.trim();
+    const mobileVal = custMobile.trim();
 
     if (!nameVal || !addrVal || !pinVal) {
       setErrorMsg('দয়া করে নাম, ঠিকানা এবং ৪ সংখ্যার পাসওয়ার্ড পূরণ করুন। (Please fill Name, Address & 4-Digit Password)');
@@ -620,20 +643,39 @@ export default function LoginView({
       return;
     }
 
+    // 1. Generate Unique Username (Points 07, 08)
+    const baseSlug = nameVal.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'user';
+    let randomNum = Math.floor(100 + Math.random() * 900);
+    let generatedUsername = `${baseSlug}_${randomNum}`;
+    
+    // Ensure no duplicate username in database
+    while (customers.some(c => c.username === generatedUsername || c.email === `${generatedUsername}@rodp.com`)) {
+      randomNum = Math.floor(100 + Math.random() * 9000);
+      generatedUsername = `${baseSlug}_${randomNum}`;
+    }
+
+    const rodpAddress = `${generatedUsername}@rodp.com`;
     const finalId = generateUniqueCustID();
+    const refId = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
+
     const newCust: CustomerCRM = {
       id: `cust_${Date.now()}`,
       name: nameVal,
-      mobile: `${Math.floor(6000000000 + Math.random() * 3999999999)}`,
-      email: `${finalId}@rodp.com`,
+      username: generatedUsername,
+      rodpAddress: rodpAddress,
+      rodpUserId: rodpAddress,
+      referenceId: refId,
+      email: rodpAddress,
+      mobile: mobileVal || `${Math.floor(6000000000 + Math.random() * 3999999999)}`,
       status: 'active',
       password: pinVal,
+      securityPin: pinVal,
       address: addrVal,
       location: 'Jalangi, Murshidabad',
-      deviceName: 'Web Browser',
+      deviceName: 'Web Browser Portal',
       createdAt: new Date().toISOString().substring(0, 10),
       lastLogin: new Date().toLocaleString(),
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(nameVal)}`,
+      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(generatedUsername)}`,
       totalSpending: 0,
       shopId: 'shop_1',
       customId: finalId,
@@ -644,19 +686,10 @@ export default function LoginView({
       addCustomer(newCust);
     }
 
-    setSuccessMsg(`🎉 রেজিস্ট্রেশন সফল হয়েছে! স্বাগতম, ${nameVal}। আপনার আইডি: ${finalId}`);
     playSuccessChime();
-
-    setTimeout(() => {
-      onLoginSuccess(
-        'customer',
-        newCust.name,
-        newCust.email || `${newCust.mobile}@rodp.com`,
-        [],
-        newCust.mobile,
-        'shop_1'
-      );
-    }, 2000);
+    // Do NOT immediately redirect to login page (Requirement 06)
+    // Instead, open the professional Congratulations / Registration Successful page (Requirement 06, 07, 08)
+    setRegisteredCustomerInfo(newCust);
   };
 
   // CEO Password validation login handler
@@ -836,7 +869,23 @@ export default function LoginView({
         return;
       }
       
-      setConfirmingBranch(matchedBranch);
+      // Directly log in without unwanted manager prompt (Requirements 23, 24)
+      const userRole = (matchedBranch.customId === 'ROD001' || matchedBranch.isMainBranch || matchedBranch.id === 'shop_1') 
+        ? 'super_admin' 
+        : 'shop_owner';
+
+      setSuccessMsg(`স্বাগতম! ${matchedBranch.name} ড্যাশবোর্ড প্রস্তুত হচ্ছে...`);
+      playTechIndustryLoginSound();
+      setTimeout(() => {
+        onLoginSuccess(
+          userRole, 
+          matchedBranch.branchHead || matchedBranch.ownerName || matchedBranch.name, 
+          matchedBranch.ownerEmail || `${matchedBranch.customId?.toLowerCase()}@rodp.com`, 
+          matchedBranch.permissions || ['dashboard', 'services', 'appointments', 'crm', 'database', 'billing', 'inventory', 'vault', 'staff', 'finance', 'ai_assistant', 'notifications'],
+          matchedBranch.mobile || '9593388785',
+          matchedBranch.id
+        );
+      }, 700);
     } else {
       const newFail = branchPassFailCount + 1;
       setBranchPassFailCount(newFail);
@@ -1000,7 +1049,7 @@ export default function LoginView({
       localStorage.removeItem('rodp_staff_pass_lockout_until');
 
       // Show staff welcome overlay
-      setCelebratingStaff(matchedStaff);
+      setCelebratingStaff(matchedStaff as any);
       let count = 3;
       setCelebrationCountdown(count);
       playRoboticSound();
@@ -1519,6 +1568,21 @@ export default function LoginView({
       {/* Main Container */}
       <div className="w-full max-w-4xl z-10 flex flex-col items-center space-y-8">
         
+        {/* Top Exit Option to Return to REXLIFY (Requirement 02) */}
+        {onExitToRexlify && (
+          <div className="w-full flex justify-end px-2">
+            <button
+              type="button"
+              onClick={() => setIsExitModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/30 text-xs font-mono font-bold tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Exit RODP Gateway to REXLIFY (Requires Security Captcha Code)"
+            >
+              <Lock size={12} className="text-rose-500" />
+              <span>EXIT TO REXLIFY</span>
+            </button>
+          </div>
+        )}
+
         {/* Dynamic Glowing Top Header */}
         <div className="text-center space-y-2">
           <div className="relative inline-flex mb-1">
@@ -1774,26 +1838,138 @@ export default function LoginView({
                   <p className="text-[10px] text-slate-400 font-bold mt-1">অনুগ্রহ করে একটু অপেক্ষা করুন (Please Wait)</p>
                 </div>
               </div>
+            ) : registeredCustomerInfo ? (
+              /* --- REGISTRATION SUCCESSFUL / CONGRATULATIONS PAGE (Requirements 06, 07, 08) --- */
+              <div className="space-y-6 text-center animate-scale-in">
+                <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-600 shadow-lg shadow-emerald-500/10">
+                  <CheckCircle2 size={36} className="animate-bounce" />
+                </div>
+
+                <div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-black uppercase tracking-widest inline-block mb-2">
+                    REGISTRATION SUCCESSFUL
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-black text-slate-900">
+                    অভিনন্দন! আপনার RODP অ্যাকাউন্ট তৈরি সম্পন্ন হয়েছে
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    Congratulations, <b>{registeredCustomerInfo.name}</b>! আপনার ইউনিক ইউজারনেম ও RODP অ্যাড্রেস নিচে দেওয়া হলো:
+                  </p>
+                </div>
+
+                {/* Account Credentials Summary Card */}
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 text-left space-y-3 font-mono">
+                  
+                  {/* Generated Unique Username */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Your Unique Username (ইউজারনেম)</p>
+                      <p className="text-sm font-black text-indigo-600 font-mono">@{registeredCustomerInfo.username}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (registeredCustomerInfo.username) {
+                          navigator.clipboard?.writeText(registeredCustomerInfo.username);
+                          setCopiedField('username');
+                          setTimeout(() => setCopiedField(null), 2000);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer border border-indigo-200"
+                    >
+                      {copiedField === 'username' ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+
+                  {/* Generated RODP User Address / ID */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">RODP User ID / Permanent Address</p>
+                      <p className="text-xs md:text-sm font-black text-emerald-600 font-mono">{registeredCustomerInfo.rodpAddress}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (registeredCustomerInfo.rodpAddress) {
+                          navigator.clipboard?.writeText(registeredCustomerInfo.rodpAddress);
+                          setCopiedField('address');
+                          setTimeout(() => setCopiedField(null), 2000);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer border border-emerald-200"
+                    >
+                      {copiedField === 'address' ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+
+                  {/* 4-digit security PIN and Details */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">4-Digit Security PIN</p>
+                      <p className="text-xs font-black text-slate-800 tracking-widest">{registeredCustomerInfo.securityPin || '••••'}</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Reference ID</p>
+                      <p className="text-xs font-black text-amber-600">{registeredCustomerInfo.customId || registeredCustomerInfo.referenceId}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-[10px] text-slate-600">
+                    <span className="font-bold">Registered Address:</span> {registeredCustomerInfo.address}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustName(registeredCustomerInfo.username || registeredCustomerInfo.rodpAddress || '');
+                      setCustomerPassword(registeredCustomerInfo.securityPin || '');
+                      setRegisteredCustomerInfo(null);
+                      setIsNewUser(false);
+                    }}
+                    className="flex-1 py-3.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    লগইন ফর্মে যান (Go to Login)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLoginSuccess(
+                        'customer',
+                        registeredCustomerInfo.name,
+                        registeredCustomerInfo.rodpAddress || registeredCustomerInfo.email || `${registeredCustomerInfo.mobile}@rodp.com`,
+                        [],
+                        registeredCustomerInfo.mobile,
+                        'shop_1'
+                      );
+                    }}
+                    className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-indigo-600/20"
+                  >
+                    সরাসরি ড্যাশবোর্ডে প্রবেশ (Access Dashboard)
+                  </button>
+                </div>
+              </div>
             ) : !isNewUser ? (
               /* --- CUSTOMER LOGIN PANEL --- */
               <form onSubmit={handleCustomerLoginSubmit} className="space-y-4 animate-fade-in">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase text-slate-500 font-extrabold tracking-wider block">
-                    Your Full Name (আপনার নাম)
+                    Username / RODP User ID / Mobile / Name (ইউজারনেম বা আইডি)
                   </label>
                   <input
                     type="text"
                     required
                     value={custName}
                     onChange={(e) => setCustName(e.target.value)}
-                    placeholder="Enter your registered name"
+                    placeholder="Enter @username, username@rodp.com, or ID"
                     className="w-full text-xs font-bold py-3 px-4 bg-slate-50 text-slate-800 border border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase text-slate-500 font-extrabold tracking-wider block">
-                    4-Digit Password (৪ সংখ্যার পাসওয়ার্ড)
+                    4-Digit Security PIN (৪ সংখ্যার পিন)
                   </label>
                   <input
                     type="password"
@@ -2829,6 +3005,17 @@ export default function LoginView({
         </div>
 
       </div>
+
+      {/* Security Captcha Exit Modal for RODP Gateway (Requirement 02) */}
+      <SecureExitModal
+        isOpen={isExitModalOpen}
+        appName="RODP Platform"
+        onConfirmExit={() => {
+          setIsExitModalOpen(false);
+          if (onExitToRexlify) onExitToRexlify();
+        }}
+        onCancel={() => setIsExitModalOpen(false)}
+      />
     </div>
   );
 }

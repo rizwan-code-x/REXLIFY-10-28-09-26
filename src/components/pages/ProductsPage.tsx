@@ -6,7 +6,7 @@ import { NeuraxLogo, SifraLogo, NooraxLogo } from '../Logo';
 import { APP_LINKS } from '../../config/appLinks';
 import { SIFRA_AI_LIVE_URL } from '../ExploreAppsHub';
 
-const fadeInUpVariants = {
+const fadeInUpVariants: any = {
   hidden: { opacity: 0, y: 35 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };

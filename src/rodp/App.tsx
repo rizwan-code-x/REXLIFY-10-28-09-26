@@ -61,7 +61,7 @@ const TAB_ORDER = [
   'ai_assistant'
 ];
 
-const variants = {
+const variants: any = {
   enter: (direction: 'forward' | 'backward') => ({
     x: direction === 'forward' ? 30 : -30,
     opacity: 0,
@@ -766,6 +766,7 @@ export default function App({ onBack }: AppProps = {}) {
   if (!isLoggedIn) {
     return (
       <LoginView 
+        onExitToRexlify={onBack}
         theme={theme} 
         customers={customers}
         addCustomer={addCustomer}
@@ -963,6 +964,8 @@ export default function App({ onBack }: AppProps = {}) {
             prefilledCustomerMobile={prefilledCustomerMobile}
             prefilledServiceName={prefilledServiceName}
             clearPrefilled={clearPrefilled}
+            appointments={appointments}
+            shops={shops}
             gdriveConnected={gdriveConnected}
             gdriveToken={gdriveToken}
             handleConnectGDrive={handleConnectGDrive}
@@ -1338,7 +1341,7 @@ export default function App({ onBack }: AppProps = {}) {
                     setCustomerActiveTab('profile');
                   }}
                   className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center font-extrabold text-[11px] shadow-md transition-all cursor-pointer active:scale-95 ${
-                    customerActiveTab === 'profile' && currentTab === 'customer_portal'
+                    (customerActiveTab as string) === 'profile' && currentTab === 'customer_portal'
                       ? 'bg-[#dfac5d] text-slate-950 border border-[#dfac5d] shadow-[0_0_15px_rgba(223,172,93,0.4)]'
                       : 'bg-gradient-to-br from-[#dfac5d]/20 to-[#dfac5d]/5 text-[#dfac5d] border border-[#dfac5d]/30 hover:border-[#dfac5d]/60'
                   }`}

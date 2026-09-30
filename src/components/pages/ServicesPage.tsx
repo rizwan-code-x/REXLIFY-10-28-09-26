@@ -7,7 +7,7 @@ const iconMap: Record<string, any> = {
   Cpu, Globe, Smartphone, Megaphone, Palette, Cloud, Shield, GraduationCap, Workflow, Codepen
 };
 
-const fadeInUpVariants = {
+const fadeInUpVariants: any = {
   hidden: { opacity: 0, y: 35 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };

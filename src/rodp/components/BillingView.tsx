@@ -23,6 +23,8 @@ interface BillingViewProps {
   prefilledServiceName?: string;
   clearPrefilled?: () => void;
   setCurrentTab?: (tab: string) => void;
+  appointments?: any[];
+  shops?: any[];
   gdriveConnected?: boolean;
   gdriveToken?: string | null;
   handleConnectGDrive?: () => Promise<void>;
@@ -48,6 +50,8 @@ export default function BillingView({
   prefilledServiceName,
   clearPrefilled,
   setCurrentTab,
+  appointments = [],
+  shops = [],
   gdriveConnected = false,
   gdriveToken = null,
   handleConnectGDrive
@@ -63,6 +67,9 @@ export default function BillingView({
   const [customerAppId, setCustomerAppId] = useState(() => {
     return localStorage.getItem('rodp_billing_customerAppId') || '';
   });
+  const [appointmentRefId, setAppointmentRefId] = useState<string>('');
+  const [billBranchId, setBillBranchId] = useState<string>('shop_1');
+  const [billBranchName, setBillBranchName] = useState<string>('RIZWAN ONLINE DREAMS (Head Office)');
 
   // 2. Multi-Service items cart (অনলাইন সেবা সমূহ) loaded from localStorage if present
   const [cartItems, setCartItems] = useState<{ id: string; name: string; price: number; quantity?: number; unitPrice?: number; description?: string; workDone?: string; }[]>(() => {
@@ -462,16 +469,41 @@ export default function BillingView({
     setFilteredServiceSuggestions([]);
   };
 
-  // Auto-fill redirect from appointments/other pages
+  // Auto-fill redirect from appointments/other pages (Requirements 20, 25, 26, 27)
   useEffect(() => {
     if (prefilledCustomerMobile) {
       setCustomerMobile(prefilledCustomerMobile);
-      const cust = customers.find(c => c.mobile.replace(/\D/g, '') === prefilledCustomerMobile.replace(/\D/g, ''));
+      const cleanMob = prefilledCustomerMobile.replace(/\D/g, '');
+      const cust = customers.find(c => 
+        (c.mobile && c.mobile.replace(/\D/g, '') === cleanMob) ||
+        (c.customId && c.customId.toLowerCase() === prefilledCustomerMobile.toLowerCase()) ||
+        (c.username && c.username.toLowerCase() === prefilledCustomerMobile.toLowerCase()) ||
+        (c.rodpAddress && c.rodpAddress.toLowerCase() === prefilledCustomerMobile.toLowerCase())
+      );
+      
+      // Look for latest linked appointment
+      const matchedApp = appointments.find(a => 
+        (a.mobileNumber && a.mobileNumber.replace(/\D/g, '') === cleanMob) ||
+        (a.referenceId && a.referenceId.toLowerCase() === prefilledCustomerMobile.toLowerCase()) ||
+        (a.id && a.id.toLowerCase() === prefilledCustomerMobile.toLowerCase())
+      );
+
+      if (matchedApp) {
+        if (matchedApp.customerName || matchedApp.name) setCustomerName(matchedApp.customerName || matchedApp.name);
+        if (matchedApp.referenceId || matchedApp.id) setAppointmentRefId(matchedApp.referenceId || matchedApp.id);
+        if (matchedApp.branchId || matchedApp.shopId) setBillBranchId(matchedApp.branchId || matchedApp.shopId);
+        if (matchedApp.branchName) setBillBranchName(matchedApp.branchName);
+      }
+
       if (cust) {
-        setCustomerName(cust.name);
-        setCustomerAppId(cust.customId || '');
-      } else {
-        setCustomerName('');
+        if (!matchedApp) setCustomerName(cust.name);
+        setCustomerAppId(cust.rodpAddress || cust.customId || cust.username || '');
+        if (cust.shopId && !matchedApp) {
+          setBillBranchId(cust.shopId);
+          const foundShop = shops.find(s => s.id === cust.shopId);
+          if (foundShop) setBillBranchName(foundShop.name);
+        }
+      } else if (!matchedApp) {
         setCustomerAppId('');
       }
     }
@@ -482,12 +514,12 @@ export default function BillingView({
       if (svc) {
         price = svc.price || 100;
       }
-      setCartItems([{ id: `cart_pre_${Date.now()}`, name: cleanName, price }]);
+      setCartItems([{ id: `cart_pre_${Date.now()}`, name: cleanName, price, quantity: 1 }]);
     }
     if (prefilledCustomerMobile || prefilledServiceName) {
       if (clearPrefilled) clearPrefilled();
     }
-  }, [prefilledCustomerMobile, prefilledServiceName]);
+  }, [prefilledCustomerMobile, prefilledServiceName, appointments, customers, services, shops]);
 
   // Handle client name type with autocomplete
   const handleCustomerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -802,6 +834,10 @@ export default function BillingView({
       finalCustId = customerDbId;
     }
 
+    const targetShopId = billBranchId || matchedCustomer?.shopId || 'shop_1';
+    const targetShopName = billBranchName || shops.find(s => s.id === targetShopId)?.name || 'RIZWAN ONLINE DREAMS (Head Office)';
+    const targetRefId = appointmentRefId || matchedCustomer?.referenceId || `REF-${Math.floor(10000 + Math.random() * 90000)}`;
+
     const compiledInvoice: Invoice = {
       id: `inv_${Date.now()}`,
       invoiceNumber: invoiceNum,
@@ -816,7 +852,9 @@ export default function BillingView({
       createdAt: new Date().toISOString(),
       paymentMethod,
       paymentStatus,
-      shopId: 'shop_1',
+      shopId: targetShopId,
+      branchName: targetShopName,
+      referenceId: targetRefId,
       amountPaid,
       remainingBalance,
       payments: initialPaymentList,

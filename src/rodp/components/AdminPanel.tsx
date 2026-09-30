@@ -319,24 +319,38 @@ export default function AdminPanel({
     setCustomerLookupError(null);
     setSearchedCustomer(null);
 
-    const query = customerSearchId.trim();
+    const query = customerSearchId.trim().toLowerCase();
     if (!query) return;
 
     const found = customers.find(c => {
       const cid = c.customId ? String(c.customId).toLowerCase() : '';
-      const mob = c.mobile ? String(c.mobile) : '';
-      const cleanQuery = query.toLowerCase();
+      const name = c.name ? String(c.name).toLowerCase() : '';
+      const username = c.username ? String(c.username).toLowerCase() : '';
+      const rodpAddress = c.rodpAddress ? String(c.rodpAddress).toLowerCase() : '';
+      const rodpUserId = c.rodpUserId ? String(c.rodpUserId).toLowerCase() : '';
+      const email = c.email ? String(c.email).toLowerCase() : '';
+      const refId = c.referenceId ? String(c.referenceId).toLowerCase() : '';
+      const address = c.address ? String(c.address).toLowerCase() : '';
+      const mob = c.mobile ? String(c.mobile).replace(/\D/g, '') : '';
+      const cleanDigits = query.replace(/\D/g, '');
 
-      return cid === cleanQuery || 
-             cid.includes(cleanQuery) || 
-             mob === cleanQuery ||
-             (cid.replace(/[^0-9]/g, '') === cleanQuery.replace(/[^0-9]/g, '') && cleanQuery.replace(/[^0-9]/g, '').length >= 4);
+      return cid === query || 
+             cid.includes(query) || 
+             name.includes(query) ||
+             username.includes(query) ||
+             rodpAddress.includes(query) ||
+             rodpUserId.includes(query) ||
+             email.includes(query) ||
+             refId.includes(query) ||
+             address.includes(query) ||
+             (mob && cleanDigits && mob.includes(cleanDigits)) ||
+             (cid.replace(/[^0-9]/g, '') === cleanDigits && cleanDigits.length >= 4);
     });
 
     if (found) {
       setSearchedCustomer(found);
     } else {
-      setCustomerLookupError(`❌ Customer with ID or Contact "${query}" not found in our database. Please double-check and try again.`);
+      setCustomerLookupError(`❌ No user found matching Name, Username, RODP ID, Address, or Reference "${query}". Please check and try again.`);
     }
   };
 
@@ -1968,9 +1982,9 @@ export default function AdminPanel({
           <div className="space-y-1">
             <h3 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
               <Users size={16} />
-              <span>Master Customer Audit & Billing Analysis Console</span>
+              <span>Find Users & Master Citizen Database (ইউজার অনুসন্ধান)</span>
             </h3>
-            <p className="text-[10px] text-slate-400 leading-relaxed">Lookup any registered customer across the entire branch network by their 5-digit unique ID or phone number to view live transactions, cumulative spending, outstanding dues, and behavioral category statistics.</p>
+            <p className="text-[10px] text-slate-400 leading-relaxed">Search any user across the entire network by Name, Username (@username), RODP User ID, User Address (user@rodp.com), Reference ID, or Mobile.</p>
           </div>
           
           <form onSubmit={handleCustomerSearch} className="flex gap-2 shrink-0">
@@ -1978,10 +1992,10 @@ export default function AdminPanel({
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50 text-slate-400 z-10" />
               <input
                 type="text"
-                placeholder="Enter 5-digit ID or Mobile..."
+                placeholder="Search Name, @username, RODP ID, Ref ID..."
                 value={customerSearchId}
                 onChange={(e) => setCustomerSearchId(e.target.value)}
-                className={`py-2 pl-9 pr-4 rounded-xl border focus:outline-none text-[11px] font-bold w-full md:w-64 font-mono tracking-wider ${
+                className={`py-2 pl-9 pr-4 rounded-xl border focus:outline-none text-[11px] font-bold w-full md:w-80 font-mono tracking-wider ${
                   theme === 'dark' ? 'bg-slate-950/80 border-slate-800 text-white' : 'bg-slate-100 border-slate-200 text-slate-800'
                 }`}
               />
@@ -1992,9 +2006,12 @@ export default function AdminPanel({
                 const matchedSuggestions = query ? customers.filter((c: any) => {
                   const cid = c.customId ? String(c.customId).toLowerCase() : '';
                   const name = c.name ? String(c.name).toLowerCase() : '';
+                  const username = c.username ? String(c.username).toLowerCase() : '';
+                  const rodpAddress = c.rodpAddress ? String(c.rodpAddress).toLowerCase() : '';
+                  const refId = c.referenceId ? String(c.referenceId).toLowerCase() : '';
                   const mob = c.mobile ? String(c.mobile) : '';
-                  return cid.includes(query) || name.includes(query) || mob.includes(query);
-                }).slice(0, 5) : [];
+                  return cid.includes(query) || name.includes(query) || username.includes(query) || rodpAddress.includes(query) || refId.includes(query) || mob.includes(query);
+                }).slice(0, 6) : [];
 
                 if (matchedSuggestions.length === 0) return null;
 
@@ -2010,7 +2027,7 @@ export default function AdminPanel({
                           type="button"
                           onClick={() => {
                             setSearchedCustomer(c);
-                            setCustomerSearchId(c.customId || c.mobile || '');
+                            setCustomerSearchId(c.username || c.rodpAddress || c.customId || c.mobile || '');
                             setCustomerLookupError(null);
                           }}
                           className={`w-full flex items-center justify-between p-2.5 transition-colors text-left hover:bg-slate-500/5 cursor-pointer`}
@@ -2018,8 +2035,8 @@ export default function AdminPanel({
                           <div className="flex items-center gap-2.5 min-w-0">
                             {getAvatarForCustomer(c.name)}
                             <div className="min-w-0">
-                              <p className="text-[11px] font-bold truncate leading-snug">{c.name}</p>
-                              <p className="text-[9px] font-mono text-amber-500 font-extrabold leading-none">ID: {c.customId || 'N/A'}</p>
+                              <p className="text-[11px] font-bold truncate leading-snug">{c.name} {c.username ? <span className="text-indigo-400 font-mono text-[9px]">(@{c.username})</span> : null}</p>
+                              <p className="text-[9px] font-mono text-emerald-400 font-bold leading-none truncate">{c.rodpAddress || c.customId || c.mobile}</p>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
@@ -2038,7 +2055,7 @@ export default function AdminPanel({
               type="submit"
               className="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl font-extrabold text-[10px] uppercase tracking-wider hover:bg-amber-400 transition-colors shadow-md cursor-pointer flex items-center gap-1 shrink-0"
             >
-              <span>Search Citizen</span>
+              <span>Find User</span>
             </button>
           </form>
         </div>
@@ -2130,25 +2147,37 @@ export default function AdminPanel({
 
                   <div className="border-t border-slate-500/5 pt-3 space-y-2 text-[10.5px]">
                     <div className="flex justify-between">
-                      <span className="opacity-60">Citizen Unique ID:</span>
-                      <span className="font-mono text-amber-500 font-black">ID: {cust.customId || 'No ID'}</span>
+                      <span className="opacity-60">Username:</span>
+                      <span className="font-mono text-indigo-400 font-bold">@{cust.username || cust.name.toLowerCase().replace(/\s+/g, '_')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="opacity-60">Email:</span>
-                      <span className="text-slate-400 max-w-[140px] truncate" title={cust.email || 'None'}>{cust.email || 'None'}</span>
+                      <span className="opacity-60">RODP User ID / URL:</span>
+                      <span className="font-mono text-emerald-400 font-bold max-w-[150px] truncate" title={cust.rodpAddress || cust.email || 'N/A'}>
+                        {cust.rodpAddress || cust.email || 'N/A'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="opacity-60">HQ Registration:</span>
+                      <span className="opacity-60">Reference ID:</span>
+                      <span className="font-mono text-amber-500 font-bold">{cust.referenceId || cust.customId || 'No Ref'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="opacity-60">Registered Address:</span>
+                      <span className="text-slate-300 max-w-[140px] truncate font-medium" title={cust.address || 'Jalangi, Murshidabad'}>
+                        {cust.address || 'Jalangi, Murshidabad'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="opacity-60">Registration Date:</span>
                       <span className="text-slate-400">{cust.createdAt || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="opacity-60">Primary Branch Node:</span>
                       <span className="font-bold text-slate-300 truncate max-w-[140px]" title={affiliatedShop ? affiliatedShop.name : 'Unknown Branch'}>
-                        {affiliatedShop ? affiliatedShop.name : 'Unknown Branch'}
+                        {affiliatedShop ? `${affiliatedShop.name} (${affiliatedShop.customId || affiliatedShop.id})` : 'Central HQ (ROD001)'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="opacity-60">Citizen Status:</span>
+                      <span className="opacity-60">User Status:</span>
                       <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[9px] uppercase font-bold">
                         {cust.status || 'Active'}
                       </span>
@@ -3024,7 +3053,7 @@ export default function AdminPanel({
                                   }
                                 } else {
                                   updateShop(shop.id, { status: st.key });
-                                  setSelectedShopForDossier({ ...shop, status: st.key });
+                                  setSelectedShopForDossier({ ...shop, status: st.key as any });
                                 }
                               }}
                               className={`py-2 rounded-xl border text-[9px] font-black uppercase text-center transition-all cursor-pointer ${

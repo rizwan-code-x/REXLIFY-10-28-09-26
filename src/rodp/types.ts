@@ -103,6 +103,7 @@ export interface Appointment {
   shopName?: string;
   branchId?: string;
   branchName?: string;
+  referenceId?: string;
 }
 
 export interface Task {
@@ -139,6 +140,11 @@ export interface CustomerCRM {
   name: string;
   mobile: string;
   email?: string;
+  username?: string;
+  rodpAddress?: string;
+  rodpUserId?: string;
+  referenceId?: string;
+  securityPin?: string;
   password?: string;
   status?: 'active' | 'offline' | 'suspended' | 'deleted';
   address?: string;
@@ -211,6 +217,7 @@ export interface Invoice {
   paymentDueDate?: string;
   promiseNote?: string;
   branchName?: string;
+  referenceId?: string;
   isSyncedToSheets?: boolean;
   sheetSyncedAt?: string;
   notes?: string;

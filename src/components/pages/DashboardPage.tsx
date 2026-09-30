@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { User, Settings, Heart, Clock as ClockIcon, Video, Upload, ArrowRight, ShieldAlert } from 'lucide-react';
 import { VideoCenterItem, UserAccount } from '../../types';
 
-const fadeInUpVariants = {
+const fadeInUpVariants: any = {
   hidden: { opacity: 0, y: 35 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };

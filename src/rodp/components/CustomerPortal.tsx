@@ -939,12 +939,20 @@ export default function CustomerPortal({
   const [searchedComplaint, setSearchedComplaint] = useState<any>(null);
   const [complaints, setComplaints] = useState<any[]>([]);
 
-  // Filtered customer invoices based on logged in mobile or full list
+  // Filtered customer invoices strictly for the logged-in user (Requirement 27)
   const userInvoices = (invoices || []).filter(inv => {
     const userMob = (currentUser?.mobile || '').replace(/[^0-9]/g, '');
     const invMob = (inv.customerMobile || '').replace(/[^0-9]/g, '');
-    if (!userMob || !invMob) return true;
-    return invMob.includes(userMob) || userMob.includes(invMob);
+    const userName = (currentUser?.name || '').toLowerCase().trim();
+    const invName = (inv.customerName || '').toLowerCase().trim();
+    const userEmail = (currentUser?.email || '').toLowerCase().trim();
+    const custId = (inv.customerId || '').toLowerCase().trim();
+
+    const matchMob = Boolean(userMob && invMob && (invMob === userMob || invMob.includes(userMob) || userMob.includes(invMob)));
+    const matchId = Boolean(custId && (custId === (currentUser.id || '').toLowerCase() || custId === ((currentUser as any).customId || '').toLowerCase() || custId === userEmail));
+    const matchName = Boolean(userName && invName && (invName === userName || invName.includes(userName) || userName.includes(invName)));
+
+    return matchMob || matchId || matchName;
   });
 
   // Bill History Search & Filtering States
@@ -1696,7 +1704,7 @@ export default function CustomerPortal({
     }
   };
 
-  // Modern Step-by-Step Appointment Booking
+  // Modern Step-by-Step Appointment Booking (Requirements 17, 18, 19, 22)
   const handleBookAppointment = () => {
     if (!selectedService || !bookingDate || !bookingTime) {
       alert('❌ Please make sure to complete all booking steps.');
@@ -1704,10 +1712,14 @@ export default function CustomerPortal({
     }
 
     const uniqueId = `RODP-APP-${Math.floor(1000 + Math.random() * 9000)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const selectedBranchObj = ((shops && shops.length > 0) ? shops : MOCK_SHOPS).find(s => s.id === bookingShopId || s.customId === bookingShopId) || shops[0] || MOCK_SHOPS[0];
+    const targetBranchId = selectedBranchObj?.id || 'shop_1';
+    const targetBranchName = selectedBranchObj?.name || 'RIZWAN ONLINE DREAMS (Head Office)';
 
     const newApp: Appointment = {
       id: uniqueId,
-      name: profileName || currentUser.name || 'Rahul Sharma',
+      name: profileName || currentUser.name || 'Citizen User',
+      customerName: profileName || currentUser.name || 'Citizen User',
       mobileNumber: customerFormPhone || currentUser.mobile || '9988776655',
       serviceType: selectedService.name,
       date: bookingDate,
@@ -1715,7 +1727,10 @@ export default function CustomerPortal({
       notes: bookingNotes,
       status: 'Pending',
       createdAt: new Date().toISOString(),
-      shopId: 'shop_1'
+      shopId: targetBranchId,
+      branchId: targetBranchId,
+      branchName: targetBranchName,
+      referenceId: uniqueId
     };
 
     addAppointment(newApp);
@@ -1762,10 +1777,10 @@ export default function CustomerPortal({
     app.date.includes(searchQuery)
   );
 
-  const filteredBills = invoices.filter(inv => 
-    inv.customerMobile === currentUser.mobile && 
+  const filteredBills = userInvoices.filter(inv => 
     (inv.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     inv.paymentStatus.toLowerCase().includes(searchQuery.toLowerCase()))
+     inv.paymentStatus.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     (inv.referenceId && inv.referenceId.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
   // Sifra Chatbot AI Response Generator
@@ -3790,7 +3805,7 @@ export default function CustomerPortal({
                 </div>
 
                 {/* Branch Selection List Banner when toggled or prompted */}
-                {(showAiBranchList || chatMessages.some(m => m.bookingProposal)) && (
+                {(showAiBranchList || chatMessages.some((m: any) => m.bookingProposal)) && (
                   <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 mb-4 z-10 shrink-0 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -4939,7 +4954,7 @@ export default function CustomerPortal({
                           value={profileLanguage}
                           onChange={(e) => {
                             setProfileLanguage(e.target.value);
-                            setLanguageSetting(e.target.value);
+                            setLanguageSetting(e.target.value as any);
                           }}
                           className="w-full text-xs font-bold p-3 rounded-xl border border-white/10 bg-slate-950/60 text-white focus:outline-none focus:border-[#dfac5d]/50 shadow-inner appearance-none transition-colors cursor-pointer"
                         >
@@ -6506,7 +6521,7 @@ export default function CustomerPortal({
                       ) : (
                         !isCheckingAvailability && (
                           <button
-                            onClick={handleStartAvailabilityCheck}
+                            onClick={() => handleStartAvailabilityCheck(selectedSubService || 'General Verification')}
                             className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black text-white uppercase tracking-wider transition-all cursor-pointer active:scale-95"
                           >
                             সার্ভার কানেকশন চেক করুন
@@ -7056,15 +7071,15 @@ export default function CustomerPortal({
                   <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 font-mono block">Payment Timeline & Installments</span>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                     {selectedInvoiceForModal.payments && selectedInvoiceForModal.payments.length > 0 ? (
-                      selectedInvoiceForModal.payments.map((p, idx) => (
+                      selectedInvoiceForModal.payments.map((p: any, idx: number) => (
                         <div key={idx} className="p-3 bg-slate-900/40 rounded-xl border border-white/5 text-[10px] font-mono flex justify-between items-center">
                           <div className="space-y-0.5">
-                            <span className="text-emerald-400 font-black block">✓ Installment #{idx + 1}: ₹{p.amountPaid}</span>
-                            <span className="text-slate-400 text-[9px]">{new Date(p.date).toLocaleString()} • Mode: {p.paymentMethod}</span>
+                            <span className="text-emerald-400 font-black block">✓ Installment #{idx + 1}: ₹{p.amount ?? p.amountPaid}</span>
+                            <span className="text-slate-400 text-[9px]">{new Date(p.paymentDate || p.date || Date.now()).toLocaleString()} • Mode: {p.paymentMethod}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-slate-400 text-[9px] block">Due Left: ₹{p.remainingDue}</span>
-                            <span className="text-slate-500 text-[8.5px]">By: {p.collectedBy}</span>
+                            <span className="text-slate-400 text-[9px] block">Due Left: ₹{p.remainingBalance ?? p.remainingDue}</span>
+                            <span className="text-slate-500 text-[8.5px]">By: {p.updatedBy || p.collectedBy || 'Staff'}</span>
                           </div>
                         </div>
                       ))
@@ -7107,7 +7122,7 @@ export default function CustomerPortal({
                           onClick={() => {
                             const invId = selectedInvoiceForModal.id;
                             setSelectedInvoiceForModal(null);
-                            setActiveTab('payments');
+                            setActiveTab('payments' as any);
                             setPaymentSubTab('pay');
                             setDeclBillId(invId);
                             setDeclAmount(remDue.toString());

@@ -352,6 +352,50 @@ export function useAppState() {
             localStorage.setItem('rodp_invoices', JSON.stringify(list));
           }
         }, (err) => console.warn('RTDB invoices stream warning:', err));
+
+        // 4. Realtime Customers / Users Listener (Requirement 13)
+        const custRef = ref(rtdb, 'rodp_customers');
+        onValue(custRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: CustomerCRM[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              setCustomers(prev => {
+                const map = new Map<string, CustomerCRM>();
+                prev.forEach(item => map.set(item.id, item));
+                list.forEach(item => map.set(item.id, { ...map.get(item.id), ...item }));
+                const merged = Array.from(map.values());
+                localStorage.setItem('rodp_customers', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        }, (err) => console.warn('RTDB customers stream warning:', err));
+
+        // 5. Realtime Shops / Branches Listener (Requirement 21)
+        const shopRef = ref(rtdb, 'rodp_shops');
+        onValue(shopRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: Shop[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              setShops(prev => {
+                const map = new Map<string, Shop>();
+                prev.forEach(item => map.set(item.id, item));
+                list.forEach(item => map.set(item.id, { ...map.get(item.id), ...item }));
+                const merged = Array.from(map.values());
+                localStorage.setItem('rodp_shops', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        }, (err) => console.warn('RTDB shops stream warning:', err));
       });
     }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
 
@@ -670,27 +714,71 @@ export function useAppState() {
     changeUserRole,
     loginUser,
     shops,
-    addShop: (record: Shop) => addRecord('shops', record, setShops, shops),
+    addShop: (record: Shop) => {
+      addRecord('shops', record, setShops, shops);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_shops/' + record.id), { ...record, updatedAt: Date.now() }).catch(err => console.warn('RTDB shop sync notice:', err));
+        }
+      }).catch(err => console.warn(err));
+    },
     updateShop: (id: string, updates: any) => {
       if (id === 'shop_1') {
         if (updates.status && updates.status !== 'approved') {
           updates.status = 'approved';
         }
       }
-      return updateRecord('shops', id, updates, setShops, shops);
+      updateRecord('shops', id, updates, setShops, shops);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_shops/' + id), { ...updates, updatedAt: Date.now() }).catch(err => console.warn('RTDB shop update notice:', err));
+        }
+      }).catch(err => console.warn(err));
     },
     deleteShop: (id: string) => {
       if (id === 'shop_1') {
         alert('You cannot delete the Main HQ Office! (মেন অফিস ডিলিট করা সম্ভব নয়)');
         return;
       }
-      return deleteRecord('shops', id, setShops, shops);
+      deleteRecord('shops', id, setShops, shops);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_shops/' + id)).catch(err => console.warn('RTDB shop delete notice:', err));
+        }
+      }).catch(err => console.warn(err));
     },
     
     customers,
-    addCustomer: (record: CustomerCRM) => addRecord('customers', record, setCustomers, customers),
-    updateCustomer: (id: string, updates: any) => updateRecord('customers', id, updates, setCustomers, customers),
-    deleteCustomer: (id: string) => deleteRecord('customers', id, setCustomers, customers),
+    addCustomer: (record: CustomerCRM) => {
+      addRecord('customers', record, setCustomers, customers);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_customers/' + record.id), { ...record, updatedAt: Date.now() }).catch(err => console.warn('RTDB customer sync notice:', err));
+        }
+      }).catch(err => console.warn(err));
+    },
+    updateCustomer: (id: string, updates: any) => {
+      updateRecord('customers', id, updates, setCustomers, customers);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_customers/' + id), { ...updates, updatedAt: Date.now() }).catch(err => console.warn('RTDB customer update notice:', err));
+        }
+      }).catch(err => console.warn(err));
+    },
+    deleteCustomer: (id: string) => {
+      deleteRecord('customers', id, setCustomers, customers);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_customers/' + id)).catch(err => console.warn('RTDB customer delete notice:', err));
+        }
+      }).catch(err => console.warn(err));
+    },
     
     appointments,
     addAppointment: async (record: Appointment) => {

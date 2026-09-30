@@ -19,7 +19,7 @@ interface UserDashboardPortalProps {
   documents: DocArticle[];
 }
 
-const cardVariants = {
+const cardVariants: any = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number = 0) => ({
     opacity: 1,

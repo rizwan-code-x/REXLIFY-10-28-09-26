@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Calendar, Clock, User, Phone, MapPin, Sparkles, Plus, CheckCircle2,
-  Check, X, RefreshCw, AlertCircle, Play, UserCheck, 
+  Check, X, RefreshCw, AlertCircle, Play, UserCheck, Search,
   MessageSquare, ChevronLeft, ChevronRight, Layers, Receipt, Bell, Shield, ShieldAlert, CheckSquare, Trash2,
   Lock, Unlock, Wifi, WifiOff, ArrowRight, ArrowLeft
 } from 'lucide-react';
@@ -121,6 +121,7 @@ export default function AppointmentsView({
   const [selectedDate, setSelectedDate] = useState(todayDateStr); // Current workspace date
   const [filterDateScope, setFilterDateScope] = useState<'all' | 'today' | 'selected'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [referenceSearchQuery, setReferenceSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<'daily' | 'weekly' | 'monthly' | 'timeline'>('daily');
   const [isBooking, setIsBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState(0); // Multi-step modern wizard selection flow
@@ -239,6 +240,18 @@ export default function AppointmentsView({
   });
 
   const filteredAppointments = appointments.filter(a => {
+    if (referenceSearchQuery.trim()) {
+      const q = referenceSearchQuery.trim().toLowerCase();
+      const matchRef = (a.referenceId || '').toLowerCase().includes(q);
+      const matchToken = (a.tokenNumber || '').toLowerCase().includes(q);
+      const matchId = (a.id || '').toLowerCase().includes(q);
+      const matchName = (a.name || a.customerName || '').toLowerCase().includes(q);
+      const matchMobile = (a.mobileNumber || '').includes(q);
+      const matchService = (a.serviceType || '').toLowerCase().includes(q);
+      const matchBranch = (a.branchName || a.shopName || a.shopId || '').toLowerCase().includes(q);
+      return matchRef || matchToken || matchId || matchName || matchMobile || matchService || matchBranch;
+    }
+
     let matchesDate = true;
     if (filterDateScope === 'today') {
       matchesDate = a.date === todayDateStr;
@@ -494,9 +507,29 @@ export default function AppointmentsView({
 
       </div>
 
-      {/* VIEW SELECTOR & CALENDAR TOGGLE BAR */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/60 pb-5">
+      {/* VIEW SELECTOR & SEARCH REFERENCE ID BAR (Requirements 14, 15) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/60 pb-5 flex-wrap">
         
+        {/* Dedicated Search Reference ID Box */}
+        <div className="relative w-full md:w-80">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 opacity-70" />
+          <input
+            type="text"
+            value={referenceSearchQuery}
+            onChange={(e) => setReferenceSearchQuery(e.target.value)}
+            placeholder="Search Reference ID / টোকেন বা রেফারেন্স..."
+            className="w-full py-2 pl-9 pr-8 bg-slate-950/90 border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300 placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40"
+          />
+          {referenceSearchQuery && (
+            <button
+              onClick={() => setReferenceSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
           {(['daily', 'weekly', 'monthly', 'timeline'] as const).map(v => (
             <button

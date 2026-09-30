@@ -22,6 +22,7 @@ export const NeuraxAiApp: React.FC<NeuraxAiAppProps> = ({ onBack, userName = 'Ri
   const [quantization, setQuantization] = useState<'FP16' | 'INT8' | 'INT4'>('INT8');
   const [isRunningBench, setIsRunningBench] = useState(false);
   const [tokensPerSec, setTokensPerSec] = useState<number>(142);
+  const [activeMobileTab, setActiveMobileTab] = useState<'inference' | 'telemetry' | 'pipelines' | 'logs'>('inference');
   const [neuralPrompt, setNeuralPrompt] = useState('Analyze edge biometric vectors with zero-latency quantization.');
   const [neuralResponse, setNeuralResponse] = useState(
     'NeuraX Neural Core initialized. 4-bit edge weights loaded into local memory cache. Inference operating at 142 tokens/sec without external network dependency.'
@@ -35,6 +36,9 @@ export const NeuraxAiApp: React.FC<NeuraxAiAppProps> = ({ onBack, userName = 'Ri
         `[NeuraX Edge Matrix ${quantization} Execution]: Evaluated "${neuralPrompt}".\nEmbedding dimensional depth: 1536 vectors.\nThermal throttle status: Nominal (36°C).\nCryptographic signature verified across decentralized NeuraX subnet.`
       );
       setIsRunningBench(false);
+      if (window.innerWidth < 768) {
+        setActiveMobileTab('logs');
+      }
     }, 750);
   };
 
@@ -81,129 +85,279 @@ export const NeuraxAiApp: React.FC<NeuraxAiAppProps> = ({ onBack, userName = 'Ri
         </div>
       </header>
 
-      {/* Main Workspace Body */}
-      <div className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Mobile Web-App Navigation Tab Bar (Requirement 04) */}
+      <div className="md:hidden flex items-center justify-around bg-[#0a0d17] border-b border-purple-500/20 px-2 py-2 sticky top-[57px] z-30">
+        {[
+          { id: 'inference', label: 'Neural Core', icon: Cpu },
+          { id: 'telemetry', label: 'Metrics', icon: BarChart3 },
+          { id: 'pipelines', label: 'Multimodal', icon: Layers },
+          { id: 'logs', label: 'Logs', icon: Terminal }
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeMobileTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveMobileTab(tab.id as any)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                isActive 
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' 
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Icon size={12} className={isActive ? 'text-white' : 'text-purple-400'} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Workspace Body: Responsive Web-App Mode */}
+      <div className="flex-1 max-w-6xl w-full mx-auto p-3 md:p-6">
         
-        {/* Left 2 Cols: Neural Execution Engine */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          
-          {/* Prompt & Execution Panel */}
-          <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-              <div className="flex items-center gap-2">
-                <Cpu size={16} className="text-purple-400" />
-                <span className="text-xs font-mono font-bold text-slate-200 uppercase">Edge Inference Sandbox</span>
-              </div>
-              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[10px] font-mono">
-                <span className="text-slate-400">Precision:</span>
-                {(['FP16', 'INT8', 'INT4'] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setQuantization(p)}
-                    className={`px-1.5 py-0.5 rounded ${quantization === p ? 'bg-purple-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="text-[11px] font-mono text-slate-400 block mb-1.5">
-              Input Vector Signal / Direct Neural Prompt:
-            </label>
-            <textarea
-              value={neuralPrompt}
-              onChange={(e) => setNeuralPrompt(e.target.value)}
-              rows={3}
-              className="w-full bg-[#131726] border border-slate-800 focus:border-purple-500 rounded-xl p-3 text-sm text-white placeholder-slate-500 outline-none transition-colors"
-            />
-
-            <div className="flex justify-between items-center mt-3">
-              <div className="text-[11px] font-mono text-slate-400">
-                Target Node: <span className="text-purple-400">Edge Device Snapdragon / NPU</span>
-              </div>
-              <button
-                onClick={handleRunInference}
-                disabled={isRunningBench}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md shadow-purple-600/30"
-              >
-                {isRunningBench ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-                <span>Execute Tensor Batch</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Neural Output Stream */}
-          <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 text-xs font-mono">
-              <div className="flex items-center gap-2 text-slate-300 font-bold">
-                <Terminal size={14} className="text-pink-400" />
-                <span>Inference Output Log</span>
-              </div>
-              <span className="text-emerald-400 font-bold">{tokensPerSec} tokens/sec</span>
-            </div>
-            
-            <div className="flex-1 bg-[#090b14] border border-slate-850 rounded-xl p-4 font-mono text-xs text-slate-200 leading-relaxed overflow-y-auto whitespace-pre-wrap">
-              {neuralResponse}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Col: Telemetry Radar */}
-        <div className="flex flex-col gap-4">
-          
-          <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-300 uppercase mb-3">
-              <BarChart3 size={14} />
-              <span>Edge Performance Metrics</span>
-            </div>
-
-            <div className="space-y-3 text-xs font-mono">
-              <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
-                <div className="flex justify-between text-slate-400 mb-1">
-                  <span>RAM Footprint</span>
-                  <span className="text-purple-300 font-bold">482 MB</span>
+        {/* MOBILE SINGLE-VIEW WEB-APP MODE */}
+        <div className="block md:hidden space-y-4">
+          {activeMobileTab === 'inference' && (
+            <div className="bg-[#0e111d] border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Cpu size={16} className="text-purple-400" />
+                  <span className="text-xs font-mono font-bold text-slate-200 uppercase">Neural Tensor Core</span>
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-purple-400 h-full w-[35%]" />
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[10px] font-mono">
+                  {(['FP16', 'INT8', 'INT4'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setQuantization(p)}
+                      className={`px-1.5 py-0.5 rounded ${quantization === p ? 'bg-purple-600 text-white font-bold' : 'text-slate-400'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
-                <div className="flex justify-between text-slate-400 mb-1">
-                  <span>Subnet Latency</span>
-                  <span className="text-emerald-400 font-bold">4.2 ms</span>
-                </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-400 h-full w-[94%]" />
-                </div>
+              <div>
+                <label className="text-[11px] font-mono text-slate-400 block mb-1.5">
+                  Input Vector Signal / Direct Neural Prompt:
+                </label>
+                <textarea
+                  value={neuralPrompt}
+                  onChange={(e) => setNeuralPrompt(e.target.value)}
+                  rows={4}
+                  className="w-full bg-[#131726] border border-slate-800 focus:border-purple-500 rounded-xl p-3 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                />
               </div>
 
-              <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
-                <div className="flex justify-between text-slate-400 mb-1">
-                  <span>Cold Start Time</span>
-                  <span className="text-pink-300 font-bold">0.12 sec</span>
+              <div className="flex flex-col gap-2 pt-1">
+                <div className="text-[10px] font-mono text-slate-400">
+                  Target: <span className="text-purple-400 font-bold">Snapdragon NPU Local</span> • {tokensPerSec} t/s
                 </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-pink-400 h-full w-[90%]" />
+                <button
+                  onClick={handleRunInference}
+                  disabled={isRunningBench}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 active:scale-98"
+                >
+                  {isRunningBench ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                  <span>Execute Neural Batch ({quantization})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeMobileTab === 'logs' && (
+            <div className="bg-[#0e111d] border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-2 text-slate-300 font-bold">
+                  <Terminal size={14} className="text-pink-400" />
+                  <span>Inference Output Log</span>
+                </div>
+                <span className="text-emerald-400 font-bold">{tokensPerSec} tokens/sec</span>
+              </div>
+              <div className="bg-[#090b14] border border-slate-850 rounded-xl p-3.5 font-mono text-xs text-slate-200 leading-relaxed whitespace-pre-wrap min-h-[200px]">
+                {neuralResponse}
+              </div>
+            </div>
+          )}
+
+          {activeMobileTab === 'telemetry' && (
+            <div className="bg-[#0e111d] border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-300 uppercase mb-3">
+                <BarChart3 size={14} />
+                <span>Edge Performance Telemetry</span>
+              </div>
+              <div className="space-y-3 text-xs font-mono">
+                <div className="p-3 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>RAM Footprint</span>
+                    <span className="text-purple-300 font-bold">482 MB</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-purple-400 h-full w-[35%]" />
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>Subnet Latency</span>
+                    <span className="text-emerald-400 font-bold">4.2 ms</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-emerald-400 h-full w-[94%]" />
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>Cold Start Time</span>
+                    <span className="text-pink-300 font-bold">0.12 sec</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-pink-400 h-full w-[90%]" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-pink-300 uppercase mb-2">
+          {activeMobileTab === 'pipelines' && (
+            <div className="bg-[#0e111d] border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-pink-300 uppercase">
                 <Layers size={14} />
                 <span>Multimodal Pipelines</span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed font-mono">
+              <p className="text-xs text-slate-400 leading-relaxed font-mono">
                 NeuraX runs continuous audio, spatial image vectoring, and text reasoning simultaneously on consumer mobile hardware.
               </p>
+              <div className="pt-3 border-t border-slate-800 text-[10px] font-mono text-slate-500">
+                Session Master: {userName} • Rexlify Connect
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* DESKTOP BENTO GRID MODE */}
+        <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left 2 Cols: Neural Execution Engine */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            
+            {/* Prompt & Execution Panel */}
+            <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div className="flex items-center gap-2">
+                  <Cpu size={16} className="text-purple-400" />
+                  <span className="text-xs font-mono font-bold text-slate-200 uppercase">Edge Inference Sandbox</span>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-[10px] font-mono">
+                  <span className="text-slate-400">Precision:</span>
+                  {(['FP16', 'INT8', 'INT4'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setQuantization(p)}
+                      className={`px-1.5 py-0.5 rounded ${quantization === p ? 'bg-purple-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="text-[11px] font-mono text-slate-400 block mb-1.5">
+                Input Vector Signal / Direct Neural Prompt:
+              </label>
+              <textarea
+                value={neuralPrompt}
+                onChange={(e) => setNeuralPrompt(e.target.value)}
+                rows={3}
+                className="w-full bg-[#131726] border border-slate-800 focus:border-purple-500 rounded-xl p-3 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+              />
+
+              <div className="flex justify-between items-center mt-3">
+                <div className="text-[11px] font-mono text-slate-400">
+                  Target Node: <span className="text-purple-400">Edge Device Snapdragon / NPU</span>
+                </div>
+                <button
+                  onClick={handleRunInference}
+                  disabled={isRunningBench}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md shadow-purple-600/30"
+                >
+                  {isRunningBench ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                  <span>Execute Tensor Batch</span>
+                </button>
+              </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800 text-[10px] font-mono text-slate-500">
-              Session Master: {userName} • Rexlify Connect
+            {/* Neural Output Stream */}
+            <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 text-xs font-mono">
+                <div className="flex items-center gap-2 text-slate-300 font-bold">
+                  <Terminal size={14} className="text-pink-400" />
+                  <span>Inference Output Log</span>
+                </div>
+                <span className="text-emerald-400 font-bold">{tokensPerSec} tokens/sec</span>
+              </div>
+              
+              <div className="flex-1 bg-[#090b14] border border-slate-850 rounded-xl p-4 font-mono text-xs text-slate-200 leading-relaxed overflow-y-auto whitespace-pre-wrap">
+                {neuralResponse}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Col: Telemetry Radar */}
+          <div className="flex flex-col gap-4">
+            
+            <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-300 uppercase mb-3">
+                <BarChart3 size={14} />
+                <span>Edge Performance Metrics</span>
+              </div>
+
+              <div className="space-y-3 text-xs font-mono">
+                <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>RAM Footprint</span>
+                    <span className="text-purple-300 font-bold">482 MB</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-purple-400 h-full w-[35%]" />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>Subnet Latency</span>
+                    <span className="text-emerald-400 font-bold">4.2 ms</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-400 h-full w-[94%]" />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#131726] border border-slate-800">
+                  <div className="flex justify-between text-slate-400 mb-1">
+                    <span>Cold Start Time</span>
+                    <span className="text-pink-300 font-bold">0.12 sec</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-pink-400 h-full w-[90%]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#0e111d]/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-pink-300 uppercase mb-2">
+                  <Layers size={14} />
+                  <span>Multimodal Pipelines</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed font-mono">
+                  NeuraX runs continuous audio, spatial image vectoring, and text reasoning simultaneously on consumer mobile hardware.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 text-[10px] font-mono text-slate-500">
+                Session Master: {userName} • Rexlify Connect
+              </div>
             </div>
           </div>
         </div>
