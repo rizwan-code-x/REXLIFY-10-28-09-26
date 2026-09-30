@@ -21,6 +21,8 @@ interface AppointmentsViewProps {
   gdriveConnected?: boolean;
   gdriveToken?: string | null;
   services?: ServiceModule[];
+  currentUser?: any;
+  shops?: any[];
 }
 
 // Premium futuristic Sound synthesis system (Web Audio API)
@@ -115,8 +117,11 @@ export default function AppointmentsView({
   goToBillingWithCustomer,
   gdriveConnected = false,
   gdriveToken = null,
-  services = []
+  services = [],
+  currentUser,
+  shops = []
 }: AppointmentsViewProps) {
+  const isCeo = currentUser?.role === 'super_admin';
   const todayDateStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayDateStr); // Current workspace date
   const [filterDateScope, setFilterDateScope] = useState<'all' | 'today' | 'selected'>('all');
@@ -128,6 +133,14 @@ export default function AppointmentsView({
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const [offlineServiceError, setOfflineServiceError] = useState<string | null>(null);
   
+  // Custom Transfer to Another Branch Modal State
+  const [transferModalApp, setTransferModalApp] = useState<Appointment | null>(null);
+  const [selectedTargetShopId, setSelectedTargetShopId] = useState<string>('');
+
+  // Custom Re-Apply Reason Modal State
+  const [reapplyModalApp, setReapplyModalApp] = useState<Appointment | null>(null);
+  const [reapplyReasonText, setReapplyReasonText] = useState<string>('');
+
   // Custom Task Panel Form State
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -938,16 +951,39 @@ export default function AppointmentsView({
                         </div>
 
                         {/* Operational Actions */}
-                        <div className="pt-3 border-t border-slate-900 flex items-center justify-between gap-2">
-                          <div className="flex gap-1.5">
+                        <div className="pt-3 border-t border-slate-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                          <div className="flex gap-1.5 items-center">
+                            {/* Alert Notification Button */}
                             <button 
                               onClick={() => triggerReminder(app)}
                               className="p-2 rounded-xl border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                              title="Send Alert notification"
+                              title="Send Alert notification / নোটিফিকেশন অ্যালার্ট"
                             >
                               <Bell size={13} />
                             </button>
 
+                            {/* Refresh Button: Prompts/Directs to Bill Creation */}
+                            {(app.status !== 'Completed' || isCeo) && (
+                              <button 
+                                onClick={() => {
+                                  playSynthSound('click');
+                                  if (goToBillingWithCustomer) {
+                                    goToBillingWithCustomer(app.mobileNumber, app.serviceType);
+                                  }
+                                  playSoundAndAlert('success', isCeo && app.status === 'Completed' ? `👑 CEO: Initiating Fresh Bill for ${app.name}...` : `📋 Initiating Bill Creation for ${app.name}...`);
+                                }}
+                                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                                  isCeo && app.status === 'Completed'
+                                    ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10'
+                                    : 'border-cyan-500/30 text-[#00f2fe] hover:bg-cyan-500/10'
+                                }`}
+                                title={isCeo && app.status === 'Completed' ? "CEO: Create Fresh Bill / নতুন বিল তৈরি" : "Create Bill from Appointment / রিফ্রেশ ও বিল তৈরি"}
+                              >
+                                <RefreshCw size={13} />
+                              </button>
+                            )}
+
+                            {/* Reschedule button */}
                             <button 
                               onClick={() => {
                                 playSynthSound('click');
@@ -955,57 +991,120 @@ export default function AppointmentsView({
                                 setNewReschedSlot(app.timeSlot);
                                 setReschedulingId(app.id);
                               }}
-                              className="p-2 rounded-xl border border-cyan-500/20 text-[#00f2fe] hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                              title="Reschedule Booking"
+                              className="p-2 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Reschedule Slot / সময় পরিবর্তন"
                             >
-                              <RefreshCw size={13} />
+                              <Clock size={13} />
                             </button>
                           </div>
 
-                          <div className="flex gap-1.5 items-center">
-                            {app.status === 'Pending' && (
+                          {/* 4 Action Options for Incoming/Pending/Reapply Appointments */}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {(app.status === 'Pending' || app.status === 'Reapply' || app.status === 'In Progress') && (
                               <>
+                                {/* 1. APPROVE */}
                                 <button
-                                  onClick={() => updateStatus(app.id, 'Approved')}
-                                  className="px-3 py-1.5 bg-emerald-500 text-black font-black rounded-xl text-[10px] hover:scale-105 transition-all cursor-pointer"
+                                  onClick={() => {
+                                    updateStatus(app.id, 'Approved');
+                                    playSoundAndAlert('success', `✅ Appointment approved for ${app.name}`);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-emerald-500 text-black font-black rounded-xl text-[9.5px] uppercase tracking-wider hover:scale-105 transition-all cursor-pointer shadow-sm"
+                                  title="Approve Appointment / অ্যাপ্রুভ করুন"
                                 >
                                   Approve
                                 </button>
+
+                                {/* 2. RE-APPLY */}
                                 <button
-                                  onClick={() => updateStatus(app.id, 'Rejected')}
-                                  className="px-3 py-1.5 bg-rose-500/15 border border-rose-500/30 text-rose-400 font-bold rounded-xl text-[10px] hover:bg-rose-500/20 transition-all cursor-pointer"
+                                  onClick={() => {
+                                    playSynthSound('click');
+                                    setReapplyModalApp(app);
+                                    setReapplyReasonText(app.reapplyReason || '');
+                                  }}
+                                  className="px-2.5 py-1.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold rounded-xl text-[9.5px] uppercase tracking-wider hover:bg-amber-500/25 transition-all cursor-pointer"
+                                  title="Request Re-apply with notes / পুনরায় আবেদন করতে বলুন"
+                                >
+                                  Re-Apply
+                                </button>
+
+                                {/* 3. REJECT */}
+                                <button
+                                  onClick={() => {
+                                    updateStatus(app.id, 'Rejected');
+                                    playSoundAndAlert('alert', `❌ Appointment rejected for ${app.name}`);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-rose-500/15 border border-rose-500/30 text-rose-400 font-bold rounded-xl text-[9.5px] uppercase tracking-wider hover:bg-rose-500/20 transition-all cursor-pointer"
+                                  title="Reject Appointment / বাতিল করুন"
                                 >
                                   Reject
+                                </button>
+
+                                {/* 4. SEND OTHER BRANCH */}
+                                <button
+                                  onClick={() => {
+                                    playSynthSound('click');
+                                    setTransferModalApp(app);
+                                    setSelectedTargetShopId(shops[0]?.id || '');
+                                  }}
+                                  className="px-2.5 py-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold rounded-xl text-[9.5px] uppercase tracking-wider hover:bg-indigo-500/25 transition-all cursor-pointer flex items-center gap-1"
+                                  title="Send to another branch / অন্য ব্রাঞ্চে পাঠান"
+                                >
+                                  <ArrowRight size={10} />
+                                  <span>Transfer</span>
                                 </button>
                               </>
                             )}
 
                             {app.status === 'Approved' && (
-                              <button
-                                onClick={() => updateStatus(app.id, 'Completed')}
-                                className="px-4 py-1.5 bg-gradient-to-r from-cyan-400 to-indigo-600 text-black font-black rounded-xl text-[10px] hover:scale-105 transition-all cursor-pointer"
-                              >
-                                Mark Completed
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => {
+                                    updateStatus(app.id, 'Completed');
+                                    playSoundAndAlert('complete', `🎉 Service marked completed for ${app.name}`);
+                                  }}
+                                  className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-400 to-indigo-600 text-black font-black rounded-xl text-[10px] uppercase tracking-wider hover:scale-105 transition-all cursor-pointer"
+                                >
+                                  Mark Completed
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    playSynthSound('laser');
+                                    if (goToBillingWithCustomer) {
+                                      goToBillingWithCustomer(app.mobileNumber, app.serviceType);
+                                    }
+                                  }}
+                                  className="px-3.5 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold rounded-xl text-[10px] hover:bg-amber-500/30 transition-all flex items-center gap-1 cursor-pointer uppercase tracking-wider"
+                                  title="Generate Bill"
+                                >
+                                  <Receipt size={12} className="text-amber-400" />
+                                  <span>Bill Now</span>
+                                </button>
+                              </>
                             )}
 
-                            {(app.status === 'Approved' || app.status === 'Completed') && (
-                              <button
-                                onClick={() => {
-                                  playSynthSound('laser');
-                                  if (goToBillingWithCustomer) {
-                                    goToBillingWithCustomer(app.mobileNumber, app.serviceType);
-                                  }
-                                }}
-                                className="px-3.5 py-1.5 bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold rounded-xl text-[10px] hover:bg-amber-500/25 transition-all flex items-center gap-1 cursor-pointer"
-                                title="Generate Bill"
-                              >
-                                <Receipt size={12} className="text-amber-400" />
-                                <span>Bill Now</span>
-                              </button>
+                            {app.status === 'Completed' && (
+                              isCeo ? (
+                                <button
+                                  onClick={() => {
+                                    playSynthSound('laser');
+                                    if (goToBillingWithCustomer) {
+                                      goToBillingWithCustomer(app.mobileNumber, app.serviceType);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold rounded-xl text-[10px] hover:bg-amber-500/30 transition-all flex items-center gap-1 cursor-pointer uppercase"
+                                  title="CEO Fresh/Re-Bill Creation"
+                                >
+                                  <Receipt size={12} className="text-amber-400" />
+                                  <span>CEO Re-Bill</span>
+                                </button>
+                              ) : (
+                                <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[9px] font-black uppercase rounded-lg">
+                                  ✓ Completed
+                                </span>
+                              )
                             )}
 
-                            {(app.status === 'Pending' || app.status === 'Approved') && (
+                            {(app.status === 'Pending' || app.status === 'Approved' || app.status === 'Reapply') && (
                               <button
                                 onClick={() => updateStatus(app.id, 'Cancelled')}
                                 className="p-1.5 border border-dashed border-red-500/40 text-red-400 rounded-xl text-[10px] hover:bg-red-500/10 transition-all cursor-pointer"
@@ -1669,6 +1768,149 @@ export default function AppointmentsView({
             >
               Understand & Acknowledge
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSFER APPOINTMENT TO OTHER BRANCH MODAL */}
+      {transferModalApp && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-950 border border-indigo-500/40 shadow-[0_0_50px_rgba(99,102,241,0.25)] space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+              <div className="flex items-center gap-2">
+                <ArrowRight className="text-indigo-400" size={18} />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider font-mono">
+                  Transfer Appointment to Branch
+                </h3>
+              </div>
+              <button 
+                onClick={() => setTransferModalApp(null)}
+                className="p-1 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2 p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-xs font-mono">
+              <p className="text-slate-400">Applicant: <strong className="text-white">{transferModalApp.name}</strong></p>
+              <p className="text-slate-400">Mobile: <strong className="text-amber-400">{transferModalApp.mobileNumber}</strong></p>
+              <p className="text-slate-400">Service: <strong className="text-cyan-400">{transferModalApp.serviceType}</strong></p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">
+                Select Destination Branch / কোন ব্রাঞ্চে পাঠাতে চান?
+              </label>
+              <select
+                value={selectedTargetShopId || (shops[0]?.id || '')}
+                onChange={(e) => setSelectedTargetShopId(e.target.value)}
+                className="w-full py-3 px-4 bg-slate-900 border border-indigo-500/40 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-indigo-400 cursor-pointer"
+              >
+                {shops.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.customId || s.id}) - {s.address || 'Branch'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setTransferModalApp(null)}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold text-xs uppercase rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetShop = shops.find(s => s.id === selectedTargetShopId) || shops[0];
+                  if (!targetShop) return;
+                  updateAppointment(transferModalApp.id, {
+                    shopId: targetShop.id,
+                    centerId: targetShop.id,
+                    shopName: targetShop.name,
+                    branchId: targetShop.id,
+                    branchName: targetShop.name,
+                    status: 'Pending',
+                    transferredToShopId: targetShop.id,
+                    transferredToShopName: targetShop.name,
+                    notes: `${transferModalApp.notes || ''} [Transferred to ${targetShop.name} on ${new Date().toLocaleDateString()}]`.trim()
+                  });
+                  playSoundAndAlert('success', `✈️ Appointment successfully transferred to ${targetShop.name}!`);
+                  setTransferModalApp(null);
+                }}
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg cursor-pointer"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RE-APPLY REASON MODAL */}
+      {reapplyModalApp && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-950 border border-amber-500/40 shadow-[0_0_50px_rgba(245,158,11,0.25)] space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="text-amber-400 animate-spin" size={18} />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider font-mono">
+                  Request Re-Application (নতুন আবেদন)
+                </h3>
+              </div>
+              <button 
+                onClick={() => setReapplyModalApp(null)}
+                className="p-1 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2 p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-xs font-mono">
+              <p className="text-slate-400">Applicant: <strong className="text-white">{reapplyModalApp.name}</strong></p>
+              <p className="text-slate-400">Service: <strong className="text-cyan-400">{reapplyModalApp.serviceType}</strong></p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">
+                Reason / Missing Document details (কী কারণে পুনরায় আবেদন করতে হবে?)
+              </label>
+              <textarea
+                rows={3}
+                value={reapplyReasonText}
+                onChange={(e) => setReapplyReasonText(e.target.value)}
+                placeholder="e.g. Please upload clear photo and original Aadhaar card scan, then re-apply..."
+                className="w-full p-3.5 bg-slate-900 border border-amber-500/40 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-amber-400 resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setReapplyModalApp(null)}
+                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold text-xs uppercase rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateAppointment(reapplyModalApp.id, {
+                    status: 'Reapply',
+                    reapplyReason: reapplyReasonText || 'Please review requirements and re-apply with required documents.',
+                    notes: `${reapplyModalApp.notes || ''} [Reapply Requested: ${reapplyReasonText}]`.trim()
+                  });
+                  playSoundAndAlert('alert', `⚠️ Re-apply notice sent to ${reapplyModalApp.name}`);
+                  setReapplyModalApp(null);
+                }}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg cursor-pointer"
+              >
+                Submit Re-Apply Request
+              </button>
+            </div>
           </div>
         </div>
       )}

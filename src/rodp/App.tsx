@@ -818,6 +818,9 @@ export default function App({ onBack }: AppProps = {}) {
               updateAppointment={updateAppointment}
               customers={customers}
               addCustomer={addCustomer}
+              goToBillingWithCustomer={goToBillingWithCustomer}
+              inquiries={inquiries}
+              updateInquiry={updateInquiry}
             />
           );
         }
@@ -869,6 +872,8 @@ export default function App({ onBack }: AppProps = {}) {
             gdriveToken={gdriveToken}
             goToBillingWithCustomer={goToBillingWithCustomer}
             services={services}
+            currentUser={currentUser}
+            shops={shops}
           />
         );
       case 'priority_tasks_vault':
@@ -1144,6 +1149,8 @@ export default function App({ onBack }: AppProps = {}) {
             aiKnowledge={aiKnowledge}
             shops={shops}
             notices={notices}
+            inquiries={inquiries}
+            addInquiry={addInquiry}
           />
         );
       case 'ai_assistant':

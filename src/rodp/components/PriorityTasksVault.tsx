@@ -150,6 +150,7 @@ export default function PriorityTasksVault({
   const [notes, setNotes] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [screenshotUrl, setScreenshotUrl] = useState('');
   const [completionDate, setCompletionDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dragOver, setDragOver] = useState(false);
@@ -169,6 +170,7 @@ export default function PriorityTasksVault({
   // Search & Detailed Panel States
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTask, setSelectedTask] = useState<CompletedPriorityTask | null>(null);
+  const [filterPriority, setFilterPriority] = useState<'all' | 'low' | 'medium' | 'high'>('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -422,6 +424,7 @@ export default function PriorityTasksVault({
             screenshotUrl: finalScreenshot,
             paymentAmount: Number(paymentAmount) || 0,
             paymentMethod,
+            priority,
             // Keep existing OCR parameters or update if new scan was run
             allExtractedIds: aiAnalysisResult ? aiAnalysisResult.allExtractedIds : task.allExtractedIds,
             notebookNote: aiAnalysisResult ? aiAnalysisResult.notebookNote : task.notebookNote
@@ -448,6 +451,7 @@ export default function PriorityTasksVault({
         screenshotUrl: finalScreenshot,
         paymentAmount: Number(paymentAmount) || 0,
         paymentMethod,
+        priority,
         createdAt: new Date().toISOString(),
         allExtractedIds: aiAnalysisResult ? aiAnalysisResult.allExtractedIds : [],
         notebookNote: aiAnalysisResult ? aiAnalysisResult.notebookNote : null

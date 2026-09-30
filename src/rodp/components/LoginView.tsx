@@ -666,7 +666,7 @@ export default function LoginView({
       rodpUserId: rodpAddress,
       referenceId: refId,
       email: rodpAddress,
-      mobile: mobileVal || `${Math.floor(6000000000 + Math.random() * 3999999999)}`,
+      mobile: mobileVal || '',
       status: 'active',
       password: pinVal,
       securityPin: pinVal,
@@ -2036,6 +2036,20 @@ export default function LoginView({
                     placeholder="Enter your village or city name"
                     className="w-full text-xs font-bold py-3 px-4 bg-slate-50 text-slate-800 border border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none"
                   />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500 font-extrabold tracking-wider block">
+                    Mobile Number (মোবাইল নম্বর - ঐচ্ছিক / Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={custMobile}
+                    onChange={(e) => setCustMobile(e.target.value)}
+                    placeholder="Enter mobile number (Optional - না দিলেও চলবে)"
+                    className="w-full text-xs font-bold py-3 px-4 bg-slate-50 text-slate-800 border border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none font-mono"
+                  />
+                  <p className="text-[9px] text-slate-400 font-medium">আপনার সমস্ত তথ্য ইউজারনেম ও ইমেইল আইডির সাথে স্থায়ীভাবে সংরক্ষিত হবে।</p>
                 </div>
 
                 <div className="space-y-1">

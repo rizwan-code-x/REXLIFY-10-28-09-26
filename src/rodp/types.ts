@@ -90,7 +90,7 @@ export interface Appointment {
   date: string; // YYYY-MM-DD
   timeSlot: string; // e.g., "10:00 AM - 10:30 AM"
   notes?: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'In Progress' | 'Completed' | 'Cancelled' | 'Reapply' | 'Transferred';
   tokenNumber?: string; // Token queue system e.g. "T-05"
   assignedStaffId?: string;
   createdAt: string;
@@ -104,6 +104,11 @@ export interface Appointment {
   branchId?: string;
   branchName?: string;
   referenceId?: string;
+  transferredToShopId?: string;
+  transferredToShopName?: string;
+  transferredFromShopId?: string;
+  transferredFromShopName?: string;
+  reapplyReason?: string;
 }
 
 export interface Task {
@@ -364,11 +369,29 @@ export interface Inquiry {
   id: string;
   name: string;
   mobile: string;
+  email?: string;
   address?: string;
   message: string;
   createdAt: string;
   reply?: string;
   replyAt?: string;
+  targetShopId?: string;
+  targetShopName?: string;
+  subject?: string;
+  status?: 'unread' | 'read' | 'replied';
+  source?: 'notice' | 'help_center' | 'portal';
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  validTill?: string;
+  description: string;
+  status: 'active' | 'inactive';
 }
 
 export interface GroupMessage {

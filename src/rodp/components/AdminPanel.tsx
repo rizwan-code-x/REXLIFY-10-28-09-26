@@ -2340,7 +2340,7 @@ export default function AdminPanel({
       {/* Onboard Entity Modal */}
       {isAdding && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl animate-scale-up ${
+          <div className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar ${
             theme === 'dark' ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200'
           }`}>
             <div className="flex items-center justify-between mb-4 border-b border-slate-500/10 pb-3">

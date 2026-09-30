@@ -5,6 +5,9 @@ import {
   UserPlus, Bell, ChevronRight, Bookmark, Shield, Zap, X, 
   ChevronLeft, Trash2, Lock, Unlock, MessageSquare, Store
 } from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
 import { Appointment, CustomerCRM, Task, Invoice, InventoryItem, Shop } from '../types';
 
 interface DashboardViewProps {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Calendar, CheckCircle, Clock, FileText, ArrowRight, Sparkles, 
   User, Mail, Phone, MapPin, Download, AlertCircle, FileUp, KeyRound, Lock,
@@ -73,6 +73,8 @@ interface CustomerPortalProps {
   services?: ServiceModule[];
   aiKnowledge?: AIKnowledgeItem[];
   shops?: any[];
+  inquiries?: any[];
+  addInquiry?: (inquiry: any) => void;
 }
 
 // 8 Curated Premium Cyber-Glass Avatars
@@ -879,11 +881,30 @@ export default function CustomerPortal({
   services,
   aiKnowledge = [],
   shops = [],
-  notices = []
+  notices = [],
+  inquiries = [],
+  addInquiry
 }: CustomerPortalProps) {
   
-  // Dynamic services list: falls back to static SHOP_SERVICES if empty
-  const activeServicesList = (services && services.length > 0) ? services : SHOP_SERVICES;
+  // Dynamic services list: filter out inactive/disabled services from branches/CEO
+  const activeServicesList = useMemo(() => {
+    const baseList = (services && services.length > 0) ? services : SHOP_SERVICES;
+    return baseList.filter((srv: any) => {
+      if (srv.status === 'Inactive' || srv.status === 'Disabled' || srv.enabled === false) return false;
+      return true;
+    });
+  }, [services]);
+
+  // Appointment Status Check & Action Menu Modal States
+  const [selectedAppointmentForActionMenu, setSelectedAppointmentForActionMenu] = useState<Appointment | null>(null);
+  const [selectedAppointmentForStatusModal, setSelectedAppointmentForStatusModal] = useState<Appointment | null>(null);
+
+  // Email Inquiry / Help Desk States
+  const [supportSubTab, setSupportSubTab] = useState<'helpdesk' | 'ai'>('helpdesk');
+  const [helpDeskBranchId, setHelpDeskBranchId] = useState<string>('ceo');
+  const [helpDeskSubject, setHelpDeskSubject] = useState<string>('');
+  const [helpDeskMessage, setHelpDeskMessage] = useState<string>('');
+  const [helpDeskSentSuccess, setHelpDeskSentSuccess] = useState<boolean>(false);
 
   // Selected voice language for Sifra AI support: 'bn-IN' | 'en-IN' | 'hi-IN'
   const [voiceLang, setVoiceLang] = useState<'bn-IN' | 'en-IN' | 'hi-IN'>('bn-IN');
@@ -2042,7 +2063,7 @@ export default function CustomerPortal({
                       return (
                         <div 
                           key={app.id} 
-                          onClick={() => setSelectedAppointmentForCardModal(app)}
+                          onClick={() => setSelectedAppointmentForActionMenu(app)}
                           className="p-5 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl hover:border-[#dfac5d]/40 transition-all duration-300 relative overflow-hidden group cursor-pointer flex flex-col justify-between"
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[#dfac5d]/5 rounded-full blur-2xl pointer-events-none group-hover:bg-[#dfac5d]/10 transition-colors" />
@@ -2295,8 +2316,7 @@ export default function CustomerPortal({
                           <div 
                             key={app.id} 
                             onClick={() => {
-                              setActiveTab('appointments');
-                              setSelectedAppointmentForCardModal(app);
+                              setSelectedAppointmentForActionMenu(app);
                             }}
                             className="p-5 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl hover:border-[#dfac5d]/40 transition-all duration-300 relative overflow-hidden group cursor-pointer flex flex-col justify-between"
                           >
@@ -2691,7 +2711,7 @@ export default function CustomerPortal({
                         return (
                           <div
                             key={app.id}
-                            onClick={() => setSelectedAppointmentForCardModal(app)}
+                            onClick={() => setSelectedAppointmentForActionMenu(app)}
                             className="p-5 sm:p-6 rounded-3xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-xl hover:border-[#dfac5d]/50 transition-all duration-300 relative overflow-hidden group cursor-pointer space-y-4 text-left"
                           >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[#dfac5d]/5 rounded-full blur-2xl pointer-events-none group-hover:bg-[#dfac5d]/10 transition-colors" />
@@ -2743,12 +2763,12 @@ export default function CustomerPortal({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedAppointmentForCardModal(app);
+                                  setSelectedAppointmentForActionMenu(app);
                                 }}
                                 className="px-3.5 py-1.5 rounded-xl bg-[#dfac5d]/10 hover:bg-[#dfac5d]/20 text-[#dfac5d] border border-[#dfac5d]/30 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer active:scale-95"
                               >
                                 <Eye size={12} />
-                                <span>{isBn ? "ফুল স্ক্রিন স্লিপ দেখুন" : "View Full Screen Slip"}</span>
+                                <span>{isBn ? "স্ট্যাটাস ও স্লিপ দেখুন" : "View Status / Slip"}</span>
                               </button>
                             </div>
                           </div>
@@ -3762,8 +3782,258 @@ export default function CustomerPortal({
                 </div>
               </div>
 
-              {/* Master Full-Screen Redesigned Glossy Container */}
-              <div className="relative z-10 w-full flex flex-col justify-between bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[32px] p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] relative overflow-hidden min-h-[calc(100vh-180px)] md:h-[calc(100vh-180px)]">
+              {/* Tab Selector: Help Center & Email Verification vs Sifra AI */}
+              <div className="relative z-10 flex gap-2 border-b border-white/10 pb-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSupportSubTab('helpdesk')}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+                    supportSubTab === 'helpdesk'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 scale-[1.02]'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <Mail size={14} />
+                  <span>{isBn ? "✉️ হেল্প সেন্টার ও ইমেইল ইনকোয়ারি" : "✉️ Help Center & Email Inquiries"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSupportSubTab('ai')}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+                    supportSubTab === 'ai'
+                      ? 'bg-gradient-to-r from-cyan-400 to-indigo-600 text-slate-950 shadow-lg shadow-cyan-500/20 scale-[1.02]'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <Sparkles size={14} />
+                  <span>{isBn ? "🤖 সিফরা এআই অ্যাসিস্ট্যান্ট" : "🤖 Sifra Intelligent AI"}</span>
+                </button>
+              </div>
+
+              {supportSubTab === 'helpdesk' ? (
+                /* HELP CENTER EMAIL INQUIRY VIEW */
+                <div className="space-y-6 animate-fade-in relative z-10">
+                  
+                  {/* Top Notification Banner for User's Email */}
+                  <div className="p-4 rounded-2xl bg-slate-900/80 border border-[#dfac5d]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-[#dfac5d]/10 border border-[#dfac5d]/20 text-[#dfac5d]">
+                        <UserCheck size={18} />
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold block font-mono">YOUR REGISTERED CITIZEN EMAIL / USER ID</span>
+                        <p className="text-sm font-black text-white font-mono">
+                          {currentUser.email || (currentUser as any).rodpAddress || 'customer@rodp.online'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold uppercase">
+                      🔒 Verified Account Session
+                    </span>
+                  </div>
+
+                  {/* Two Columns: Left = Compose Inquiry Form, Right = Official Branch & CEO Email Directory */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    {/* LEFT COLUMN: Compose Inquiry Form (7 cols) */}
+                    <div className="lg:col-span-7 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl space-y-5">
+                      <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-[#dfac5d] flex items-center gap-2 font-mono">
+                          <Send size={14} />
+                          <span>{isBn ? "ব্রাঞ্চ বা সিইও-কে সরাসরি ইমেইল বার্তা পাঠান" : "Direct Email to Branch or CEO Desk"}</span>
+                        </h3>
+                        <span className="text-[9px] font-mono text-slate-400">Secure Direct Sync</span>
+                      </div>
+
+                      {helpDeskSentSuccess && (
+                        <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold space-y-1 animate-fade-in">
+                          <p className="flex items-center gap-2 font-black">
+                            <CheckCircle2 size={16} className="text-emerald-400" />
+                            <span>আপনার ইমেইল বার্তা সফলভাবে পাঠানো হয়েছে!</span>
+                          </p>
+                          <p className="text-[11px] text-emerald-400/90 font-medium">
+                            বার্তাটি সরাসরি নির্বাচিত ব্রাঞ্চের <strong>ইমেইল ভেরিফিকেশন (Email Inquiries)</strong> প্যানেল এবং <strong>সিইও ড্যাশবোর্ডে</strong> সিঙ্ক করা হয়েছে।
+                          </p>
+                        </div>
+                      )}
+
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!helpDeskMessage.trim()) {
+                            alert('অনুগ্রহ করে আপনার বার্তা লিখুন (Please enter your message)');
+                            return;
+                          }
+
+                          const targetBranch = helpDeskBranchId === 'ceo' 
+                            ? { id: 'ceo', name: 'CEO Administration Desk' } 
+                            : (shops.find(s => s.id === helpDeskBranchId) || { id: 'shop_1', name: 'RIZWAN ONLINE DREAMS (Head Office)' });
+
+                          const newInquiry = {
+                            id: `inq_${Date.now()}`,
+                            name: profileName || currentUser.name || 'Customer',
+                            mobile: profileMobile || currentUser.mobile || 'N/A',
+                            email: currentUser.email || (currentUser as any).rodpAddress || 'customer@rodp.online',
+                            subject: helpDeskSubject.trim() || 'General Service Inquiry',
+                            message: helpDeskMessage.trim(),
+                            createdAt: new Date().toISOString(),
+                            targetShopId: targetBranch.id,
+                            targetShopName: targetBranch.name,
+                            status: 'New'
+                          };
+
+                          if (addInquiry) {
+                            addInquiry(newInquiry);
+                          }
+                          setHelpDeskSentSuccess(true);
+                          setHelpDeskSubject('');
+                          setHelpDeskMessage('');
+                          setTimeout(() => setHelpDeskSentSuccess(false), 8000);
+                        }}
+                        className="space-y-4 text-left"
+                      >
+                        {/* Target recipient branch selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono block">
+                            SELECT RECIPIENT BRANCH / ব্রাঞ্চ নির্বাচন করুন *
+                          </label>
+                          <select
+                            value={helpDeskBranchId}
+                            onChange={(e) => setHelpDeskBranchId(e.target.value)}
+                            className="w-full p-3 bg-slate-950 border border-white/10 rounded-2xl text-xs font-bold text-white focus:outline-none focus:border-[#dfac5d]/50 cursor-pointer"
+                          >
+                            <option value="ceo">👑 CEO Master HQ Desk (ceo.rodp@online-dreams.com)</option>
+                            {shops.map(s => (
+                              <option key={s.id} value={s.id}>
+                                🏢 {s.name} ({s.email || `${s.customId?.toLowerCase() || 'branch'}@rodp.online`})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Subject */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono block">
+                            INQUIRY SUBJECT / বিষয় (ঐচ্ছিক)
+                          </label>
+                          <input
+                            type="text"
+                            value={helpDeskSubject}
+                            onChange={(e) => setHelpDeskSubject(e.target.value)}
+                            placeholder="যেমন: পাসপোর্ট আবেদন বা আধার সংশোধন সম্পর্কিত প্রশ্ন..."
+                            className="w-full p-3 bg-slate-950 border border-white/10 rounded-2xl text-xs font-bold text-white focus:outline-none focus:border-[#dfac5d]/50"
+                          />
+                        </div>
+
+                        {/* Message */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono block">
+                            YOUR MESSAGE OR ISSUE / আপনার বার্তা বা বিস্তারিত প্রশ্ন *
+                          </label>
+                          <textarea
+                            rows={4}
+                            required
+                            value={helpDeskMessage}
+                            onChange={(e) => setHelpDeskMessage(e.target.value)}
+                            placeholder="আপনার প্রশ্ন বা যে বিষয়ে সাহায্য প্রয়োজন তা বিস্তারিত লিখুন..."
+                            className="w-full p-3.5 bg-slate-950 border border-white/10 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-[#dfac5d]/50 resize-none"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                        >
+                          <Send size={15} />
+                          <span>Send Email Inquiry / বার্তা পাঠান</span>
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* RIGHT COLUMN: Official Branch & CEO Email Directory (5 cols) */}
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="p-6 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl space-y-4 shadow-xl">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 font-mono flex items-center gap-2 border-b border-white/5 pb-3">
+                          <Building size={14} />
+                          <span>Official Branch Email Directory</span>
+                        </h4>
+
+                        <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                          {/* CEO Card */}
+                          <div 
+                            onClick={() => setHelpDeskBranchId('ceo')}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 ${
+                              helpDeskBranchId === 'ceo' 
+                                ? 'bg-amber-500/15 border-amber-500/50 shadow-lg' 
+                                : 'bg-slate-950/60 border-white/5 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                                👑 Master CEO Desk
+                              </span>
+                              {helpDeskBranchId === 'ceo' && (
+                                <span className="text-[9px] text-amber-400 font-mono font-bold">Selected ✓</span>
+                              )}
+                            </div>
+                            <h5 className="text-xs font-extrabold text-white">Rizwan Dreams Central Administration</h5>
+                            <p className="text-[10.5px] text-amber-300 font-mono flex items-center gap-1.5">
+                              <Mail size={12} className="text-amber-400" />
+                              <span>ceo.rodp@online-dreams.com</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-mono">Alt: rizwanroushan0@gmail.com</p>
+                          </div>
+
+                          {/* Branch Cards */}
+                          {shops.map(s => {
+                            const isSelected = helpDeskBranchId === s.id;
+                            const branchEmail = s.email || `${(s.customId || 'branch').toLowerCase()}@rodp.online`;
+                            return (
+                              <div
+                                key={s.id}
+                                onClick={() => setHelpDeskBranchId(s.id)}
+                                className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 ${
+                                  isSelected 
+                                    ? 'bg-amber-500/15 border-amber-500/50 shadow-lg' 
+                                    : 'bg-slate-950/60 border-white/5 hover:border-white/20'
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
+                                    {s.customId || s.id}
+                                  </span>
+                                  {isSelected && (
+                                    <span className="text-[9px] text-amber-400 font-mono font-bold">Selected ✓</span>
+                                  )}
+                                </div>
+                                <h5 className="text-xs font-bold text-white">{s.name}</h5>
+                                <p className="text-[10.5px] text-cyan-300 font-mono flex items-center gap-1.5">
+                                  <Mail size={12} className="text-cyan-400" />
+                                  <span>{branchEmail}</span>
+                                </p>
+                                <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                  <Phone size={10} />
+                                  <span>{s.phone || '9593388785'}</span>
+                                </p>
+                                {s.address && (
+                                  <p className="text-[9px] text-slate-500 truncate">
+                                    📍 {s.address}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              ) : (
+                /* SIFRA AI ASSISTANT VIEW */
+                <>
+                <div className="relative z-10 w-full flex flex-col justify-between bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[32px] p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] relative overflow-hidden min-h-[calc(100vh-180px)] md:h-[calc(100vh-180px)]">
                 {/* Visual Glass highlights */}
                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-cyan-400/10 via-transparent to-transparent rounded-full pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gradient-to-tr from-fuchsia-400/5 via-transparent to-transparent rounded-full pointer-events-none" />
@@ -4235,6 +4505,8 @@ export default function CustomerPortal({
                   </div>
                 )}
               </AnimatePresence>
+              </>
+            )}
             </motion.div>
           )}
 
@@ -7156,6 +7428,334 @@ export default function CustomerPortal({
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
+      {/* 1. APPOINTMENT ACTION MENU POPUP (Choice of Status Check or View Full Screen Slip) */}
+      <AnimatePresence>
+        {selectedAppointmentForActionMenu && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative text-left space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <CalendarCheck size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider font-mono">
+                      {isBn ? "অ্যাপয়েন্টমেন্ট মেনু" : "Appointment Menu"}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono">Ref #{selectedAppointmentForActionMenu.id.slice(-6).toUpperCase()}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAppointmentForActionMenu(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-xl bg-white/5 hover:bg-white/10"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Appointment summary */}
+              <div className="p-3.5 bg-slate-950/70 rounded-2xl border border-white/5 space-y-1 text-xs">
+                <p className="text-white font-black text-sm">{selectedAppointmentForActionMenu.serviceType}</p>
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>📅 {selectedAppointmentForActionMenu.date} ({selectedAppointmentForActionMenu.timeSlot})</span>
+                  <span className={`px-2 py-0.5 rounded font-black uppercase ${
+                    selectedAppointmentForActionMenu.status === 'Approved' || selectedAppointmentForActionMenu.status === 'Completed'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : selectedAppointmentForActionMenu.status === 'Rejected'
+                      ? 'bg-rose-500/20 text-rose-400'
+                      : 'bg-amber-500/20 text-amber-400 animate-pulse'
+                  }`}>{selectedAppointmentForActionMenu.status}</span>
+                </div>
+              </div>
+
+              {/* 2 Big Action Buttons as requested by user */}
+              <div className="space-y-3 pt-1">
+                {/* 1. Status Check Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const app = selectedAppointmentForActionMenu;
+                    setSelectedAppointmentForActionMenu(null);
+                    setSelectedAppointmentForStatusModal(app);
+                  }}
+                  className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-sky-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-500/40 text-left transition-all duration-200 cursor-pointer shadow-lg group flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 group-hover:scale-110 transition-transform">
+                      <Search size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">
+                        ১. স্ট্যাটাস চেক (Status Check)
+                      </h4>
+                      <p className="text-[10px] text-slate-300 font-medium">
+                        ব্রাঞ্চ রিভিউ, অনুমোদন বা রিজেক্ট এবং ৪-ধাপ প্রগ্রেস দেখুন
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-cyan-400 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {/* 2. View Full Screen Slip Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const app = selectedAppointmentForActionMenu;
+                    setSelectedAppointmentForActionMenu(null);
+                    setSelectedAppointmentForCardModal(app);
+                  }}
+                  className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/40 text-left transition-all duration-200 cursor-pointer shadow-lg group flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 group-hover:scale-110 transition-transform">
+                      <Eye size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-amber-300 transition-colors">
+                        ২. ভিউ ফুল স্লিপ ও পাস (View Slip & Card)
+                      </h4>
+                      <p className="text-[10px] text-slate-300 font-medium">
+                        অফিসিয়াল বুকিং স্লিপ, কিউআর ও প্রিন্ট অপশন
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAppointmentForActionMenu(null)}
+                  className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close / বন্ধ করুন
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. COMPREHENSIVE 4-STEP APPOINTMENT STATUS TRACKER MODAL */}
+      <AnimatePresence>
+        {selectedAppointmentForStatusModal && (() => {
+          const app = selectedAppointmentForStatusModal;
+          const isApproved = app.status === 'Approved' || app.status === 'Completed';
+          const isCompleted = app.status === 'Completed';
+          const isReapply = app.status === 'Reapply';
+          const isRejected = app.status === 'Rejected' || app.status === 'Cancelled';
+          const isPending = app.status === 'Pending' || (!isApproved && !isReapply && !isRejected);
+          const targetBranch = shops.find((s: any) => s.id === app.shopId) || {
+            name: app.shopName || 'RIZWAN ONLINE DREAMS (Head Office)',
+            email: 'rizwanroushan0@gmail.com',
+            phone: '9593388785',
+            address: 'Jalangi, Murshidabad'
+          };
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="w-full max-w-lg bg-slate-900 border border-cyan-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-left overflow-hidden space-y-6 max-h-[90vh] overflow-y-auto"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-tr from-cyan-400 to-indigo-600 text-slate-950 rounded-2xl shadow-lg">
+                      <Search size={20} className="fill-slate-950" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider font-mono">
+                        {isBn ? "লাইভ স্ট্যাটাস ট্র্যাকার" : "Live Status Tracker"}
+                      </h3>
+                      <p className="text-[10px] text-cyan-400 font-bold font-mono">
+                        REF #{app.id} • 4-STAGE PIPELINE
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAppointmentForStatusModal(null)}
+                    className="p-2 text-slate-400 hover:text-white rounded-xl bg-white/5 hover:bg-white/10"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* 4 Steps Interactive Timeline */}
+                <div className="space-y-4 relative before:absolute before:inset-0 before:left-5 before:w-0.5 before:bg-gradient-to-b before:from-cyan-500 before:via-indigo-500 before:to-emerald-500 pt-1">
+                  
+                  {/* STEP 1: Application Created */}
+                  <div className="relative flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.4)] z-10">
+                      ✓
+                    </div>
+                    <div className="flex-1 p-4 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black text-emerald-300 uppercase tracking-wider">
+                          ১. অ্যাপ্লিকেশন ক্রিয়েট করা হয়েছে (Created)
+                        </h4>
+                        <span className="text-[9px] text-emerald-400 font-mono font-bold">Step 1 Completed</span>
+                      </div>
+                      <p className="text-[11px] text-white font-bold">{app.serviceType}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">📅 {app.date} • 🕒 {app.timeSlot}</p>
+                      <p className="text-[9.5px] text-slate-500">আবেদনকারী: {app.name} ({app.mobileNumber})</p>
+                    </div>
+                  </div>
+
+                  {/* STEP 2: Target Branch Assignment */}
+                  <div className="relative flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-cyan-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.4)] z-10">
+                      ২
+                    </div>
+                    <div className="flex-1 p-4 bg-slate-950/70 border border-cyan-500/30 rounded-2xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black text-cyan-300 uppercase tracking-wider">
+                          ২. ব্রাঞ্চ রিভিউ ও যাচাইকরণ (Branch Scrutiny)
+                        </h4>
+                        <span className="text-[9px] text-cyan-400 font-mono font-bold">Assigned</span>
+                      </div>
+                      <p className="text-[11px] text-white font-bold flex items-center gap-1.5">
+                        <Building size={12} className="text-cyan-400" />
+                        <span>{targetBranch.name}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">✉️ Email: {targetBranch.email || 'branch@rodp.online'}</p>
+                      <p className="text-[9.5px] text-slate-400">👤 Executive: {(app as any).assignedStaff || (app as any).assignedStaffId || 'Senior Verification Desk'}</p>
+                    </div>
+                  </div>
+
+                  {/* STEP 3: Branch Decision / Status */}
+                  <div className="relative flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 z-10 ${
+                      isApproved ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.4)]' :
+                      isReapply ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]' :
+                      isRejected ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]' :
+                      'bg-slate-800 text-amber-300 border border-amber-500/40 animate-pulse'
+                    }`}>
+                      {isApproved ? '✓' : isRejected ? '✗' : isReapply ? '!' : '৩'}
+                    </div>
+                    <div className={`flex-1 p-4 bg-slate-950/70 rounded-2xl space-y-1 border ${
+                      isApproved ? 'border-emerald-500/40' :
+                      isReapply ? 'border-amber-500/40' :
+                      isRejected ? 'border-rose-500/40' :
+                      'border-white/10'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <h4 className={`text-xs font-black uppercase tracking-wider ${
+                          isApproved ? 'text-emerald-300' :
+                          isReapply ? 'text-amber-300' :
+                          isRejected ? 'text-rose-300' :
+                          'text-amber-400'
+                        }`}>
+                          ৩. ব্রাঞ্চ সিদ্ধান্ত ও অ্যাকশন (Branch Decision)
+                        </h4>
+                        <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded bg-slate-900 border border-white/5">
+                          {app.status}
+                        </span>
+                      </div>
+
+                      {isApproved && (
+                        <p className="text-[11px] text-emerald-300 font-bold">
+                          ✅ ব্রাঞ্চ ম্যানেজার আপনার অ্যাপয়েন্টমেন্ট কনফার্ম ও অ্যাপ্রুভ করেছেন।
+                        </p>
+                      )}
+                      {isReapply && (
+                        <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10.5px] text-amber-300 space-y-0.5">
+                          <p className="font-black">⚠️ পুনরায় আবেদন করুন (Re-apply Required)</p>
+                          <p className="text-[10px] text-amber-400/90 font-medium">কারণ: {app.reapplyReason || 'ডকুমেন্ট অস্পষ্ট অথবা অতিরিক্ত তথ্য প্রয়োজন।'}</p>
+                        </div>
+                      )}
+                      {isRejected && (
+                        <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-[10.5px] text-rose-300 space-y-0.5">
+                          <p className="font-black">❌ আবেদন বাতিল করা হয়েছে (Declined)</p>
+                          <p className="text-[10px] text-rose-400/90 font-medium">কারণ: {app.notes || 'অনুরোধটি ব্রাঞ্চ থেকে প্রত্যাখ্যাত হয়েছে।'}</p>
+                        </div>
+                      )}
+                      {isPending && (
+                        <p className="text-[11px] text-amber-400 font-medium">
+                          ⏳ ব্রাঞ্চ কর্তৃপক্ষের অনুমোদনের জন্য অপেক্ষমান রয়েছে।
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* STEP 4: Service Delivery & Invoicing */}
+                  <div className="relative flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 z-10 ${
+                      isCompleted ? 'bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.5)]' :
+                      isApproved ? 'bg-indigo-500 text-white animate-pulse' :
+                      'bg-slate-800 text-slate-500'
+                    }`}>
+                      {isCompleted ? '★' : '৪'}
+                    </div>
+                    <div className={`flex-1 p-4 bg-slate-950/70 rounded-2xl space-y-1 border ${
+                      isCompleted ? 'border-emerald-500/40 bg-emerald-950/10' :
+                      isApproved ? 'border-indigo-500/30' :
+                      'border-white/5'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+                          ৪. সেবা সম্পন্ন ও ডিজিটাল বিল (Completion & Invoicing)
+                        </h4>
+                        <span className="text-[9px] font-mono text-slate-400">
+                          {isCompleted ? 'Ready & Delivered' : 'Pipeline'}
+                        </span>
+                      </div>
+                      {isCompleted ? (
+                        <p className="text-[11px] text-emerald-300 font-bold">
+                          🎉 আপনার কাজটি সম্পূর্ণভাবে সম্পন্ন হয়েছে এবং ট্যাক্স ইনভয়েস তৈরি হয়েছে।
+                        </p>
+                      ) : isApproved ? (
+                        <p className="text-[11px] text-indigo-300 font-medium">
+                          ⚡ ব্রাঞ্চে আপনার কাজের প্রস্তুতি চলছে। নির্ধারিত স্লটে উপস্থিত থাকলে বিল তৈরি করা হবে।
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-slate-500">
+                          ধাপ ৩ অনুমোদিত হওয়ার পর এই সেকশনে বিল ও ডেলিভারি স্ট্যাটাস দৃশ্যমান হবে।
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex gap-2 pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAppointmentForStatusModal(null);
+                      setSelectedAppointmentForCardModal(app);
+                    }}
+                    className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Eye size={14} />
+                    <span>View Official Pass Slip / স্লিপ দেখুন</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAppointmentForStatusModal(null)}
+                    className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* Official Appointment Booking Card Modal */}

@@ -23,6 +23,9 @@ interface BranchDashboardViewProps {
   customers?: any[];
   addCustomer?: (customer: any) => void;
   playTechIndustryLoginSound?: () => void;
+  inquiries?: any[];
+  updateInquiry?: (id: string, updates: any) => void;
+  goToBillingWithCustomer?: (mobile: string, service?: string) => void;
 }
 
 interface CustomProduct {
@@ -66,13 +69,24 @@ export default function BranchDashboardView({
   deleteAppointment,
   customers = [],
   addCustomer,
-  playTechIndustryLoginSound
+  playTechIndustryLoginSound,
+  inquiries = [],
+  updateInquiry,
+  goToBillingWithCustomer
 }: BranchDashboardViewProps) {
   
   // CEO / Super Admin Branch Selection
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const defaultShopId = currentUser?.shopId || (shops[0]?.id || 'shop_2');
   const [selectedShopId, setSelectedShopId] = useState<string>(defaultShopId);
+
+  // Appointment filter & actions state
+  const [branchAptFilter, setBranchAptFilter] = useState<'All' | 'Pending' | 'Approved' | 'Completed' | 'Reapply' | 'Rejected'>('All');
+  const [branchBillFilter, setBranchBillFilter] = useState<'All' | 'Today' | 'Pending'>('All');
+  const [reapplyModalApp, setReapplyModalApp] = useState<Appointment | null>(null);
+  const [reapplyReasonText, setReapplyReasonText] = useState<string>('');
+  const [transferModalApp, setTransferModalApp] = useState<Appointment | null>(null);
+  const [transferTargetShopId, setTransferTargetShopId] = useState<string>('');
 
   // Sync selectedShopId if user changes or initially loads
   useEffect(() => {
@@ -103,7 +117,7 @@ export default function BranchDashboardView({
   }, [shops, selectedShopId, currentUser?.name, currentUser?.email]);
 
   // Active Sub-Tab Navigation inside Branch Dashboard
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'profile' | 'services' | 'appointments' | 'billing' | 'customers' | 'analytics' | 'proofs' | 'calendar'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'profile' | 'services' | 'appointments' | 'billing' | 'customers' | 'analytics' | 'proofs' | 'calendar' | 'inquiries'>('overview');
 
   // Modal Control States
   const [isQuickBillOpen, setIsQuickBillOpen] = useState(false);
@@ -762,6 +776,7 @@ export default function BranchDashboardView({
             { id: 'appointments', label: '📋 Appointments Queue', icon: Calendar },
             { id: 'billing', label: '🧾 POS & Bill History', icon: FileText },
             { id: 'customers', label: '👥 Customers CRM', icon: Users },
+            { id: 'inquiries', label: '✉️ Email Inquiries', icon: Mail },
             { id: 'analytics', label: '📈 Financial Analytics', icon: BarChart3 },
             { id: 'proofs', label: '📁 Proof Documents', icon: FileCheck },
           ].map((tab) => {
@@ -801,98 +816,185 @@ export default function BranchDashboardView({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               
-              {/* Today's Appointments */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Today's Appointments - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('appointments');
+                  setBranchAptFilter('All');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Today's Apt</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-amber-300">Today's Apt ➔</span>
                   <Calendar size={16} className="text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-white">{todayAppointmentsCount}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Scheduled for today</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Scheduled today</span>
+                  <span className="text-amber-400 text-[8.5px] font-black uppercase">Open ➔</span>
+                </div>
+              </button>
 
-              {/* Pending Appointments */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Pending Appointments - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('appointments');
+                  setBranchAptFilter('Pending');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-amber-500/30 space-y-2 shadow-xl hover:border-amber-500 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Pending Apt</span>
-                  <Clock size={16} className="text-amber-400" />
+                  <span className="text-[9px] font-mono uppercase font-bold text-amber-400">Pending Apt ➔</span>
+                  <Clock size={16} className="text-amber-400 animate-spin" />
                 </div>
                 <div className="text-2xl font-black text-amber-400">{pendingAppointmentsCount}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Awaiting verification</div>
-              </div>
+                <div className="text-[9.5px] text-amber-400/80 font-mono flex items-center justify-between">
+                  <span>Awaiting verification</span>
+                  <span className="text-amber-300 text-[8.5px] font-black uppercase">Review ➔</span>
+                </div>
+              </button>
 
-              {/* Completed Appointments */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Completed Appointments - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('appointments');
+                  setBranchAptFilter('Completed');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-emerald-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Completed Apt</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-emerald-400">Completed Apt ➔</span>
                   <CheckCircle2 size={16} className="text-emerald-400" />
                 </div>
                 <div className="text-2xl font-black text-emerald-400">{completedAppointmentsCount}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Successfully served</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Successfully served</span>
+                  <span className="text-emerald-400 text-[8.5px] font-black uppercase">History ➔</span>
+                </div>
+              </button>
 
-              {/* Total Customers */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Total Customers - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('customers');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-indigo-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Total Customers</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-indigo-400">Total Customers ➔</span>
                   <Users size={16} className="text-indigo-400" />
                 </div>
                 <div className="text-2xl font-black text-indigo-300">{branchCustomers.length}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Registered at branch</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Registered at branch</span>
+                  <span className="text-indigo-400 text-[8.5px] font-black uppercase">CRM ➔</span>
+                </div>
+              </button>
 
-              {/* Today's Collection */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Today's Collection - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('billing');
+                  setBranchBillFilter('Today');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-emerald-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Today's Revenue</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-emerald-400">Today's Revenue ➔</span>
                   <DollarSign size={16} className="text-emerald-400" />
                 </div>
                 <div className="text-2xl font-black text-emerald-400">₹{todayCollection.toLocaleString('en-IN')}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Daily cash + online</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Daily collection</span>
+                  <span className="text-emerald-400 text-[8.5px] font-black uppercase">POS ➔</span>
+                </div>
+              </button>
 
-              {/* Monthly Collection */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Monthly Collection - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('analytics');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Monthly Revenue</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-amber-400">Monthly Revenue ➔</span>
                   <TrendingUp size={16} className="text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-amber-300">₹{monthlyCollection.toLocaleString('en-IN')}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Current month total</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Current month total</span>
+                  <span className="text-amber-400 text-[8.5px] font-black uppercase">Stats ➔</span>
+                </div>
+              </button>
 
-              {/* Pending Bills */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Pending Bills - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('billing');
+                  setBranchBillFilter('Pending');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-rose-500/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Pending Bills</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-rose-400">Pending Bills ➔</span>
                   <AlertTriangle size={16} className="text-rose-400" />
                 </div>
                 <div className="text-2xl font-black text-rose-400">{pendingBillsCount}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Unpaid / Partial bills</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Unpaid bills</span>
+                  <span className="text-rose-400 text-[8.5px] font-black uppercase">Collect ➔</span>
+                </div>
+              </button>
 
-              {/* Total Bills */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all">
+              {/* Total Bills - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('billing');
+                  setBranchBillFilter('All');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-white/40 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Total Invoices</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-slate-300">Total Invoices ➔</span>
                   <FileText size={16} className="text-slate-300" />
                 </div>
                 <div className="text-2xl font-black text-white">{totalBillsCount}</div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Generated bill slips</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>All bill slips</span>
+                  <span className="text-slate-300 text-[8.5px] font-black uppercase">View ➔</span>
+                </div>
+              </button>
 
-              {/* Customer Satisfaction */}
-              <div className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-500/40 transition-all sm:col-span-2 lg:col-span-2">
+              {/* Customer Satisfaction - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('analytics');
+                }}
+                className="p-4 rounded-3xl bg-slate-900/60 border border-white/10 space-y-2 shadow-xl hover:border-amber-400/60 hover:bg-slate-900/90 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none sm:col-span-2 lg:col-span-2"
+              >
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[9px] font-mono uppercase font-bold">Customer Satisfaction Index</span>
+                  <span className="text-[9px] font-mono uppercase font-bold text-amber-300">Customer Satisfaction Index ➔</span>
                   <Sparkles size={16} className="text-amber-400" />
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-2xl font-black text-amber-300">{satisfactionScore}%</div>
                   <div className="text-xs text-amber-400 font-mono font-bold">★★★★★ (4.9 / 5.0)</div>
                 </div>
-                <div className="text-[9.5px] text-slate-400 font-mono">Future Ready AI Sentiment Rating</div>
-              </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Future Ready AI Sentiment</span>
+                  <span className="text-amber-400 text-[8.5px] font-black uppercase">Analytics ➔</span>
+                </div>
+              </button>
 
             </div>
           </div>
@@ -1561,37 +1663,246 @@ export default function BranchDashboardView({
         </div>
       )}
 
-      {/* SUB-TAB 5: APPOINTMENTS QUEUE */}
-      {activeSubTab === 'appointments' && (
-        <div className="space-y-6 text-left">
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 space-y-4">
-            <h3 className="text-sm font-black uppercase text-amber-400 font-mono">
-              Branch Appointments Ledger ({branchAppointments.length})
-            </h3>
+      {/* SUB-TAB 5: APPOINTMENTS QUEUE WITH 4-ACTION CONTROLS */}
+      {activeSubTab === 'appointments' && (() => {
+        const filteredAppointments = branchAppointments.filter(apt => {
+          if (branchAptFilter === 'All') return true;
+          return apt.status === branchAptFilter;
+        });
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {branchAppointments.map(apt => (
-                <div key={apt.id} className="p-4 rounded-2xl bg-slate-950 border border-white/10 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-white">{apt.name} ({apt.mobileNumber})</span>
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">
-                      {apt.status}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">{apt.serviceType}</p>
-                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                    <span>Date: {apt.date}</span>
-                    <span>Slot: {apt.timeSlot}</span>
-                  </div>
+        return (
+          <div className="space-y-6 text-left animate-fade-in">
+            <div className="p-6 rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 space-y-5 shadow-2xl">
+              
+              {/* Header & Filter Tabs */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-amber-400 font-mono flex items-center gap-2">
+                    <Calendar size={18} className="text-amber-400" />
+                    <span>Branch Appointments Ledger ({filteredAppointments.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Live review, 4-way decision matrix, customer verification & billing workflow.
+                  </p>
                 </div>
-              ))}
-              {branchAppointments.length === 0 && (
-                <div className="text-xs text-slate-500">No appointments registered for this branch yet.</div>
-              )}
+
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap bg-slate-950/80 p-1.5 rounded-2xl border border-white/5">
+                  {(['All', 'Pending', 'Approved', 'Completed', 'Reapply', 'Rejected'] as const).map((filter) => {
+                    const count = branchAppointments.filter(a => filter === 'All' ? true : a.status === filter).length;
+                    const isActive = branchAptFilter === filter;
+                    return (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setBranchAptFilter(filter)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isActive
+                            ? 'bg-amber-500 text-slate-950 shadow-md font-black scale-105'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <span>{filter}</span>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                          isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-white/10 text-slate-400'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Appointment Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredAppointments.map(apt => {
+                  const isApproved = apt.status === 'Approved' || apt.status === 'Completed';
+                  const isCompleted = apt.status === 'Completed';
+                  const isPending = apt.status === 'Pending';
+                  const isReapply = apt.status === 'Reapply';
+                  const isRejected = apt.status === 'Rejected';
+
+                  return (
+                    <div 
+                      key={apt.id} 
+                      className="p-5 rounded-3xl bg-slate-950/90 border border-white/10 hover:border-amber-500/40 transition-all space-y-3.5 shadow-xl relative overflow-hidden group"
+                    >
+                      {/* Top Bar */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-[9.5px] font-black uppercase">
+                              Ref #{apt.id.slice(-6).toUpperCase()}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                              isCompleted ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              isApproved ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                              isReapply ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
+                              isRejected ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                              'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+                            }`}>
+                              {apt.status}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-black text-white">{apt.name}</h4>
+                          <p className="text-[11px] text-amber-300 font-mono font-bold">📞 {apt.mobileNumber}</p>
+                        </div>
+
+                        {/* Refresh / Bill Prompt Button */}
+                        <div className="flex items-center gap-1">
+                          {(!isCompleted || isSuperAdmin) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (goToBillingWithCustomer) {
+                                  goToBillingWithCustomer(apt.mobileNumber, apt.serviceType);
+                                } else {
+                                  setIsQuickBillOpen(true);
+                                }
+                              }}
+                              className="p-2 rounded-xl bg-white/5 hover:bg-amber-500 hover:text-slate-950 text-slate-400 transition-all cursor-pointer"
+                              title="Create/Refresh Bill for Appointment"
+                            >
+                              <RefreshCw size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Service Details & Schedule */}
+                      <div className="p-3 bg-slate-900/80 rounded-2xl border border-white/5 space-y-1 text-xs font-mono">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-bold uppercase text-[9px]">SERVICE:</span>
+                          <span className="text-white font-extrabold">{apt.serviceType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-bold uppercase text-[9px]">SCHEDULE:</span>
+                          <span className="text-cyan-300 font-bold">{apt.date} • {apt.timeSlot}</span>
+                        </div>
+                        {apt.notes && (
+                          <div className="pt-1 text-[10px] text-slate-400 font-sans border-t border-white/5">
+                            <span className="font-bold text-slate-500">Note:</span> {apt.notes}
+                          </div>
+                        )}
+                        {apt.reapplyReason && (
+                          <div className="pt-1 text-[10px] text-amber-400 font-sans border-t border-amber-500/10">
+                            <span className="font-black">Re-apply Note:</span> {apt.reapplyReason}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 4-ACTION WORKFLOW MATRIX BUTTONS */}
+                      <div className="pt-1 flex flex-wrap gap-1.5 items-center">
+                        {(isPending || isReapply) && (
+                          <>
+                            {/* 1. APPROVE */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAppointment && updateAppointment(apt.id, { status: 'Approved' });
+                              }}
+                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-[9.5px] uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center gap-1 active:scale-95"
+                            >
+                              <Check size={11} />
+                              <span>Approve</span>
+                            </button>
+
+                            {/* 2. RE-APPLY */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReapplyModalApp(apt);
+                                setReapplyReasonText(apt.reapplyReason || '');
+                              }}
+                              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black rounded-xl text-[9.5px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                            >
+                              <RefreshCw size={11} />
+                              <span>Re-Apply</span>
+                            </button>
+
+                            {/* 3. REJECT */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAppointment && updateAppointment(apt.id, { status: 'Rejected' });
+                              }}
+                              className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 font-black rounded-xl text-[9.5px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                            >
+                              <X size={11} />
+                              <span>Reject</span>
+                            </button>
+
+                            {/* 4. SEND OTHER BRANCH */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTransferModalApp(apt);
+                                setTransferTargetShopId(shops.find(s => s.id !== currentShop.id)?.id || shops[0]?.id || '');
+                              }}
+                              className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 font-black rounded-xl text-[9.5px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                            >
+                              <Building size={11} />
+                              <span>Transfer Branch</span>
+                            </button>
+                          </>
+                        )}
+
+                        {apt.status === 'Approved' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAppointment && updateAppointment(apt.id, { status: 'Completed' });
+                              }}
+                              className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 shadow-md active:scale-95"
+                            >
+                              <CheckCircle2 size={12} />
+                              <span>Mark Completed</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (goToBillingWithCustomer) {
+                                  goToBillingWithCustomer(apt.mobileNumber, apt.serviceType);
+                                } else {
+                                  setIsQuickBillOpen(true);
+                                }
+                              }}
+                              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 shadow-md active:scale-95"
+                            >
+                              <FileText size={12} />
+                              <span>Bill Now</span>
+                            </button>
+                          </>
+                        )}
+
+                        {isCompleted && (
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
+                            <Check size={12} />
+                            <span>Service Fulfilled & Tax Invoiced</span>
+                          </span>
+                        )}
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+                {filteredAppointments.length === 0 && (
+                  <div className="col-span-full p-12 text-center rounded-3xl bg-slate-950/60 border border-white/5 space-y-3">
+                    <Calendar size={36} className="mx-auto text-slate-600" />
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                      No appointments matching status filter "{branchAptFilter}"
+                    </p>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* SUB-TAB 6: POS & BILL HISTORY */}
       {activeSubTab === 'billing' && (
@@ -1713,6 +2024,99 @@ export default function BranchDashboardView({
           </div>
         </div>
       )}
+
+      {/* SUB-TAB 10: EMAIL INQUIRIES & CITIZEN MESSAGES */}
+      {activeSubTab === 'inquiries' && (() => {
+        // Filter inquiries targeted to this branch or all if super admin
+        const branchInquiries = inquiries.filter(inq => {
+          if (isSuperAdmin) return true;
+          return inq.branchId === currentShop.id || inq.branchId === currentShop.customId || inq.targetBranch === currentShop.name;
+        });
+
+        return (
+          <div className="space-y-6 text-left animate-fade-in">
+            <div className="p-6 rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 space-y-5 shadow-2xl">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-amber-400 font-mono flex items-center gap-2">
+                    <Mail size={18} className="text-amber-400" />
+                    <span>Citizen Email Verification & Inquiries Ledger ({branchInquiries.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Messages, email verifications and customer support tickets directed to this branch from the Help Center.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {branchInquiries.map(inq => {
+                  const isResolved = inq.status === 'Resolved' || inq.status === 'Answered';
+                  return (
+                    <div 
+                      key={inq.id} 
+                      className="p-5 rounded-2xl bg-slate-950/80 border border-white/10 space-y-3 hover:border-amber-500/40 transition-all shadow-lg"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[9px] font-bold uppercase">
+                              Ticket #{inq.id.slice(-6).toUpperCase()}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                              isResolved 
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+                            }`}>
+                              {inq.status || 'Pending'}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-black text-white mt-1">{inq.subject}</h4>
+                          <p className="text-[11px] text-cyan-300 font-mono">From: {inq.senderEmail || inq.customerEmail || inq.senderName}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono">{inq.timestamp || inq.createdAt || 'Recent'}</span>
+                      </div>
+
+                      <div className="p-3 bg-slate-900/60 rounded-xl border border-white/5 text-xs text-slate-300 leading-relaxed font-sans">
+                        {inq.message || inq.description}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Customer: {inq.senderName || 'Citizen'} ({inq.senderPhone || 'No Phone'})
+                        </span>
+                        
+                        {!isResolved && updateInquiry && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateInquiry(inq.id, { status: 'Resolved' });
+                            }}
+                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                          >
+                            <Check size={12} />
+                            <span>Mark Resolved / রিপ্লাই দিন</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {branchInquiries.length === 0 && (
+                  <div className="p-12 text-center rounded-3xl bg-slate-950/60 border border-white/5 space-y-2">
+                    <Mail size={32} className="mx-auto text-slate-600" />
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                      No customer inquiries or email verifications received yet for this branch.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* QUICK BILL CREATION MODAL */}
       {isQuickBillOpen && (
@@ -1858,6 +2262,130 @@ export default function BranchDashboardView({
                 Book Branch Token
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* RE-APPLY REASON MODAL */}
+      {reapplyModalApp && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 text-left shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black text-white uppercase font-mono flex items-center gap-2">
+                <RefreshCw size={16} className="text-amber-400" />
+                <span>Request Citizen Re-Application</span>
+              </h3>
+              <button onClick={() => setReapplyModalApp(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-300">
+                Specify reason or missing documents required from <strong className="text-white">{reapplyModalApp.name}</strong> for <strong className="text-amber-300">{reapplyModalApp.serviceType}</strong>:
+              </p>
+              <textarea
+                rows={3}
+                value={reapplyReasonText}
+                onChange={(e) => setReapplyReasonText(e.target.value)}
+                placeholder="e.g. Please upload clear Aadhaar card front & back copy / অস্পষ্ট ডকুমেন্ট আবার আপলোড করুন..."
+                className="w-full p-3 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setReapplyModalApp(null)}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (updateAppointment) {
+                    updateAppointment(reapplyModalApp.id, {
+                      status: 'Reapply',
+                      reapplyReason: reapplyReasonText || 'অতিরিক্ত ডকুমেন্ট বা তথ্য প্রয়োজন।'
+                    });
+                  }
+                  setReapplyModalApp(null);
+                }}
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg"
+              >
+                Send Re-Apply Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSFER BRANCH MODAL */}
+      {transferModalApp && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 text-left shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black text-white uppercase font-mono flex items-center gap-2">
+                <Building size={16} className="text-indigo-400" />
+                <span>Transfer Appointment to Other Branch</span>
+              </h3>
+              <button onClick={() => setTransferModalApp(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-300">
+                Select target destination branch for <strong className="text-white">{transferModalApp.name}</strong>:
+              </p>
+              
+              <div className="space-y-2 max-h-52 overflow-y-auto">
+                {shops.filter(s => s.id !== currentShop.id).map(shop => {
+                  const isSelected = transferTargetShopId === shop.id;
+                  return (
+                    <div
+                      key={shop.id}
+                      onClick={() => setTransferTargetShopId(shop.id)}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${
+                        isSelected 
+                          ? 'bg-indigo-500/20 border-indigo-500 text-white' 
+                          : 'bg-slate-950/60 border-white/5 text-slate-300 hover:border-white/20'
+                      }`}
+                    >
+                      <div>
+                        <h5 className="text-xs font-bold">{shop.name}</h5>
+                        <p className="text-[10px] text-slate-400">{shop.address || shop.branchHead}</p>
+                      </div>
+                      {isSelected && <span className="text-indigo-400 font-bold text-xs font-mono">Selected ✓</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTransferModalApp(null)}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetShop = shops.find(s => s.id === transferTargetShopId);
+                  if (updateAppointment && targetShop) {
+                    updateAppointment(transferModalApp.id, {
+                      shopId: targetShop.id,
+                      shopName: targetShop.name,
+                      notes: `${transferModalApp.notes ? transferModalApp.notes + ' | ' : ''}Transferred from ${currentShop.name}`
+                    });
+                  }
+                  setTransferModalApp(null);
+                }}
+                className="flex-1 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg"
+              >
+                Confirm Transfer
+              </button>
+            </div>
           </div>
         </div>
       )}
