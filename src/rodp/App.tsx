@@ -26,13 +26,14 @@ import TrashRecoveryView from './components/TrashRecoveryView';
 import BranchManagerCongratulatoryScreen from './components/BranchManagerCongratulatoryScreen';
 import BranchDashboardView from './components/BranchDashboardView';
 import CeoBranchVaultView from './components/CeoBranchVaultView';
+import VerifyBillsDocsView from './components/VerifyBillsDocsView';
 import { connectGoogleDrive, disconnectGoogleDrive, syncToGoogleDrive, getCachedToken } from './lib/googleDrive';
 import { 
   Sparkles, BrainCircuit, ChevronLeft, ChevronRight, Home, 
   ShieldAlert, Users, CheckSquare, BriefcaseBusiness, BellRing, 
   LayoutDashboard, Server, CalendarCheck2, Receipt, PackageOpen, 
   FolderKey, UserCheck, TrendingUp, Menu, X, Gift, HelpCircle, Info, Bell,
-  Cloud, CloudOff, RefreshCw, AlertTriangle, CreditCard, KeyRound, Lock
+  Cloud, CloudOff, RefreshCw, AlertTriangle, CreditCard, KeyRound, Lock, ShieldCheck
 } from 'lucide-react';
 import { RodpLogo } from '../components/Logo';
 import { SecureExitModal } from '../components/SecureExitModal';
@@ -49,6 +50,7 @@ const TAB_ORDER = [
   'calendar_scheduler',
   'analytics',
   'bill_history',
+  'verify_bills_docs',
   'trash_recovery',
   'billing',
   'crm',
@@ -130,7 +132,12 @@ export default function App({ onBack }: AppProps = {}) {
     deleteFinanceRecord,
     vault,
     addVaultItem,
+    updateVaultItem,
     deleteVaultItem,
+    onlinePayments,
+    addOnlinePayment,
+    updateOnlinePayment,
+    deleteOnlinePayment,
     notifications,
     addNotificationLog,
     securityLogs,
@@ -749,6 +756,7 @@ export default function App({ onBack }: AppProps = {}) {
       { id: 'priority_tasks_vault', label: 'Proof', icon: CheckSquare },
       { id: 'analytics', label: 'Analysis', icon: TrendingUp },
       { id: 'bill_history', label: 'Bill History', icon: Receipt },
+      { id: 'verify_bills_docs', label: 'Verify Bill/Doc', icon: ShieldCheck },
     ];
   };
 
@@ -821,6 +829,12 @@ export default function App({ onBack }: AppProps = {}) {
               goToBillingWithCustomer={goToBillingWithCustomer}
               inquiries={inquiries}
               updateInquiry={updateInquiry}
+              setCurrentTab={navigateToTab}
+              onlinePayments={onlinePayments}
+              updateOnlinePayment={updateOnlinePayment}
+              deleteOnlinePayment={deleteOnlinePayment}
+              vault={vault}
+              updateVaultItem={updateVaultItem}
             />
           );
         }
@@ -1062,6 +1076,7 @@ export default function App({ onBack }: AppProps = {}) {
             onUpdateGroupSettings={updateGroupSettings}
             onUpdateGroupMessage={updateGroupMessage}
             onNavigateToBranchVault={() => setCurrentTab('ceo_branch_vault')}
+            onNavigateToVerifyBillsDocs={() => setCurrentTab('verify_bills_docs')}
           />
         );
       case 'ceo_branch_vault':
@@ -1123,6 +1138,23 @@ export default function App({ onBack }: AppProps = {}) {
             permanentDeleteTrashItem={permanentDeleteTrashItem}
           />
         );
+      case 'verify_bills_docs':
+        return (
+          <VerifyBillsDocsView
+            theme={theme}
+            currentUser={currentUser}
+            shops={shops}
+            onlinePayments={onlinePayments}
+            updateOnlinePayment={updateOnlinePayment}
+            deleteOnlinePayment={deleteOnlinePayment}
+            vault={vault}
+            updateVaultItem={updateVaultItem}
+            deleteVaultItem={deleteVaultItem}
+            invoices={invoices}
+            updateInvoice={updateInvoice}
+            addNotificationLog={addNotificationLog}
+          />
+        );
       case 'customer_portal':
         return (
           <CustomerPortal
@@ -1151,6 +1183,9 @@ export default function App({ onBack }: AppProps = {}) {
             notices={notices}
             inquiries={inquiries}
             addInquiry={addInquiry}
+            onlinePayments={onlinePayments}
+            addOnlinePayment={addOnlinePayment}
+            updateOnlinePayment={updateOnlinePayment}
           />
         );
       case 'ai_assistant':

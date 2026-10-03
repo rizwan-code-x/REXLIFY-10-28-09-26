@@ -246,11 +246,37 @@ export interface DocumentVaultItem {
   category: 'Aadhaar' | 'PAN' | 'Passport' | 'Photo' | 'PDF' | 'Certificate' | 'Other';
   customerMobile?: string;
   customerName?: string;
+  customerEmail?: string;
   fileSize?: string;
   fileType: string;
   url: string; // object URL or base64 or placeholder
   uploadedAt: string;
   shopId: string;
+  status?: 'Pending' | 'Verified' | 'Rejected';
+  verifiedAt?: string;
+  verifiedBy?: string;
+  notes?: string;
+}
+
+export interface OnlinePayment {
+  id: string; // e.g. "RODP-PAY-849201"
+  invoiceId?: string;
+  invoiceNumber?: string;
+  customerName: string;
+  customerMobile: string;
+  customerEmail?: string;
+  amount: number;
+  screenshotUrl: string;
+  transactionId?: string; // UTR or Ref ID
+  shopId: string;
+  shopName?: string;
+  status: 'Pending' | 'Accepted' | 'Confirmed' | 'Rejected';
+  submittedAt: string;
+  acceptedAt?: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
+  notes?: string;
+  securityPin?: string;
 }
 
 export interface Staff {

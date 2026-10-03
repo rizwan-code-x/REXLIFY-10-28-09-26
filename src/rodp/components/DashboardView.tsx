@@ -3,7 +3,7 @@ import {
   Calendar, Clock, AlertCircle, Sparkles, CheckCircle2, Check, Plus,
   ArrowRight, FileText, ClipboardList, PenTool, CheckSquare, 
   UserPlus, Bell, ChevronRight, Bookmark, Shield, Zap, X, 
-  ChevronLeft, Trash2, Lock, Unlock, MessageSquare, Store
+  ChevronLeft, Trash2, Lock, Unlock, MessageSquare, Store, ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -630,7 +630,7 @@ export default function DashboardView({
       {/* QUICK ACTIONS ROW */}
       <div className="space-y-3">
         <h3 className="text-xs uppercase tracking-wider text-slate-400 font-extrabold">Owner Quick Actions</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           
           <button 
             onClick={() => setCurrentTab?.('billing')}
@@ -640,8 +640,21 @@ export default function DashboardView({
               <FileText size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-black text-slate-200">Create Manual Bill</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">Generate customized premium invoices</p>
+              <h4 className="text-xs font-black text-slate-200">Create Bill (বিল)</h4>
+              <p className="text-[10px] text-slate-500 mt-0.5">Generate customized invoices</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setCurrentTab?.('verify_bills_docs')}
+            className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-[#050505] to-teal-500/5 border border-emerald-500/20 hover:border-emerald-500/50 hover:translate-y-[-2px] transition-all duration-300 text-left space-y-2 cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/20 transition-all">
+              <ShieldCheck size={16} />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-slate-200">Verify Bill & Docs</h4>
+              <p className="text-[10px] text-slate-500 mt-0.5">ভেরিফাই বিল ও ভেরিফাইড ডকুমেন্ট</p>
             </div>
           </button>
 

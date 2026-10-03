@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Activity
 } from 'lucide-react';
 import { Shop, Invoice, Appointment, CustomerCRM } from '../types';
+import VerifyBillsDocsView from './VerifyBillsDocsView';
 
 interface BranchDashboardViewProps {
   theme: 'light' | 'dark';
@@ -26,6 +27,12 @@ interface BranchDashboardViewProps {
   inquiries?: any[];
   updateInquiry?: (id: string, updates: any) => void;
   goToBillingWithCustomer?: (mobile: string, service?: string) => void;
+  setCurrentTab?: (tab: string) => void;
+  onlinePayments?: any[];
+  updateOnlinePayment?: (id: string, updates: any) => void;
+  deleteOnlinePayment?: (id: string) => void;
+  vault?: any[];
+  updateVaultItem?: (id: string, updates: any) => void;
 }
 
 interface CustomProduct {
@@ -72,7 +79,13 @@ export default function BranchDashboardView({
   playTechIndustryLoginSound,
   inquiries = [],
   updateInquiry,
-  goToBillingWithCustomer
+  goToBillingWithCustomer,
+  setCurrentTab,
+  onlinePayments = [],
+  updateOnlinePayment,
+  deleteOnlinePayment,
+  vault = [],
+  updateVaultItem
 }: BranchDashboardViewProps) {
   
   // CEO / Super Admin Branch Selection
@@ -117,7 +130,7 @@ export default function BranchDashboardView({
   }, [shops, selectedShopId, currentUser?.name, currentUser?.email]);
 
   // Active Sub-Tab Navigation inside Branch Dashboard
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'profile' | 'services' | 'appointments' | 'billing' | 'customers' | 'analytics' | 'proofs' | 'calendar' | 'inquiries'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'profile' | 'services' | 'appointments' | 'billing' | 'verify_bills_docs' | 'customers' | 'analytics' | 'proofs' | 'calendar' | 'inquiries'>('overview');
 
   // Modal Control States
   const [isQuickBillOpen, setIsQuickBillOpen] = useState(false);
@@ -775,6 +788,7 @@ export default function BranchDashboardView({
             { id: 'services', label: '🛍️ Services & Products', icon: Layers },
             { id: 'appointments', label: '📋 Appointments Queue', icon: Calendar },
             { id: 'billing', label: '🧾 POS & Bill History', icon: FileText },
+            { id: 'verify_bills_docs', label: '🛡️ Verify Bills & Docs / ভেরিফাই বিল', icon: ShieldCheck },
             { id: 'customers', label: '👥 Customers CRM', icon: Users },
             { id: 'inquiries', label: '✉️ Email Inquiries', icon: Mail },
             { id: 'analytics', label: '📈 Financial Analytics', icon: BarChart3 },
@@ -993,6 +1007,27 @@ export default function BranchDashboardView({
                 <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
                   <span>Future Ready AI Sentiment</span>
                   <span className="text-amber-400 text-[8.5px] font-black uppercase">Analytics ➔</span>
+                </div>
+              </button>
+
+              {/* Online Bills & Docs Verification - Clickable */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('verify_bills_docs');
+                }}
+                className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/40 space-y-2 shadow-xl hover:border-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-left focus:outline-none sm:col-span-2 lg:col-span-1"
+              >
+                <div className="flex justify-between items-center text-emerald-400">
+                  <span className="text-[9px] font-mono uppercase font-bold text-emerald-300">Verify Bills & Docs ➔</span>
+                  <ShieldCheck size={16} className="text-emerald-400" />
+                </div>
+                <div className="text-2xl font-black text-emerald-300">
+                  {onlinePayments.filter(p => p.status === 'Pending').length} Pending
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>Verify online payments & proof</span>
+                  <span className="text-emerald-400 text-[8.5px] font-black uppercase">Open ➔</span>
                 </div>
               </button>
 
@@ -2117,6 +2152,23 @@ export default function BranchDashboardView({
           </div>
         );
       })()}
+
+      {/* SUB-TAB: VERIFY ONLINE BILLS & CITIZEN PROOF DOCUMENTS */}
+      {activeSubTab === 'verify_bills_docs' && (
+        <div className="space-y-6 text-left animate-fade-in">
+          <VerifyBillsDocsView
+            theme={theme}
+            currentUser={currentUser}
+            shops={shops}
+            onlinePayments={onlinePayments}
+            updateOnlinePayment={updateOnlinePayment || (() => {})}
+            deleteOnlinePayment={deleteOnlinePayment}
+            vault={vault}
+            updateVaultItem={updateVaultItem}
+            invoices={invoices}
+          />
+        </div>
+      )}
 
       {/* QUICK BILL CREATION MODAL */}
       {isQuickBillOpen && (

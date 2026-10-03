@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Server, CalendarCheck2, Users, Receipt, 
   PackageOpen, FolderKey, ShieldAlert, BrainCircuit, BellRing, 
   Menu, X, Sun, Moon, Sparkles, UserCheck, BriefcaseBusiness, TrendingUp, CheckSquare,
-  Store, Calendar, Gift, HelpCircle, ChevronRight, Database, Trash2, Lock, KeyRound, Building2
+  Store, Calendar, Gift, HelpCircle, ChevronRight, Database, Trash2, Lock, KeyRound, Building2, ShieldCheck
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { RodpLogo } from '../../components/Logo';
@@ -64,6 +64,7 @@ export default function Sidebar({
         { id: 'priority_tasks_vault', label: 'Priority Tasks Proof', icon: CheckSquare },
         { id: 'calendar_scheduler', label: 'Calendar Scheduler', icon: Calendar },
         { id: 'bill_history', label: 'Bill History', icon: Receipt },
+        { id: 'verify_bills_docs', label: 'Verify Bills & Docs / ভেরিফাই বিল ও ডকুমেন্ট', icon: ShieldCheck },
         { id: 'trash_recovery', label: 'Trash Recovery Center / রিসাইকেল বিন', icon: Trash2 },
         { id: 'ai_assistant', label: 'AI Growth Copilot', icon: BrainCircuit },
         { id: 'notifications', label: 'System Alert Logs', icon: BellRing }
@@ -78,6 +79,7 @@ export default function Sidebar({
         { id: 'calendar_scheduler', label: 'Calendar Scheduler', icon: Calendar },
         { id: 'analytics', label: 'Business Analytics', icon: TrendingUp },
         { id: 'bill_history', label: 'Bill History', icon: Receipt },
+        { id: 'verify_bills_docs', label: 'Verify Bills & Docs / ভেরিফাই বিল ও ডকুমেন্ট', icon: ShieldCheck },
         { id: 'trash_recovery', label: 'Trash Recovery Center / রিসাইকেল বিন', icon: Trash2 },
         { id: 'crm', label: 'Manage Customers / কাস্টমার ম্যানেজমেন্ট', icon: Users },
         { id: 'database', label: 'Database / ডাটাবেস', icon: Database },

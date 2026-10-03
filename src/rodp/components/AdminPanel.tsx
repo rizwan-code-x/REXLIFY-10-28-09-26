@@ -41,6 +41,7 @@ interface AdminPanelProps {
   onUpdateGroupSettings?: (settings: any) => void;
   onUpdateGroupMessage?: (id: string, updates: any) => void;
   onNavigateToBranchVault?: () => void;
+  onNavigateToVerifyBillsDocs?: () => void;
 }
 
 export default function AdminPanel({
@@ -75,7 +76,8 @@ export default function AdminPanel({
   onAddGroupMessage,
   onUpdateGroupSettings,
   onUpdateGroupMessage,
-  onNavigateToBranchVault
+  onNavigateToBranchVault,
+  onNavigateToVerifyBillsDocs
 }: AdminPanelProps) {
   // Authentication Clearance State
   const [replyTexts, setReplyTexts] = useState<{[key: string]: string}>({});
@@ -599,6 +601,17 @@ export default function AdminPanel({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onNavigateToVerifyBillsDocs && (
+            <button
+              onClick={onNavigateToVerifyBillsDocs}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-black shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2 cursor-pointer text-[11px] uppercase tracking-wider"
+              title="Verify Bills & Documents / ভেরিফাই বিল ও ভেরিফাইড ডকুমেন্ট"
+            >
+              <ShieldCheck size={16} className="text-amber-300" />
+              <span>Verify Bills & Documents / ভেরিফাই বিল</span>
+            </button>
+          )}
+
           {onNavigateToBranchVault && (
             <button
               onClick={onNavigateToBranchVault}

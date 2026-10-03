@@ -3,14 +3,14 @@ import {
   User, Shop, ServiceModule, Appointment, Task, 
   CustomerCRM, Invoice, InventoryItem, DocumentVaultItem, 
   Staff, FinanceRecord, NotificationLog, SecurityLog, UserRole,
-  AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings
+  AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings, OnlinePayment
 } from './types';
 import { 
   DEFAULT_SERVICES, MOCK_SHOPS, MOCK_CUSTOMERS, 
   MOCK_APPOINTMENTS, MOCK_TASKS, MOCK_INVENTORIES, 
   MOCK_STAFF, MOCK_INVOICES, MOCK_FINANCE, 
   MOCK_DOCUMENTS, MOCK_NOTIFICATIONS, MOCK_SECURITY_LOGS,
-  MOCK_NOTICES, MOCK_INQUIRIES
+  MOCK_NOTICES, MOCK_INQUIRIES, MOCK_ONLINE_PAYMENTS
 } from './mockData';
 import { db, auth, isFirebaseAvailable } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -83,6 +83,7 @@ export function useAppState() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
+  const [onlinePayments, setOnlinePayments] = useState<OnlinePayment[]>([]);
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({
     onlyAdminsCanPost: false,
     isGroupMuted: false
@@ -256,6 +257,7 @@ export function useAppState() {
         setupSync('aiKnowledge', setAiKnowledge, []);
         setupSync('notices', setNotices, MOCK_NOTICES);
         setupSync('inquiries', setInquiries, MOCK_INQUIRIES);
+        setupSync('onlinePayments', setOnlinePayments, MOCK_ONLINE_PAYMENTS);
         setupSync('groupMessages', setGroupMessages, [
           {
             id: 'msg_init',
@@ -396,6 +398,29 @@ export function useAppState() {
             }
           }
         }, (err) => console.warn('RTDB shops stream warning:', err));
+
+        // 6. Realtime Online Payments Listener (Real-Time Customer -> Branch & CEO)
+        const payRef = ref(rtdb, 'rodp_online_payments');
+        onValue(payRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: OnlinePayment[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              list.sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+              setOnlinePayments(prev => {
+                const map = new Map<string, OnlinePayment>();
+                prev.forEach(item => map.set(item.id, item));
+                list.forEach(item => map.set(item.id, { ...map.get(item.id), ...item }));
+                const merged = Array.from(map.values());
+                localStorage.setItem('rodp_onlinePayments', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        }, (err) => console.warn('RTDB online payments stream warning:', err));
       });
     }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
 
@@ -468,6 +493,7 @@ export function useAppState() {
     setAiKnowledge(getOrSet('aiKnowledge', []));
     setNotices(getOrSet('notices', MOCK_NOTICES));
     setInquiries(getOrSet('inquiries', MOCK_INQUIRIES));
+    setOnlinePayments(getOrSet('onlinePayments', MOCK_ONLINE_PAYMENTS));
     setGroupMessages(getOrSet('groupMessages', [
       {
         id: 'msg_init',
@@ -924,7 +950,43 @@ export function useAppState() {
     
     vault,
     addVaultItem: (record: DocumentVaultItem) => addRecord('vault', record, setVault, vault),
+    updateVaultItem: (id: string, updates: any) => updateRecord('vault', id, updates, setVault, vault),
     deleteVaultItem: (id: string) => deleteRecord('vault', id, setVault, vault),
+
+    onlinePayments,
+    addOnlinePayment: (record: OnlinePayment) => {
+      addRecord('onlinePayments', record, setOnlinePayments, onlinePayments);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_online_payments/' + record.id), {
+            ...record,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB payment save warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for payment', err));
+    },
+    updateOnlinePayment: (id: string, updates: any) => {
+      updateRecord('onlinePayments', id, updates, setOnlinePayments, onlinePayments);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_online_payments/' + id), {
+            ...updates,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB payment update warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for payment update', err));
+    },
+    deleteOnlinePayment: (id: string) => {
+      deleteRecord('onlinePayments', id, setOnlinePayments, onlinePayments);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_online_payments/' + id)).catch(err => console.warn('RTDB payment remove warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for payment remove', err));
+    },
     
     notifications,
     addNotificationLog: (record: NotificationLog) => addRecord('notifications', record, setNotifications, notifications),

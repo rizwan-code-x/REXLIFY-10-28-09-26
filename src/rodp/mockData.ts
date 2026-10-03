@@ -1,7 +1,7 @@
 import { 
   Shop, User, ServiceModule, Appointment, Task, 
   CustomerCRM, Invoice, InventoryItem, DocumentVaultItem, 
-  Staff, FinanceRecord, NotificationLog, SecurityLog
+  Staff, FinanceRecord, NotificationLog, SecurityLog, OnlinePayment
 } from './types';
 import { MAIN_OFFICE_PHOTO_URL } from './components/DeveloperMedia';
 
@@ -330,7 +330,88 @@ export const MOCK_STAFF: Staff[] = [
 
 export const MOCK_INVOICES: Invoice[] = [];
 export const MOCK_FINANCE: FinanceRecord[] = [];
-export const MOCK_DOCUMENTS: DocumentVaultItem[] = [];
+export const MOCK_DOCUMENTS: DocumentVaultItem[] = [
+  {
+    id: 'doc_aadhaar_01',
+    name: 'Aadhaar Card - Original e-KYC Copy',
+    category: 'Aadhaar',
+    customerName: 'Rownaq Roushan',
+    customerMobile: '9593388785',
+    customerEmail: 'rownaq.roushan@gmail.com',
+    fileSize: '1.2 MB',
+    fileType: 'image/jpeg',
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
+    uploadedAt: '2026-09-28T10:15:00Z',
+    shopId: 'shop_1',
+    status: 'Verified',
+    verifiedAt: '2026-09-28T11:00:00Z',
+    verifiedBy: 'CEO Head Office'
+  },
+  {
+    id: 'doc_pan_02',
+    name: 'Income Tax PAN Card Verification Copy',
+    category: 'PAN',
+    customerName: 'Samir Mondal',
+    customerMobile: '9832104567',
+    customerEmail: 'samir.m@gmail.com',
+    fileSize: '850 KB',
+    fileType: 'image/jpeg',
+    url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800',
+    uploadedAt: '2026-09-30T14:20:00Z',
+    shopId: 'shop_2',
+    status: 'Pending',
+    notes: 'NSDL PAN application proof'
+  },
+  {
+    id: 'doc_passport_03',
+    name: 'Passport Bio-Page & PCC Document',
+    category: 'Passport',
+    customerName: 'Anowar Hossain',
+    customerMobile: '9733445566',
+    customerEmail: 'anowar.h@gmail.com',
+    fileSize: '2.4 MB',
+    fileType: 'image/jpeg',
+    url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800',
+    uploadedAt: '2026-10-01T09:45:00Z',
+    shopId: 'shop_1',
+    status: 'Pending',
+    notes: 'Awaiting police clearance certificate'
+  }
+];
+
+export const MOCK_ONLINE_PAYMENTS: OnlinePayment[] = [
+  {
+    id: 'RODP-PAY-849201',
+    invoiceNumber: 'INV-2026-0042',
+    customerName: 'Rownaq Roushan',
+    customerMobile: '9593388785',
+    customerEmail: 'rownaq.roushan@gmail.com',
+    amount: 350,
+    screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800',
+    transactionId: 'UPI-428190348210',
+    shopId: 'shop_1',
+    shopName: 'RIZWAN ONLINE DREAMS (Head Office)',
+    status: 'Pending',
+    submittedAt: '2026-10-02T11:20:00Z',
+    notes: 'Aadhaar correction and instant smart PVC print fee'
+  },
+  {
+    id: 'RODP-PAY-723149',
+    invoiceNumber: 'INV-2026-0038',
+    customerName: 'Samir Mondal',
+    customerMobile: '9832104567',
+    customerEmail: 'samir.m@gmail.com',
+    amount: 150,
+    screenshotUrl: 'https://images.unsplash.com/photo-1580048915913-4f8f5cb481c4?w=800',
+    transactionId: 'UPI-592018471923',
+    shopId: 'shop_2',
+    shopName: 'Sagarpara Super Branch',
+    status: 'Accepted',
+    submittedAt: '2026-10-01T15:45:00Z',
+    acceptedAt: '2026-10-01T16:10:00Z',
+    notes: 'PAN card reprint fee'
+  }
+];
 export const MOCK_NOTIFICATIONS: NotificationLog[] = [];
 export const MOCK_SECURITY_LOGS: SecurityLog[] = [];
 
