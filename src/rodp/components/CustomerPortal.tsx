@@ -79,6 +79,8 @@ interface CustomerPortalProps {
   onlinePayments?: OnlinePayment[];
   addOnlinePayment?: (payment: OnlinePayment) => void;
   updateOnlinePayment?: (id: string, updates: Partial<OnlinePayment>) => void;
+  deleteOnlinePayment?: (id: string) => void;
+  updateAppointment?: (id: string, updates: any) => void;
   branchChats?: BranchChatMessage[];
   addBranchChatMessage?: (msg: BranchChatMessage) => void;
 }
@@ -893,6 +895,8 @@ export default function CustomerPortal({
   onlinePayments = [],
   addOnlinePayment,
   updateOnlinePayment,
+  deleteOnlinePayment,
+  updateAppointment,
   branchChats = [],
   addBranchChatMessage
 }: CustomerPortalProps) {
@@ -1120,6 +1124,15 @@ export default function CustomerPortal({
   const [paymentSectionMode, setPaymentSectionMode] = useState<'menu' | 'online_payment' | 'history'>('menu');
   const [paymentOnlineSubStep, setPaymentOnlineSubStep] = useState<'upi' | 'screenshot' | 'success'>('upi');
   const [paymentTextProof, setPaymentTextProof] = useState('');
+
+  // User Requested RODP PAY App Flow & Status Verification
+  const [rodpPayOpen, setRodpPayOpen] = useState(false);
+  const [rodpPayTab, setRodpPayTab] = useState<'pay' | 'history'>('pay');
+  const [rodpPayStep, setRodpPayStep] = useState<1 | 2 | 3>(1);
+  const [rodpPayPin, setRodpPayPin] = useState('');
+  const [rodpPayPinError, setRodpPayPinError] = useState<string | null>(null);
+  const [rodpPaySuccessPayment, setRodpPaySuccessPayment] = useState<OnlinePayment | null>(null);
+  const [statusCheckModalPayment, setStatusCheckModalPayment] = useState<OnlinePayment | null>(null);
 
   // User Requested Services Tab Hub: ('overview' | 'notices' | 'all_services' | 'branch_chat')
   const [servicesSectionMode, setServicesSectionMode] = useState<'overview' | 'notices' | 'all_services' | 'branch_chat'>('overview');
@@ -5621,7 +5634,7 @@ export default function CustomerPortal({
             </motion.div>
           )}
 
-          {/* TAB 6: ONLINE BILL PAYMENT & UPI DESK (Clean 2-Button Architecture & Real-Time Sync) */}
+          {/* TAB 6: ONLINE BILL PAYMENT & PAYMENT LEDGER (Clean White-Theme, 2-Option Switcher & RODP PAY Flow) */}
           {activeTab === 'payments' && (
             <motion.div
               key="payments_tab"
@@ -5637,7 +5650,7 @@ export default function CustomerPortal({
                     initial={{ opacity: 0, y: -15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
-                    className="fixed top-6 right-6 z-[100] px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-bold text-xs shadow-2xl border border-white/20 flex items-center gap-2 backdrop-blur-md"
+                    className="fixed top-6 right-6 z-[100] px-4 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl border border-white/20 flex items-center gap-2 backdrop-blur-md"
                   >
                     <CheckCircle2 size={16} className="text-amber-300" />
                     <span>{copiedUpiFeedback}</span>
@@ -5645,19 +5658,19 @@ export default function CustomerPortal({
                 )}
               </AnimatePresence>
 
-              {/* Real-time Branch Payment Confirmed Banner (Requirement: Branch Received Notification & Warm Greeting) */}
+              {/* Real-time Branch Payment Confirmed Banner */}
               {confirmedPaymentCelebration && (
-                <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-slate-900 to-indigo-950/90 border-2 border-emerald-500/50 shadow-2xl relative overflow-hidden animate-fade-in space-y-3">
+                <div className="p-5 sm:p-6 rounded-3xl bg-emerald-50 border-2 border-emerald-500 shadow-xl relative overflow-hidden animate-fade-in space-y-2 text-slate-800">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                        <CheckCircle2 size={24} className="animate-pulse" />
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                        <CheckCircle2 size={22} className="animate-pulse" />
                       </div>
                       <div>
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-black uppercase">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300 text-[9px] font-mono font-black uppercase">
                           ✓ PAYMENT CONFIRMED BY BRANCH
                         </span>
-                        <h3 className="text-sm sm:text-base font-black text-white mt-1">
+                        <h3 className="text-sm sm:text-base font-black text-emerald-950 mt-0.5">
                           🎉 আপনার পেমেন্ট ব্রাঞ্চ রিসিভ করেছে!
                         </h3>
                       </div>
@@ -5665,569 +5678,1097 @@ export default function CustomerPortal({
                     <button
                       type="button"
                       onClick={() => setConfirmedPaymentCelebration(null)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer"
                     >
                       <X size={16} />
                     </button>
                   </div>
 
-                  <div className="p-4 bg-slate-950/70 rounded-2xl border border-white/5 space-y-1.5 text-xs">
-                    <p className="text-emerald-300 font-bold leading-relaxed">
+                  <div className="p-3 bg-white/90 rounded-2xl border border-emerald-200 space-y-1 text-xs">
+                    <p className="text-emerald-900 font-bold leading-relaxed">
                       অভিনন্দন <strong>{confirmedPaymentCelebration.customerName || currentUser.name}</strong>! আপনার ₹{confirmedPaymentCelebration.amount} পেমেন্ট ব্রাঞ্চ সফলভাবে গ্রহণ করেছে। থ্যাংক ইউ!
                     </p>
-                    <p className="text-[11px] text-amber-300 font-medium pt-1 border-t border-white/5">
+                    <p className="text-[11px] text-amber-700 font-semibold pt-1 border-t border-emerald-100">
                       আপনাদের সেবায় আমরা সর্বদা নিয়োজিত • RIZWAN ONLINE DREAMS
-                    </p>
-                    <p className="text-[10px] text-slate-400 italic">
-                      Always dedicated to serving you.
                     </p>
                   </div>
                 </div>
               )}
 
               {/* ========================================================================= */}
-              {/* 1. SELECTION SCREEN: EXACTLY TWO BUTTONS (ZERO CLUTTER) */}
+              {/* WHITE-BACKGROUND CLEAN MOBILE SURFACE CONTAINER */}
               {/* ========================================================================= */}
-              {paymentSectionMode === 'menu' && (
-                <div className="space-y-6">
-                  {/* Clean Header Banner */}
-                  <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-950 border border-amber-500/25 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                    
-                    <div className="relative z-10 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-[9px] font-black uppercase tracking-widest">
-                          SECURE PAYMENT MATRIX
-                        </span>
-                        <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                          Live Real-Time Database
-                        </span>
-                      </div>
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight flex items-center gap-3">
-                        <CreditCard className="text-amber-400" size={28} />
-                        <span>পেমেন্ট পোর্টাল (Payment Portal)</span>
-                      </h1>
-                      <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
-                        নিচের দুটি বাটনের মধ্যে যেকোনো একটি বেছে নিন: সরাসরি অনলাইন ইউপিআই পেমেন্ট করুন অথবা আপনার পেমেন্ট হিস্ট্রি দেখুন।
-                      </p>
-                    </div>
-                  </div>
+              <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-xl border border-slate-200 text-slate-800 space-y-6">
 
-                  {/* ONLY TWO PROMINENT BUTTONS */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    {/* BUTTON 1: অনলাইন পেমেন্ট (Online Payment) */}
+                {/* TOP-CENTER SEGMENTED SWITCHER: EXACTLY TWO BUTTONS (COMPACT & SWIPEABLE) */}
+                <div className="flex justify-center">
+                  <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center border border-slate-200/90 shadow-inner w-full max-w-md">
+                    {/* BUTTON 1: Pay Online / পেমেন্ট করুন */}
                     <button
                       type="button"
                       onClick={() => {
-                        setPaymentSectionMode('online_payment');
-                        setPaymentOnlineSubStep('upi');
+                        setPaymentSubView('online');
+                        setRodpPayOpen(false);
                       }}
-                      className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-amber-950/30 border-2 border-amber-500/40 hover:border-amber-400 text-left relative overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(245,158,11,0.25)] cursor-pointer active:scale-[0.98] flex flex-col justify-between min-h-[220px]"
+                      className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        paymentSubView === 'online'
+                          ? 'bg-white text-emerald-700 shadow-md scale-[1.02] border border-slate-200/60'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
                     >
-                      <div className="absolute top-0 right-0 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-colors" />
-                      <div className="flex items-start justify-between relative z-10">
-                        <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                          <CreditCard size={32} />
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold uppercase">
-                          Direct UPI Payment
-                        </span>
-                      </div>
-                      <div className="relative z-10 space-y-2 mt-6">
-                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
-                          <span>১. অনলাইন পেমেন্ট</span>
-                          <ChevronRight size={20} className="text-amber-400 group-hover:translate-x-1.5 transition-transform" />
-                        </h2>
-                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                          অফিসিয়াল UPI (9593388785@UPI) দিয়ে সরাসরি পেমেন্ট করুন এবং স্ক্রিনশট বা টেক্সট প্রুফ জমা দিন।
-                        </p>
-                      </div>
+                      <CreditCard size={15} className={paymentSubView === 'online' ? 'text-emerald-600' : 'text-slate-400'} />
+                      <span className="truncate">Pay Online / পেমেন্ট করুন</span>
                     </button>
 
-                    {/* BUTTON 2: পেমেন্ট হিস্ট্রি (Payment History) */}
+                    {/* BUTTON 2: Payment Ledger / হিসাব খাতা */}
                     <button
                       type="button"
-                      onClick={() => setPaymentSectionMode('history')}
-                      className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-cyan-950/30 border-2 border-cyan-500/40 hover:border-cyan-400 text-left relative overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(6,182,212,0.25)] cursor-pointer active:scale-[0.98] flex flex-col justify-between min-h-[220px]"
+                      onClick={() => {
+                        setPaymentSubView('history');
+                        setRodpPayOpen(false);
+                      }}
+                      className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        paymentSubView === 'history'
+                          ? 'bg-white text-cyan-700 shadow-md scale-[1.02] border border-slate-200/60'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
                     >
-                      <div className="absolute top-0 right-0 w-44 h-44 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
-                      <div className="flex items-start justify-between relative z-10">
-                        <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                          <History size={32} />
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold uppercase">
-                          {userOnlinePayments.length} টি রেকর্ড (Live)
-                        </span>
-                      </div>
-                      <div className="relative z-10 space-y-2 mt-6">
-                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                          <span>২. পেমেন্ট হিস্ট্রি</span>
-                          <ChevronRight size={20} className="text-cyan-400 group-hover:translate-x-1.5 transition-transform" />
-                        </h2>
-                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                          রিয়েল-টাইম ডাটাবেজ কানেক্টেড হিস্ট্রি ড্রাইভার। জমা দেওয়া পেমেন্টের লাইভ স্ট্যাটাস ও ব্রাঞ্চ ভেরিফিকেশন দেখুন।
-                        </p>
-                      </div>
+                      <FileText size={15} className={paymentSubView === 'history' ? 'text-cyan-600' : 'text-slate-400'} />
+                      <span className="truncate">Payment Ledger / হিসাব খাতা</span>
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* ========================================================================= */}
-              {/* 2. ONLINE PAYMENT VIEW: OPTION 1 (GET UPI) + OPTION 2 (SUBMIT SCREENSHOT) */}
-              {/* ========================================================================= */}
-              {paymentSectionMode === 'online_payment' && (
-                <div className="space-y-6">
-                  {/* Top Bar with Back Control */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentSectionMode('menu')}
-                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                    >
-                      <ChevronLeft size={16} />
-                      <span>← ফিরে যান (Back to Menu)</span>
-                    </button>
-                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
-                      Online UPI Payment Desk
-                    </span>
-                  </div>
+                {/* ========================================================================= */}
+                {/* 1. PAY ONLINE VIEW (GET PAY DESK + RODP PAY SCREENSHOT SUBMISSION) */}
+                {/* ========================================================================= */}
+                {paymentSubView === 'online' && !rodpPayOpen && (
+                  <div className="space-y-6 animate-fade-in">
+                    
+                    {/* SECTION 1: GET PAY (ONLINE UPI) */}
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 text-left">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                        <div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-mono font-bold uppercase">
+                            ONLINE UPI DESK
+                          </span>
+                          <h2 className="text-base sm:text-lg font-black text-slate-900 mt-1 flex items-center gap-2">
+                            <Sparkles size={16} className="text-emerald-600" />
+                            <span>অনলাইন ইউপিআই পেমেন্ট (Get Pay)</span>
+                          </h2>
+                          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                            আপনার মোবাইল ডিভাইসে থাকা ইউপিআই অ্যাপ দিয়ে সরাসরি পেমেন্ট করতে পারেন:
+                          </p>
+                        </div>
 
-                  {/* OPTION 1: গেট ইউপিআই পেমেন্ট (Get UPI Payment) */}
-                  <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border-2 border-amber-500/30 shadow-2xl space-y-5 text-left">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                      <div>
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-black uppercase">
-                          ধাপ ১ • STEP 1
-                        </span>
-                        <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
-                          <Sparkles size={18} className="text-amber-400" />
-                          <span>গেট ইউপিআই পেমেন্ট (Get UPI Payment)</span>
-                        </h2>
-                        <p className="text-xs text-slate-300 mt-1">
-                          আমাদের অফিসিয়াল UPI ID অথবা নম্বরে যেকোনো অ্যাপ দিয়ে পেমেন্ট করুন:
-                        </p>
+                        {/* Direct UPI Trigger Button */}
+                        <a
+                          href="upi://pay?pa=9593388785@upi&pn=RODP+PAY&cu=INR"
+                          className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                        >
+                          <CreditCard size={15} />
+                          <span>গেট পে (Get Pay / Open UPI App) ➔</span>
+                        </a>
                       </div>
 
-                      {/* Direct UPI Intent Button */}
-                      <a
-                        href="upi://pay?pa=9593388785@upi&pn=Rizwan+Online+Dreams&cu=INR"
-                        className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
-                      >
-                        <CreditCard size={16} className="text-slate-950" />
-                        <span>গেট পেমেন্ট (Get Payment / Open App) ➔</span>
-                      </a>
+                      {/* UPI Credentials Box */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        {/* UPI ID */}
+                        <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-2 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
+                              OFFICIAL UPI ID
+                            </span>
+                            <span className="text-sm sm:text-base font-black text-emerald-700 font-mono">
+                              9593388785@upi
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUpiText('9593388785@upi', 'UPI ID')}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+                          >
+                            <Copy size={12} />
+                            <span>কপি করুন</span>
+                          </button>
+                        </div>
+
+                        {/* UPI Number */}
+                        <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-2 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
+                              OFFICIAL UPI NUMBER
+                            </span>
+                            <span className="text-sm sm:text-base font-black text-slate-800 font-mono">
+                              +91 9593388785
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUpiText('9593388785', 'UPI Mobile')}
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-800 hover:text-white text-slate-700 border border-slate-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+                          >
+                            <Copy size={12} />
+                            <span>কপি করুন</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* UPI Credentials Box */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                      {/* UPI ID */}
-                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-between gap-3">
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
-                            OFFICIAL UPI ID
-                          </span>
-                          <span className="text-base sm:text-lg font-black text-amber-300 font-mono">
-                            9593388785@UPI
-                          </span>
+                    {/* SECTION 2: SUBMIT PAYMENT SCREENSHOT -> OPENS RODP PAY */}
+                    <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 text-white border border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-black uppercase">
+                              NEW UPI APPLICATION
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono font-black uppercase">
+                              RODP PAY
+                            </span>
+                          </div>
+                          <h3 className="text-base sm:text-lg font-black text-white mt-1 flex items-center gap-2">
+                            <CheckCircle2 size={18} className="text-amber-400" />
+                            <span>আপনি যে অনলাইনে পেমেন্ট করলেন তার স্ক্রিনশট জমা দিন</span>
+                          </h3>
+                          <p className="text-xs text-slate-300 font-medium">
+                            পেমেন্ট সম্পন্ন করার পর স্ক্রিনশট ও পেমেন্ট বিবরণ সাবমিট করতে RODP PAY ওপেন করুন:
+                          </p>
                         </div>
+
                         <button
                           type="button"
-                          onClick={() => handleCopyUpiText('9593388785@UPI', 'UPI ID')}
-                          className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+                          onClick={() => {
+                            setRodpPayOpen(true);
+                            setRodpPayTab('pay');
+                            setRodpPayStep(1);
+                            setPaymentAmount('');
+                            setPaymentScreenshotUrl('');
+                            setPaymentScreenshotName('');
+                            setPaymentTextProof('');
+                            setRodpPayPin('');
+                            setRodpPayPinError(null);
+                            setRodpPaySuccessPayment(null);
+                          }}
+                          className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
                         >
-                          <Copy size={13} />
-                          <span>কপি করুন (Copy)</span>
+                          <span>RODP PAY ওপেন করুন ➔</span>
                         </button>
                       </div>
+                    </div>
 
-                      {/* UPI Mobile Number */}
-                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-between gap-3">
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
-                            OFFICIAL UPI NUMBER
-                          </span>
-                          <span className="text-base sm:text-lg font-black text-cyan-300 font-mono">
-                            +91 9593388785
-                          </span>
-                        </div>
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 2. RODP PAY APP INTERFACE (COMPLETE UPI APPLICATION EXPERIENCE) */}
+                {/* ========================================================================= */}
+                {paymentSubView === 'online' && rodpPayOpen && (
+                  <div className="space-y-5 animate-fade-in text-left">
+                    
+                    {/* RODP PAY App Top Header Bar */}
+                    <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => handleCopyUpiText('9593388785', 'UPI Mobile')}
-                          className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+                          onClick={() => setRodpPayOpen(false)}
+                          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-all"
                         >
-                          <Copy size={13} />
-                          <span>কপি করুন (Copy)</span>
+                          <ChevronLeft size={18} />
+                        </button>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base sm:text-lg font-black tracking-wider text-amber-400 font-mono">
+                              RODP PAY
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold uppercase">
+                              Live UPI Matrix
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            অফিসিয়াল ডিজিটাল পেমেন্ট ও স্ক্রিনশট ভেরিফিকেশন ইঞ্জিন
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* RODP PAY Mode Tabs: Pay | History */}
+                      <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-2xl border border-white/10 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setRodpPayTab('pay')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            rodpPayTab === 'pay'
+                              ? 'bg-amber-500 text-slate-950 font-black shadow'
+                              : 'text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          <CreditCard size={13} />
+                          <span>Pay (পে করুন)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRodpPayTab('history')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            rodpPayTab === 'history'
+                              ? 'bg-cyan-500 text-slate-950 font-black shadow'
+                              : 'text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          <History size={13} />
+                          <span>History ({userOnlinePayments.length})</span>
                         </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* OPTION 2: সাবমিট পেমেন্ট স্ক্রিনশট (Submit Payment Screenshot) */}
-                  <div className="p-6 md:p-8 rounded-3xl bg-slate-900/80 border-2 border-cyan-500/30 shadow-2xl space-y-5 text-left">
-                    <div className="border-b border-white/5 pb-4">
-                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono font-black uppercase">
-                        ধাপ ২ • STEP 2
-                      </span>
-                      <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
-                        <CheckCircle2 size={18} className="text-cyan-400" />
-                        <span>সাবমিট পেমেন্ট স্ক্রিনশট ও তথ্য (Submit Payment Proof)</span>
-                      </h2>
-                      <p className="text-xs text-slate-300 mt-1">
-                        পেমেন্ট সম্পন্ন হলে টাকার পরিমাণ লিখুন এবং স্ক্রিনশট ফটো আপলোড করুন অথবা টেক্সট/UTR বিবরণ দিয়ে রিকোয়েস্ট পাঠান:
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Amount and Branch Row */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                            পেমেন্টের পরিমাণ (Amount in ₹) *
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3.5 top-3 text-slate-400 font-bold text-sm">₹</span>
-                            <input
-                              type="number"
-                              required
-                              value={paymentAmount}
-                              onChange={(e) => setPaymentAmount(e.target.value)}
-                              placeholder="500"
-                              className="w-full pl-8 pr-4 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white font-mono font-bold text-base focus:outline-none focus:border-amber-400"
-                            />
+                    {/* SUB-TAB A: RODP PAY -> PAY FLOW (3-STEP WIZARD) */}
+                    {rodpPayTab === 'pay' && !rodpPaySuccessPayment && (
+                      <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-5">
+                        
+                        {/* 3 Step Progress Bar */}
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                              rodpPayStep >= 1 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              ১
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">১. ব্রাঞ্চ ও পরিমাণ</span>
+                          </div>
+                          <span className="text-slate-300 text-xs">➔</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                              rodpPayStep >= 2 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              ২
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">২. স্ক্রিনশট এটাচ</span>
+                          </div>
+                          <span className="text-slate-300 text-xs">➔</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                              rodpPayStep >= 3 ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              ৩
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">৩. এন্টার পিন</span>
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                            উদ্দিষ্ট ব্রাঞ্চ (Target Branch) *
-                          </label>
-                          <select
-                            value={paymentSelectedShopId}
-                            onChange={(e) => setPaymentSelectedShopId(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
-                          >
-                            {shops && shops.length > 0 ? (
-                              shops.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))
-                            ) : (
-                              <option value="shop_1">RIZWAN ONLINE DREAMS (Head Office)</option>
-                            )}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Screenshot Upload or File Input */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                          পেমেন্ট স্ক্রিনশটের ফটো (Upload Payment Screenshot Proof)
-                        </label>
-                        <div className="p-4 rounded-2xl bg-slate-950/60 border border-dashed border-white/15 hover:border-amber-400/50 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer relative">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setPaymentScreenshotName(file.name);
-                                const reader = new FileReader();
-                                reader.onload = (re) => {
-                                  if (re.target?.result) {
-                                    setPaymentScreenshotUrl(re.target.result as string);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                          />
-                          {paymentScreenshotUrl ? (
-                            <div className="flex items-center gap-3">
-                              <img src={paymentScreenshotUrl} alt="Preview" className="w-14 h-14 object-cover rounded-xl border border-white/10" />
-                              <div className="text-left">
-                                <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                                  <Check size={14} /> স্ক্রিনশট সিলেক্ট হয়েছে
-                                </p>
-                                <p className="text-[10px] text-slate-400">{paymentScreenshotName || 'screenshot.jpg'}</p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-2">
-                              <Camera size={24} className="mx-auto text-amber-400 mb-1" />
-                              <p className="text-xs font-bold text-slate-200">ছবি বা স্ক্রিনশট আপলোড করতে ক্লিক করুন</p>
-                              <p className="text-[10px] text-slate-500">PNG, JPG, JPEG (মোবাইল গ্যালারি বা ক্যামেরা)</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Text Note / UTR Details (For cases where screenshot photo is not uploaded) */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                          স্ক্রিনশট ছবি না থাকলে টেক্সট বা ট্রানজেকশন/ইউটিআর লিখুন (Text or UTR Notes)
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={paymentTextProof}
-                          onChange={(e) => setPaymentTextProof(e.target.value)}
-                          placeholder="উদাহরণ: GPay দিয়ে পেমেন্ট সম্পন্ন করেছি, UTR নম্বর: 412356789123"
-                          className="w-full px-4 py-2.5 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-
-                      {/* Customer Info row */}
-                      <div className="grid grid-cols-2 gap-3 text-xs p-3 rounded-2xl bg-slate-950/80 border border-white/5">
-                        <div>
-                          <span className="text-[9px] text-slate-500 block uppercase font-bold">নাম (Customer Name)</span>
-                          <span className="text-slate-200 font-bold">{currentUser?.name}</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] text-slate-500 block uppercase font-bold">মোবাইল (Mobile)</span>
-                          <span className="text-amber-400 font-mono font-bold">{currentUser?.mobile || '9593388785'}</span>
-                        </div>
-                      </div>
-
-                      {/* Submit Action Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const amt = parseFloat(paymentAmount);
-                          if (!amt || amt <= 0) {
-                            alert('দয়া করে সঠিক পেমেন্টের পরিমাণ লিখুন।');
-                            return;
-                          }
-                          if (!paymentScreenshotUrl && !paymentTextProof.trim()) {
-                            alert('অনুগ্রহ করে পেমেন্ট স্ক্রিনশট ছবি আপলোড করুন অথবা টেক্সট বক্সে পেমেন্টের বিবরণ/ইউটিআর লিখুন।');
-                            return;
-                          }
-
-                          const generatedId = `ROD-PAY-${Math.floor(100000 + Math.random() * 900000)}`;
-                          const targetShop = shops?.find(s => s.id === paymentSelectedShopId);
-                          const newRecord: OnlinePayment = {
-                            id: generatedId,
-                            customerName: currentUser?.name || 'Customer',
-                            customerMobile: currentUser?.mobile || '9593388785',
-                            customerEmail: currentUser?.email,
-                            amount: amt,
-                            screenshotUrl: paymentScreenshotUrl || '',
-                            transactionId: paymentTextProof.trim().slice(0, 30) || `UPI-TXN-${Date.now().toString().slice(-8)}`,
-                            shopId: paymentSelectedShopId,
-                            shopName: targetShop?.name || 'RIZWAN ONLINE DREAMS (Head Office)',
-                            status: 'Pending',
-                            submittedAt: new Date().toISOString(),
-                            securityPin: '****',
-                            notes: paymentTextProof.trim() || 'Online Bill Payment submission'
-                          };
-
-                          if (addOnlinePayment) {
-                            addOnlinePayment(newRecord);
-                          } else {
-                            try {
-                              const stored = JSON.parse(localStorage.getItem('rodp_onlinePayments') || '[]');
-                              localStorage.setItem('rodp_onlinePayments', JSON.stringify([newRecord, ...stored]));
-                            } catch (e) {}
-                          }
-
-                          try {
-                            playBookingSuccessSound();
-                          } catch (e) {}
-
-                          alert(`🎉 পেমেন্ট রিকোয়েস্ট সফলভাবে সাবমিট হয়েছে!\nট্র্যাকিং আইডি: ${generatedId}\nব্রাঞ্চ ভেরিফিকেশন সম্পন্ন হলে আপনি লাইভ কনফার্মেশন পাবেন।`);
-                          setPaymentAmount('');
-                          setPaymentScreenshotUrl('');
-                          setPaymentScreenshotName('');
-                          setPaymentTextProof('');
-                          setPaymentSectionMode('history');
-                        }}
-                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(245,158,11,0.35)] transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle2 size={18} className="text-slate-950 stroke-[2.5px]" />
-                        <span>পেমেন্ট রিকোয়েস্ট সাবমিট করুন (Submit Payment Request) ➔</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ========================================================================= */}
-              {/* 3. PAYMENT HISTORY VIEW: CONNECTED TO REAL-TIME DATABASE */}
-              {/* ========================================================================= */}
-              {paymentSectionMode === 'history' && (
-                <div className="space-y-6">
-                  {/* Top Bar with Back Control */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentSectionMode('menu')}
-                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                    >
-                      <ChevronLeft size={16} />
-                      <span>← ফিরে যান (Back to Menu)</span>
-                    </button>
-                    <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
-                      Real-Time Database Ledger ({userOnlinePayments.length})
-                    </span>
-                  </div>
-
-                  {userOnlinePayments.length === 0 ? (
-                    <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-white/10 space-y-4">
-                      <History size={40} className="mx-auto text-slate-600" />
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-black text-white uppercase">এখনো কোনো পেমেন্ট জমা দেওয়া হয়নি</h3>
-                        <p className="text-xs text-slate-400">অনলাইন পেমেন্ট সম্পন্ন করে স্ক্রিনশট বা রিকোয়েস্ট পাঠান।</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentSectionMode('online_payment');
-                          setPaymentOnlineSubStep('upi');
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase cursor-pointer transition-all active:scale-95"
-                      >
-                        অনলাইন পেমেন্ট করুন
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {userOnlinePayments.map((payment) => {
-                        const isPending = payment.status === 'Pending';
-                        const isAccepted = payment.status === 'Accepted';
-                        const isConfirmed = payment.status === 'Confirmed';
-                        const isRejected = payment.status === 'Rejected';
-
-                        return (
-                          <div
-                            key={payment.id}
-                            className={`p-5 rounded-3xl border transition-all duration-300 space-y-4 text-left ${
-                              isConfirmed
-                                ? 'bg-emerald-950/20 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.1)]'
-                                : isAccepted
-                                ? 'bg-sky-950/20 border-sky-500/40'
-                                : isRejected
-                                ? 'bg-rose-950/20 border-rose-500/30'
-                                : 'bg-slate-900/60 border-white/10'
-                            }`}
-                          >
-                            {/* Header row: Tracking ID & Status badge */}
-                            <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                        {/* PAGE 1: USER DETAILS, BRANCH SELECTION, AMOUNT (STARTS FROM 0 / EMPTY) */}
+                        {rodpPayStep === 1 && (
+                          <div className="space-y-4 animate-fade-in">
+                            {/* Payer Demographics */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm text-xs">
                               <div>
-                                <span className="text-[9px] font-mono uppercase text-slate-500 font-bold block">
-                                  PAYMENT TRACKING ID
-                                </span>
-                                <span className="text-xs font-black text-amber-300 font-mono tracking-wider">
-                                  {payment.id}
-                                </span>
-                              </div>
-
-                              <span className={`px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-wider font-mono border ${
-                                isConfirmed
-                                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                                  : isAccepted
-                                  ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
-                                  : isRejected
-                                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                                  : 'bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse'
-                              }`}>
-                                {isConfirmed ? '✓ CONFIRMED / ব্রাঞ্চ রিসিভড' :
-                                 isAccepted ? '✓ ACCEPTED / একসেপ্টেড' :
-                                 isRejected ? '❌ REJECTED / বাতিল' :
-                                 '⏳ PENDING / অপেক্ষমান'}
-                              </span>
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                              <div>
-                                <span className="text-[9px] text-slate-500 block">AMOUNT PAID</span>
-                                <span className="text-base font-black text-white">₹{payment.amount}</span>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">আবেদনকারী / Payer Name</span>
+                                <span className="text-slate-800 font-bold">{currentUser?.name || 'Customer'}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-500 block">SUBMITTED ON</span>
-                                <span className="text-slate-300 font-bold text-[11px]">
-                                  {new Date(payment.submittedAt).toLocaleDateString()} {new Date(payment.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                              <div className="col-span-2">
-                                <span className="text-[9px] text-slate-500 block">TARGET BRANCH</span>
-                                <span className="text-amber-300 font-bold text-[11px] truncate block">
-                                  {payment.shopName || 'Main Branch Office'}
-                                </span>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">মোবাইল / Phone Number</span>
+                                <span className="text-emerald-700 font-mono font-bold">{currentUser?.mobile || '9593388785'}</span>
                               </div>
                             </div>
 
-                            {/* Screenshot Thumbnail (Click to enlarge full-screen) OR Text Proof */}
-                            {payment.screenshotUrl ? (
-                              <div className="space-y-1">
-                                <span className="text-[9px] text-slate-500 font-mono block uppercase">
-                                  PAYMENT SCREENSHOT PROOF (ক্লিক করে বড় দেখুন)
+                            {/* Select Destination Branch */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                                আমাদেরকে পে করুন বা এই ব্রাঞ্চকে পে করুন (Select Branch) *
+                              </label>
+                              <select
+                                value={paymentSelectedShopId}
+                                onChange={(e) => setPaymentSelectedShopId(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-2xl text-slate-800 font-bold text-xs focus:outline-none focus:border-amber-500 shadow-sm cursor-pointer"
+                              >
+                                {shops && shops.length > 0 ? (
+                                  shops.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} ({s.address || 'Branch'})</option>
+                                  ))
+                                ) : (
+                                  <option value="shop_1">RIZWAN ONLINE DREAMS (Head Office)</option>
+                                )}
+                              </select>
+                            </div>
+
+                            {/* Amount in ₹: Starts completely from 0 / Empty */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                                কত টাকা দিতে হবে লিখুন (Amount in ₹) *
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-4 top-3.5 text-slate-400 font-black text-base">₹</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={paymentAmount}
+                                  onChange={(e) => setPaymentAmount(e.target.value)}
+                                  placeholder="টাকার পরিমাণ লিখুন (যেমন 100, 200, 500)"
+                                  className="w-full pl-9 pr-4 py-3.5 bg-white border border-slate-300 rounded-2xl text-slate-900 font-mono font-black text-base focus:outline-none focus:border-amber-500 shadow-sm"
+                                />
+                              </div>
+                              {/* Quick Amount Chips */}
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {['50', '100', '200', '500', '1000', '2000'].map(amt => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setPaymentAmount(amt)}
+                                    className="px-3 py-1 bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-700 rounded-xl text-xs font-mono font-bold transition-all shadow-2xs cursor-pointer"
+                                  >
+                                    +₹{amt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const val = parseFloat(paymentAmount);
+                                if (!val || val <= 0) {
+                                  alert('দয়া করে সঠিক পেমেন্টের পরিমাণ লিখুন।');
+                                  return;
+                                }
+                                setRodpPayStep(2);
+                              }}
+                              className="w-full mt-2 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                              <span>পরবর্তী ধাপ (Next ➔)</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* PAGE 2: ATTACH SCREENSHOT PROOF OR TEXT/UTR NOTES */}
+                        {rodpPayStep === 2 && (
+                          <div className="space-y-4 animate-fade-in">
+                            {/* Summary header */}
+                            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs flex justify-between items-center">
+                              <div>
+                                <span className="text-[10px] text-amber-800 font-bold block uppercase">নির্বাচিত ব্রাঞ্চ ও পরিমাণ</span>
+                                <span className="text-slate-800 font-bold">
+                                  {shops.find(s => s.id === paymentSelectedShopId)?.name || 'Head Office'} • <strong className="text-amber-700 font-mono">₹{paymentAmount}</strong>
                                 </span>
-                                <div
-                                  onClick={() => setPreviewPaymentScreenshot(payment.screenshotUrl)}
-                                  className="h-28 rounded-2xl overflow-hidden border border-white/10 hover:border-amber-500/50 cursor-pointer relative group transition-all"
-                                >
-                                  <img
-                                    src={payment.screenshotUrl}
-                                    alt="Payment Screenshot"
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                  />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 text-white text-xs font-bold transition-opacity">
-                                    <Eye size={14} />
-                                    <span>বড় করে দেখুন / Enlarge</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setRodpPayStep(1)}
+                                className="text-[11px] text-amber-800 font-bold underline cursor-pointer"
+                              >
+                                পরিবর্তন
+                              </button>
+                            </div>
+
+                            {/* Screenshot Attachment Box */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                                পেমেন্টের স্ক্রিনশট এটাচ করুন (Attach Screenshot Image)
+                              </label>
+                              <div className="p-5 rounded-2xl bg-white border-2 border-dashed border-slate-300 hover:border-amber-400 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer relative shadow-sm">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setPaymentScreenshotName(file.name);
+                                      const reader = new FileReader();
+                                      reader.onload = (re) => {
+                                        if (re.target?.result) {
+                                          setPaymentScreenshotUrl(re.target.result as string);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                />
+                                {paymentScreenshotUrl ? (
+                                  <div className="flex items-center gap-3">
+                                    <img src={paymentScreenshotUrl} alt="Preview" className="w-16 h-16 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                                    <div className="text-left">
+                                      <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5">
+                                        <Check size={14} /> স্ক্রিনশট এটাচ হয়েছে
+                                      </p>
+                                      <p className="text-[10px] text-slate-500">{paymentScreenshotName || 'payment_screenshot.jpg'}</p>
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  <div className="text-center py-2">
+                                    <Camera size={26} className="mx-auto text-amber-500 mb-1" />
+                                    <p className="text-xs font-bold text-slate-800">স্ক্রিনশট ছবি নির্বাচন করতে ক্লিক করুন</p>
+                                    <p className="text-[10px] text-slate-400">মোবাইল গ্যালারি বা ক্যামেরা থেকে ফটো আপলোড করুন</p>
+                                  </div>
+                                )}
                               </div>
-                            ) : (
-                              <div className="p-3 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
-                                <span className="text-[9px] text-amber-400 font-mono block uppercase font-bold">
-                                  📝 কাস্টমার টেক্সট বিবরণ:
-                                </span>
-                                <p className="text-xs text-slate-300 font-mono">
-                                  {payment.notes || payment.transactionId || 'অনলাইন বিল পেমেন্ট'}
-                                </p>
-                              </div>
-                            )}
+                            </div>
 
-                            {/* Status Message based on current status */}
-                            <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/5 space-y-1">
-                              {isConfirmed ? (
-                                <div className="space-y-1">
-                                  <p className="text-[11px] text-emerald-300 font-bold flex items-center gap-1.5">
-                                    <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                                    <span>আপনার পেমেন্ট ব্রাঞ্চ রিসিভ করেছে।</span>
-                                  </p>
-                                  <p className="text-[10px] text-amber-300 font-medium">
-                                    অভিনন্দন {payment.customerName}! পেমেন্ট সফলভাবে গ্রহণ করা হয়েছে। থ্যাংক ইউ!
-                                  </p>
-                                  <p className="text-[9.5px] text-slate-400 italic">
-                                    আপনাদের সেবায় আমরা সর্বদা নিয়োজিত • Dedicated to your service.
-                                  </p>
+                            {/* Text / UTR Details (Optional if screenshot is attached, required if screenshot is not attached) */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                                ট্রানজেকশন/ইউটিআর বা টেক্সট নোট (Text / UTR Details)
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={paymentTextProof}
+                                onChange={(e) => setPaymentTextProof(e.target.value)}
+                                placeholder="উদাহরণ: GPay দিয়ে ₹500 পেমেন্ট করেছি, UTR: 412389745612"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-amber-500 shadow-sm"
+                              />
+                            </div>
+
+                            {/* Navigation Buttons */}
+                            <div className="flex gap-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setRodpPayStep(1)}
+                                className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-2xl text-xs transition-all cursor-pointer"
+                              >
+                                ← পূর্ববর্তী ধাপ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!paymentScreenshotUrl && !paymentTextProof.trim()) {
+                                    alert('দয়া করে পেমেন্টের স্ক্রিনশট ছবি আপলোড করুন অথবা টেক্সট বক্সে UTR/পেমেন্টের বিবরণ লিখুন।');
+                                    return;
+                                  }
+                                  setRodpPayStep(3);
+                                }}
+                                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                              >
+                                পরবর্তী ধাপ (PIN) ➔
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PAGE 3: SUMMARY & ENTER PIN (SUBMIT TO RTDB & CEO/BRANCH BILLS) */}
+                        {rodpPayStep === 3 && (
+                          <div className="space-y-4 animate-fade-in">
+                            {/* Complete Summary Box */}
+                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2 text-xs">
+                              <h4 className="font-black text-slate-900 border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                                <span>পেমেন্ট সারসংক্ষেপ (Transaction Preview)</span>
+                                <span className="text-amber-600 font-mono font-bold">RODP PAY</span>
+                              </h4>
+                              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase font-bold">গ্রাহকের নাম</span>
+                                  <span className="text-slate-800 font-bold">{currentUser?.name || 'Customer'}</span>
                                 </div>
-                              ) : isAccepted ? (
-                                <p className="text-[11px] text-sky-300 font-bold flex items-center gap-1.5">
-                                  <Check size={13} className="text-sky-400 shrink-0" />
-                                  <span>বিলটি ব্রাঞ্চ একসেপ্ট করেছে। চূড়ান্ত কনফার্মেশনের কাজ চলছে।</span>
-                                </p>
-                              ) : isRejected ? (
-                                <p className="text-[11px] text-rose-300 font-bold flex items-center gap-1.5">
-                                  <AlertTriangle size={13} className="text-rose-400 shrink-0" />
-                                  <span>{payment.notes || 'পেমেন্টটি ব্রাঞ্চ কর্তৃক প্রত্যাখ্যাত হয়েছে।'}</span>
-                                </p>
-                              ) : (
-                                <p className="text-[11px] text-amber-300/90 font-medium flex items-center gap-1.5">
-                                  <Clock size={13} className="text-amber-400 shrink-0 animate-spin" />
-                                  <span>ব্রাঞ্চ ভেরিফিকেশন ও কনফার্মেশনের জন্য অপেক্ষমান রয়েছে।</span>
-                                </p>
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase font-bold">মোবাইল</span>
+                                  <span className="text-slate-800 font-mono font-bold">{currentUser?.mobile || '9593388785'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase font-bold">উদ্দিষ্ট ব্রাঞ্চ</span>
+                                  <span className="text-amber-700 font-bold">
+                                    {shops.find(s => s.id === paymentSelectedShopId)?.name || 'Head Office'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[9px] uppercase font-bold">টাকার পরিমাণ</span>
+                                  <span className="text-base font-black text-emerald-700 font-mono">₹{paymentAmount}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Enter PIN Input */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black text-slate-800 uppercase tracking-wider block">
+                                এন্টার পিন (Enter 4-Digit Security PIN) *
+                              </label>
+                              <input
+                                type="password"
+                                maxLength={6}
+                                value={rodpPayPin}
+                                onChange={(e) => {
+                                  setRodpPayPin(e.target.value);
+                                  setRodpPayPinError(null);
+                                }}
+                                placeholder="••••"
+                                className="w-full text-center tracking-widest text-xl font-mono font-black py-3 bg-white border border-slate-300 rounded-2xl text-slate-900 focus:outline-none focus:border-emerald-600 shadow-sm"
+                              />
+                              <p className="text-[10px] text-slate-400 text-center">
+                                লগইনের সময় ব্যবহৃত সিকিউরিটি পিন বা পাসওয়ার্ড এন্টার করুন
+                              </p>
+                              {rodpPayPinError && (
+                                <p className="text-xs text-rose-600 font-bold text-center">{rodpPayPinError}</p>
                               )}
                             </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setRodpPayStep(2)}
+                                className="flex-1 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-2xl text-xs transition-all cursor-pointer"
+                              >
+                                ← আগের ধাপ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!rodpPayPin || rodpPayPin.trim().length === 0) {
+                                    setRodpPayPinError('দয়া করে পিন এন্টার করুন।');
+                                    return;
+                                  }
+
+                                  const amt = parseFloat(paymentAmount);
+                                  const targetShop = shops.find(s => s.id === paymentSelectedShopId);
+                                  const generatedId = `ROD-PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+                                  
+                                  const newRecord: OnlinePayment = {
+                                    id: generatedId,
+                                    customerName: currentUser?.name || 'Customer',
+                                    customerMobile: currentUser?.mobile || '9593388785',
+                                    customerEmail: currentUser?.email,
+                                    amount: amt,
+                                    screenshotUrl: paymentScreenshotUrl || '',
+                                    transactionId: paymentTextProof.trim().slice(0, 30) || `UPI-TXN-${Date.now().toString().slice(-8)}`,
+                                    shopId: paymentSelectedShopId,
+                                    shopName: targetShop?.name || 'RIZWAN ONLINE DREAMS (Head Office)',
+                                    status: 'Pending',
+                                    submittedAt: new Date().toISOString(),
+                                    securityPin: '****',
+                                    notes: paymentTextProof.trim() || 'Online Bill Payment via RODP PAY'
+                                  };
+
+                                  if (addOnlinePayment) {
+                                    addOnlinePayment(newRecord);
+                                  } else {
+                                    try {
+                                      const stored = JSON.parse(localStorage.getItem('rodp_onlinePayments') || '[]');
+                                      localStorage.setItem('rodp_onlinePayments', JSON.stringify([newRecord, ...stored]));
+                                    } catch (e) {}
+                                  }
+
+                                  try {
+                                    playBookingSuccessSound();
+                                  } catch (e) {}
+
+                                  setRodpPaySuccessPayment(newRecord);
+                                }}
+                                className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              >
+                                <CheckCircle2 size={16} />
+                                <span>সেন্ট করুন (Send) ➔</span>
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })}
+                        )}
+
+                      </div>
+                    )}
+
+                    {/* RODP PAY PAYMENT SUCCESS CELEBRATION */}
+                    {rodpPaySuccessPayment && (
+                      <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-emerald-500 shadow-2xl text-center space-y-4 animate-scale-up text-slate-800">
+                        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 border-2 border-emerald-500 flex items-center justify-center mx-auto shadow-md">
+                          <CheckCircle2 size={36} className="animate-bounce" />
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-black uppercase">
+                            ✓ UPI PAYMENT SUBMITTED SUCCESSFULLY
+                          </span>
+                          <h3 className="text-xl font-black text-slate-900 mt-2">
+                            🎉 পেমেন্ট রিকোয়েস্ট সফলভাবে সেন্ট হয়েছে!
+                          </h3>
+                          <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            আপনার পেমেন্ট বিবরণ সিইও প্যানেল এবং ব্রাঞ্চ প্যানেলের <strong>ভেরিফাইড বিলে</strong> রিয়েল-টাইমে পৌঁছে গেছে।
+                          </p>
+                        </div>
+
+                        {/* Transaction Details Box */}
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 max-w-sm mx-auto space-y-2 text-left text-xs font-mono">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">TRACKING ID:</span>
+                            <span className="text-emerald-700 font-bold">{rodpPaySuccessPayment.id}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">AMOUNT PAID:</span>
+                            <span className="text-slate-900 font-bold text-sm">₹{rodpPaySuccessPayment.amount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">TARGET BRANCH:</span>
+                            <span className="text-amber-700 font-bold truncate">{rodpPaySuccessPayment.shopName}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">TIME:</span>
+                            <span className="text-slate-700 font-bold">{new Date(rodpPaySuccessPayment.submittedAt).toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 justify-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRodpPaySuccessPayment(null);
+                              setRodpPayTab('history');
+                            }}
+                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer shadow transition-all"
+                          >
+                            পেমেন্ট হিস্ট্রি দেখুন
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRodpPaySuccessPayment(null);
+                              setRodpPayStep(1);
+                              setPaymentAmount('');
+                              setPaymentScreenshotUrl('');
+                              setPaymentScreenshotName('');
+                              setPaymentTextProof('');
+                            }}
+                            className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer transition-all"
+                          >
+                            নতুন পেমেন্ট করুন
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-TAB B: RODP PAY -> HISTORY (CONNECTED TO RTDB, DELETE & VERIFICATION STATUS CHECK) */}
+                    {rodpPayTab === 'history' && (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider font-mono">
+                            RODP PAY হিস্ট্রি ({userOnlinePayments.length})
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRodpPayTab('pay');
+                              setRodpPayStep(1);
+                            }}
+                            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer"
+                          >
+                            + নতুন পে
+                          </button>
+                        </div>
+
+                        {userOnlinePayments.length === 0 ? (
+                          <div className="p-8 text-center rounded-3xl bg-slate-50 border border-slate-200 space-y-2">
+                            <History size={32} className="mx-auto text-slate-400" />
+                            <p className="text-xs font-bold text-slate-700">কোনো পেমেন্ট হিস্ট্রি পাওয়া যায়নি</p>
+                            <p className="text-[11px] text-slate-400">অনলাইনে পেমেন্ট করে স্ক্রিনশট সাবমিট করুন।</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {userOnlinePayments.map((payment) => {
+                              const isPending = payment.status === 'Pending';
+                              const isAccepted = payment.status === 'Accepted';
+                              const isConfirmed = payment.status === 'Confirmed';
+                              const isRejected = payment.status === 'Rejected';
+
+                              return (
+                                <div
+                                  key={payment.id}
+                                  className={`p-4 rounded-2xl border space-y-3 ${
+                                    isConfirmed
+                                      ? 'bg-emerald-50/70 border-emerald-300'
+                                      : isAccepted
+                                      ? 'bg-sky-50/70 border-sky-300'
+                                      : isRejected
+                                      ? 'bg-rose-50/70 border-rose-300'
+                                      : 'bg-white border-slate-200 shadow-sm'
+                                  }`}
+                                >
+                                  {/* Header: Tracking ID & Status Badge */}
+                                  <div className="flex justify-between items-start gap-2 border-b border-slate-100 pb-2">
+                                    <div>
+                                      <span className="text-[9px] font-mono uppercase text-slate-400 font-bold block">
+                                        TRACKING ID
+                                      </span>
+                                      <span className="text-xs font-mono font-black text-slate-800">
+                                        {payment.id}
+                                      </span>
+                                    </div>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase font-mono border ${
+                                      isConfirmed
+                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                        : isAccepted
+                                        ? 'bg-sky-100 text-sky-800 border-sky-300'
+                                        : isRejected
+                                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                                    }`}>
+                                      {isConfirmed ? '✓ CONFIRMED / রিসিভড' :
+                                       isAccepted ? '✓ ACCEPTED' :
+                                       isRejected ? '❌ REJECTED' :
+                                       '⏳ PENDING / অপেক্ষমান'}
+                                    </span>
+                                  </div>
+
+                                  {/* Amount and Branch Details */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block font-bold">পরিমাণ</span>
+                                      <span className="text-sm font-black text-slate-900 font-mono">₹{payment.amount}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-400 block font-bold">তারিখ</span>
+                                      <span className="text-slate-600 font-bold text-[11px]">
+                                        {new Date(payment.submittedAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-[9px] text-slate-400 block font-bold">উদ্দিষ্ট ব্রাঞ্চ</span>
+                                      <span className="text-amber-800 font-bold text-[11px] truncate block">
+                                        {payment.shopName || 'Main Branch Office'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Branch Approval Info */}
+                                  {isConfirmed && (
+                                    <div className="p-2.5 bg-emerald-100/70 border border-emerald-200 rounded-xl text-[10.5px] text-emerald-900 space-y-0.5">
+                                      <p className="font-bold flex items-center gap-1">
+                                        <CheckCircle2 size={12} className="text-emerald-700 shrink-0" />
+                                        <span>ব্রাঞ্চ এপ্রুভ করেছে: {payment.confirmedBy || payment.shopName}</span>
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Actions: Verify Status Check & Delete Option */}
+                                  <div className="flex gap-2 pt-1 border-t border-slate-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => setStatusCheckModalPayment(payment)}
+                                      className="flex-1 py-1.5 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-800 font-bold rounded-xl text-[10px] transition-all cursor-pointer flex items-center justify-center gap-1"
+                                    >
+                                      <ShieldCheck size={12} />
+                                      <span>ভেরিফাই স্ট্যাটাস চেক</span>
+                                    </button>
+
+                                    {/* Requirement: Delete Option */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (confirm('আপনি কি এই পেমেন্ট রেকর্ডটি মুছে ফেলতে চান?')) {
+                                          if (deleteOnlinePayment) {
+                                            deleteOnlinePayment(payment.id);
+                                          } else {
+                                            try {
+                                              const stored = JSON.parse(localStorage.getItem('rodp_onlinePayments') || '[]');
+                                              localStorage.setItem('rodp_onlinePayments', JSON.stringify(stored.filter((p: any) => p.id !== payment.id)));
+                                            } catch (e) {}
+                                          }
+                                        }
+                                      }}
+                                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-[10px] transition-all cursor-pointer flex items-center gap-1"
+                                      title="মুছে ফেলুন"
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>ডিলিট</span>
+                                    </button>
+                                  </div>
+
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 3. PAYMENT LEDGER VIEW / হিসাব খাতা (REAL-TIME DASHBOARD OF ALL BILLS) */}
+                {/* ========================================================================= */}
+                {paymentSubView === 'history' && (
+                  <div className="space-y-5 animate-fade-in text-left">
+                    
+                    {/* Summary Statistics Strip */}
+                    <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">মোট বিল</span>
+                        <span className="text-base font-black text-slate-900 font-mono">{userOnlinePayments.length}</span>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                        <span className="text-[10px] text-emerald-600 uppercase font-bold block">রিসিভড / কনফার্মড</span>
+                        <span className="text-base font-black text-emerald-700 font-mono">
+                          ₹{userOnlinePayments.filter(p => p.status === 'Confirmed').reduce((acc, c) => acc + (c.amount || 0), 0)}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                        <span className="text-[10px] text-amber-600 uppercase font-bold block">অপেক্ষমান</span>
+                        <span className="text-base font-black text-amber-600 font-mono">
+                          {userOnlinePayments.filter(p => p.status === 'Pending').length}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {userOnlinePayments.length === 0 ? (
+                      <div className="p-10 text-center rounded-3xl bg-slate-50 border border-slate-200 space-y-3">
+                        <FileText size={36} className="mx-auto text-slate-400" />
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                          হিসাব খাতায় কোনো অনলাইন বিল পাওয়া যায়নি
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          অনলাইন পেমেন্ট সম্পন্ন করে স্ক্রিনশট বা রিকোয়েস্ট পাঠালে তা রিয়েল-টাইমে এখানে যুক্ত হবে।
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentSubView('online')}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow transition-all"
+                        >
+                          অনলাইন পেমেন্ট করুন ➔
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {userOnlinePayments.map((payment) => {
+                          const isConfirmed = payment.status === 'Confirmed';
+                          const isAccepted = payment.status === 'Accepted';
+                          const isRejected = payment.status === 'Rejected';
+
+                          return (
+                            <div
+                              key={payment.id}
+                              className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-3 ${
+                                isConfirmed
+                                  ? 'bg-emerald-50/80 border-emerald-300'
+                                  : isAccepted
+                                  ? 'bg-sky-50/80 border-sky-300'
+                                  : isRejected
+                                  ? 'bg-rose-50/80 border-rose-300'
+                                  : 'bg-white border-slate-200 shadow-sm'
+                              }`}
+                            >
+                              {/* Top Row: Ref ID & Status */}
+                              <div className="flex justify-between items-start gap-2 border-b border-slate-100 pb-2">
+                                <div>
+                                  <span className="text-[9px] text-slate-400 font-mono font-bold block uppercase">বিল ট্র্যাকিং আইডি</span>
+                                  <span className="text-xs font-mono font-black text-slate-800">{payment.id}</span>
+                                </div>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-black uppercase font-mono border ${
+                                  isConfirmed
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : isAccepted
+                                    ? 'bg-sky-100 text-sky-800 border-sky-300'
+                                    : isRejected
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}>
+                                  {isConfirmed ? '✓ CONFIRMED' : isAccepted ? '✓ ACCEPTED' : isRejected ? '❌ REJECTED' : '⏳ PENDING'}
+                                </span>
+                              </div>
+
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                <div>
+                                  <span className="text-[9px] text-slate-400 uppercase block font-bold">টাকার পরিমাণ</span>
+                                  <span className="text-base font-black text-slate-900 font-mono">₹{payment.amount}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] text-slate-400 uppercase block font-bold">জমার তারিখ</span>
+                                  <span className="text-slate-700 font-bold text-[11px]">
+                                    {new Date(payment.submittedAt).toLocaleDateString()} {new Date(payment.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <div className="col-span-2 sm:col-span-1">
+                                  <span className="text-[9px] text-slate-400 uppercase block font-bold">উদ্দিষ্ট ব্রাঞ্চ</span>
+                                  <span className="text-amber-800 font-bold text-[11px] truncate block">
+                                    {payment.shopName || 'Main Branch Office'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Screenshot Thumbnail if available */}
+                              {payment.screenshotUrl && (
+                                <div className="space-y-1">
+                                  <span className="text-[9px] text-slate-400 font-mono block uppercase">
+                                    স্ক্রিনশট প্রুফ (ক্লিক করে বড় দেখুন)
+                                  </span>
+                                  <div
+                                    onClick={() => setPreviewPaymentScreenshot(payment.screenshotUrl)}
+                                    className="h-20 w-36 rounded-xl overflow-hidden border border-slate-300 hover:border-amber-500 cursor-pointer relative group transition-all"
+                                  >
+                                    <img
+                                      src={payment.screenshotUrl}
+                                      alt="Screenshot"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                                      <Eye size={12} className="mr-1" /> বড় দেখুন
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Branch Status Note */}
+                              {isConfirmed ? (
+                                <div className="p-2.5 bg-emerald-100/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-0.5">
+                                  <p className="font-bold flex items-center gap-1.5">
+                                    <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                                    <span>ব্রাঞ্চ অনুমোদন: {payment.confirmedBy || payment.shopName}</span>
+                                  </p>
+                                  <p className="text-[10px] text-emerald-800">
+                                    অভিনন্দন {payment.customerName}! পেমেন্ট সফলভাবে গ্রহণ করা হয়েছে।
+                                  </p>
+                                </div>
+                              ) : isRejected ? (
+                                <div className="p-2.5 bg-rose-100/80 border border-rose-200 rounded-xl text-[11px] text-rose-900">
+                                  ❌ কারণ: {payment.notes || 'পেমেন্টটি ব্রাঞ্চ কর্তৃক প্রত্যাখ্যাত হয়েছে।'}
+                                </div>
+                              ) : (
+                                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10.5px] text-amber-900 font-medium flex items-center gap-1.5">
+                                  <Clock size={12} className="text-amber-600 shrink-0" />
+                                  <span>ব্রাঞ্চ ভেরিফিকেশন ও কনফার্মেশনের জন্য অপেক্ষমান রয়েছে।</span>
+                                </div>
+                              )}
+
+                              {/* Actions: Verify Status Check & Delete Option */}
+                              <div className="flex gap-2 pt-1 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => setStatusCheckModalPayment(payment)}
+                                  className="flex-1 py-2 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-800 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  <ShieldCheck size={13} />
+                                  <span>ভেরিফাই স্ট্যাটাস চেক</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm('আপনি কি এই হিসাব রেকর্ডটি মুছে ফেলতে চান?')) {
+                                      if (deleteOnlinePayment) {
+                                        deleteOnlinePayment(payment.id);
+                                      } else {
+                                        try {
+                                          const stored = JSON.parse(localStorage.getItem('rodp_onlinePayments') || '[]');
+                                          localStorage.setItem('rodp_onlinePayments', JSON.stringify(stored.filter((p: any) => p.id !== payment.id)));
+                                        } catch (e) {}
+                                      }
+                                    }
+                                  }}
+                                  className="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Trash2 size={13} />
+                                  <span>মুছে ফেলুন</span>
+                                </button>
+                              </div>
+
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* MODAL 1: STATUS CHECK REAL-TIME VERIFICATION MODAL */}
+              <AnimatePresence>
+                {statusCheckModalPayment && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 text-slate-800 space-y-4 text-left"
+                    >
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-cyan-100 text-cyan-800 rounded-xl">
+                            <ShieldCheck size={18} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900 font-mono">লাইভ ভেরিফিকেশন স্ট্যাটাস</h3>
+                            <p className="text-[10px] text-cyan-700 font-bold font-mono">ID: {statusCheckModalPayment.id}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setStatusCheckModalPayment(null)} className="text-slate-400 hover:text-slate-700">
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2.5 text-xs">
+                        <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">পেমেন্ট স্ট্যাটাস:</span>
+                            <span className={`font-mono font-black uppercase ${
+                              statusCheckModalPayment.status === 'Confirmed' ? 'text-emerald-700' :
+                              statusCheckModalPayment.status === 'Accepted' ? 'text-sky-700' :
+                              statusCheckModalPayment.status === 'Rejected' ? 'text-rose-700' :
+                              'text-amber-700'
+                            }`}>
+                              {statusCheckModalPayment.status}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">টাকার পরিমাণ:</span>
+                            <span className="font-bold text-slate-900 font-mono">₹{statusCheckModalPayment.amount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">উদ্দিষ্ট ব্রাঞ্চ:</span>
+                            <span className="font-bold text-amber-800">{statusCheckModalPayment.shopName}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">সাবমিট তারিখ:</span>
+                            <span className="font-bold text-slate-700">{new Date(statusCheckModalPayment.submittedAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        {statusCheckModalPayment.status === 'Confirmed' ? (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 space-y-1">
+                            <p className="font-bold">✅ ব্রাঞ্চ ভেরিফিকেশন সফলভাবে সম্পন্ন হয়েছে!</p>
+                            <p className="text-[10px] text-emerald-800">
+                              অনুমোদনকারী: {statusCheckModalPayment.confirmedBy || statusCheckModalPayment.shopName}
+                            </p>
+                          </div>
+                        ) : statusCheckModalPayment.status === 'Rejected' ? (
+                          <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-900">
+                            ❌ পেমেন্টটি ব্রাঞ্চ কর্তৃক প্রত্যাখ্যাত হয়েছে। নোট: {statusCheckModalPayment.notes || 'N/A'}
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900">
+                            ⏳ ব্রাঞ্চ এখনো এটি ভেরিফাই ও কনফার্ম করেনি। অতিসত্বর ব্রাঞ্চ থেকে কনফার্ম করা হবে।
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setStatusCheckModalPayment(null)}
+                        className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase cursor-pointer transition-all"
+                      >
+                        বন্ধ করুন (Close)
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* MODAL 2: PREVIEW PAYMENT SCREENSHOT MODAL */}
+              <AnimatePresence>
+                {previewPaymentScreenshot && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="w-full max-w-lg bg-slate-900 rounded-3xl p-4 shadow-2xl border border-white/10 space-y-3"
+                    >
+                      <div className="flex justify-between items-center text-white pb-2 border-b border-white/10">
+                        <span className="text-xs font-bold font-mono">পেমেন্ট স্ক্রিনশট প্রুফ</span>
+                        <button onClick={() => setPreviewPaymentScreenshot(null)} className="text-slate-400 hover:text-white">
+                          <X size={18} />
+                        </button>
+                      </div>
+                      <div className="max-h-[70vh] overflow-auto rounded-2xl">
+                        <img src={previewPaymentScreenshot} alt="Full Screenshot" className="w-full h-auto object-contain rounded-xl" />
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
 
             </motion.div>
           )}
@@ -9028,10 +9569,10 @@ export default function CustomerPortal({
                   </button>
                 </div>
 
-                {/* 4 Steps Interactive Timeline */}
-                <div className="space-y-4 relative before:absolute before:inset-0 before:left-5 before:w-0.5 before:bg-gradient-to-b before:from-cyan-500 before:via-indigo-500 before:to-emerald-500 pt-1">
+                {/* 4 Strict Conditional Steps Timeline (Requirement: No premature future steps shown) */}
+                <div className="space-y-4 pt-1">
                   
-                  {/* STEP 1: Application Created */}
+                  {/* STEP 1: Application Submitted (Always visible for submitted appointment) */}
                   <div className="relative flex items-start gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.4)] z-10">
                       ✓
@@ -9039,129 +9580,147 @@ export default function CustomerPortal({
                     <div className="flex-1 p-4 bg-slate-950/70 border border-emerald-500/30 rounded-2xl space-y-1">
                       <div className="flex justify-between items-center">
                         <h4 className="text-xs font-black text-emerald-300 uppercase tracking-wider">
-                          ১. অ্যাপ্লিকেশন ক্রিয়েট করা হয়েছে (Created)
+                          ১. অ্যাপ্লিকেশন সাবমিট করা হয়েছে (Application Submitted)
                         </h4>
-                        <span className="text-[9px] text-emerald-400 font-mono font-bold">Step 1 Completed</span>
+                        <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          ধাপ ১ সম্পন্ন
+                        </span>
                       </div>
                       <p className="text-[11px] text-white font-bold">{app.serviceType}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">📅 {app.date} • 🕒 {app.timeSlot}</p>
-                      <p className="text-[9.5px] text-slate-500">আবেদনকারী: {app.name} ({app.mobileNumber})</p>
-                    </div>
-                  </div>
-
-                  {/* STEP 2: Target Branch Assignment */}
-                  <div className="relative flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.4)] z-10">
-                      ২
-                    </div>
-                    <div className="flex-1 p-4 bg-slate-950/70 border border-cyan-500/30 rounded-2xl space-y-1">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-xs font-black text-cyan-300 uppercase tracking-wider">
-                          ২. ব্রাঞ্চ রিভিউ ও যাচাইকরণ (Branch Scrutiny)
-                        </h4>
-                        <span className="text-[9px] text-cyan-400 font-mono font-bold">Assigned</span>
-                      </div>
-                      <p className="text-[11px] text-white font-bold flex items-center gap-1.5">
-                        <Building size={12} className="text-cyan-400" />
-                        <span>{targetBranch.name}</span>
+                      <p className="text-[10px] text-slate-400 font-mono">📅 তারিখ: {app.date} • 🕒 স্লট: {app.timeSlot}</p>
+                      <p className="text-[9.5px] text-slate-400">👤 আবেদনকারী: {app.name} ({app.mobileNumber})</p>
+                      <p className="text-[9.5px] text-emerald-400/90 font-medium pt-1">
+                        ✓ আপনার আবেদন সফলভাবে সিস্টেমের মাধ্যমে সংশ্লিষ্ট ব্রাঞ্চে সাবমিট হয়েছে।
                       </p>
-                      <p className="text-[10px] text-slate-400 font-mono">✉️ Email: {targetBranch.email || 'branch@rodp.online'}</p>
-                      <p className="text-[9.5px] text-slate-400">👤 Executive: {(app as any).assignedStaff || (app as any).assignedStaffId || 'Senior Verification Desk'}</p>
                     </div>
                   </div>
 
-                  {/* STEP 3: Branch Decision / Status */}
-                  <div className="relative flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 z-10 ${
-                      isApproved ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.4)]' :
-                      isReapply ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]' :
-                      isRejected ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]' :
-                      'bg-slate-800 text-amber-300 border border-amber-500/40 animate-pulse'
-                    }`}>
-                      {isApproved ? '✓' : isRejected ? '✗' : isReapply ? '!' : '৩'}
-                    </div>
-                    <div className={`flex-1 p-4 bg-slate-950/70 rounded-2xl space-y-1 border ${
-                      isApproved ? 'border-emerald-500/40' :
-                      isReapply ? 'border-amber-500/40' :
-                      isRejected ? 'border-rose-500/40' :
-                      'border-white/10'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <h4 className={`text-xs font-black uppercase tracking-wider ${
-                          isApproved ? 'text-emerald-300' :
-                          isReapply ? 'text-amber-300' :
-                          isRejected ? 'text-rose-300' :
-                          'text-amber-400'
-                        }`}>
-                          ৩. ব্রাঞ্চ সিদ্ধান্ত ও অ্যাকশন (Branch Decision)
-                        </h4>
-                        <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded bg-slate-900 border border-white/5">
-                          {app.status}
-                        </span>
+                  {/* STEP 2: Branch Confirmed (Requirement: ONLY shown if branch confirms, otherwise completely hidden) */}
+                  {(app.isConfirmedByBranch || (app as any).branchConfirmed || app.branchConfirmedAt || app.status === 'Approved' || app.status === 'Completed' || app.status === 'In Progress') && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="relative flex items-start gap-4"
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-cyan-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.4)] z-10">
+                        ২
                       </div>
-
-                      {isApproved && (
-                        <p className="text-[11px] text-emerald-300 font-bold">
-                          ✅ ব্রাঞ্চ ম্যানেজার আপনার অ্যাপয়েন্টমেন্ট কনফার্ম ও অ্যাপ্রুভ করেছেন।
-                        </p>
-                      )}
-                      {isReapply && (
-                        <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10.5px] text-amber-300 space-y-0.5">
-                          <p className="font-black">⚠️ পুনরায় আবেদন করুন (Re-apply Required)</p>
-                          <p className="text-[10px] text-amber-400/90 font-medium">কারণ: {app.reapplyReason || 'ডকুমেন্ট অস্পষ্ট অথবা অতিরিক্ত তথ্য প্রয়োজন।'}</p>
+                      <div className="flex-1 p-4 bg-slate-950/70 border border-cyan-500/30 rounded-2xl space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xs font-black text-cyan-300 uppercase tracking-wider">
+                            ২. ব্রাঞ্চ কনফার্ম করেছেন (Branch Confirmed)
+                          </h4>
+                          <span className="text-[9px] text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                            কনফার্মড
+                          </span>
                         </div>
-                      )}
-                      {isRejected && (
-                        <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-[10.5px] text-rose-300 space-y-0.5">
-                          <p className="font-black">❌ আবেদন বাতিল করা হয়েছে (Declined)</p>
-                          <p className="text-[10px] text-rose-400/90 font-medium">কারণ: {app.notes || 'অনুরোধটি ব্রাঞ্চ থেকে প্রত্যাখ্যাত হয়েছে।'}</p>
-                        </div>
-                      )}
-                      {isPending && (
-                        <p className="text-[11px] text-amber-400 font-medium">
-                          ⏳ ব্রাঞ্চ কর্তৃপক্ষের অনুমোদনের জন্য অপেক্ষমান রয়েছে।
+                        <p className="text-[11px] text-white font-bold flex items-center gap-1.5">
+                          <Building size={13} className="text-cyan-400 shrink-0" />
+                          <span>{app.branchFeedbackFromShopName || app.branchName || targetBranch.name}</span>
                         </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* STEP 4: Service Delivery & Invoicing */}
-                  <div className="relative flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 z-10 ${
-                      isCompleted ? 'bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.5)]' :
-                      isApproved ? 'bg-indigo-500 text-white animate-pulse' :
-                      'bg-slate-800 text-slate-500'
-                    }`}>
-                      {isCompleted ? '★' : '৪'}
-                    </div>
-                    <div className={`flex-1 p-4 bg-slate-950/70 rounded-2xl space-y-1 border ${
-                      isCompleted ? 'border-emerald-500/40 bg-emerald-950/10' :
-                      isApproved ? 'border-indigo-500/30' :
-                      'border-white/5'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider">
-                          ৪. সেবা সম্পন্ন ও ডিজিটাল বিল (Completion & Invoicing)
-                        </h4>
-                        <span className="text-[9px] font-mono text-slate-400">
-                          {isCompleted ? 'Ready & Delivered' : 'Pipeline'}
-                        </span>
+                        <p className="text-[10px] text-cyan-200/90 font-medium">
+                          ✅ ব্রাঞ্চ আপনার এটি কনফার্ম করেছেন। আপনার স্লট ও বুকিং যাচাইকরণ সম্পন্ন হয়েছে।
+                        </p>
+                        {app.branchConfirmedAt && (
+                          <p className="text-[9px] text-slate-400 font-mono">
+                            কনফার্মেশনের সময়: {new Date(app.branchConfirmedAt).toLocaleDateString()} {new Date(app.branchConfirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
                       </div>
-                      {isCompleted ? (
-                        <p className="text-[11px] text-emerald-300 font-bold">
-                          🎉 আপনার কাজটি সম্পূর্ণভাবে সম্পন্ন হয়েছে এবং ট্যাক্স ইনভয়েস তৈরি হয়েছে।
+                    </motion.div>
+                  )}
+
+                  {/* STEP 3: Branch Approved (Requirement: ONLY shown if branch approves, otherwise completely hidden) */}
+                  {(app.status === 'Approved' || app.status === 'Completed') && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="relative flex items-start gap-4"
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.4)] z-10">
+                        ৩
+                      </div>
+                      <div className="flex-1 p-4 bg-slate-950/70 border border-emerald-500/40 rounded-2xl space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xs font-black text-emerald-300 uppercase tracking-wider">
+                            ৩. ব্রাঞ্চ অ্যাপ্রুভ করেছেন (Branch Approved)
+                          </h4>
+                          <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            অ্যাপ্রুভড
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white font-bold flex items-center gap-1.5">
+                          <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                          <span>{app.branchFeedbackFromShopName || app.branchName || targetBranch.name}</span>
                         </p>
-                      ) : isApproved ? (
-                        <p className="text-[11px] text-indigo-300 font-medium">
-                          ⚡ ব্রাঞ্চে আপনার কাজের প্রস্তুতি চলছে। নির্ধারিত স্লটে উপস্থিত থাকলে বিল তৈরি করা হবে।
+                        <p className="text-[10.5px] text-emerald-300 font-bold leading-relaxed">
+                          🎉 ব্রাঞ্চ আপনার আবেদনটি অ্যাপ্রুভ করেছেন। নির্ধারিত তারিখে উপস্থিত হয়ে অথবা ডিজিটাল মাধ্যমে সেবা গ্রহণ করুন।
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-500">
-                          ধাপ ৩ অনুমোদিত হওয়ার পর এই সেকশনে বিল ও ডেলিভারি স্ট্যাটাস দৃশ্যমান হবে।
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* STEP 4: Branch Message / Information / Rejection (Requirement: ONLY shown if branch wrote text or rejected, with automatic branch name) */}
+                  {(app.branchFeedbackText || (app.notes && app.notes.trim() !== '') || app.reapplyReason || app.status === 'Rejected' || app.status === 'Cancelled') && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="relative flex items-start gap-4"
+                    >
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 z-10 ${
+                        app.status === 'Rejected' || app.status === 'Cancelled'
+                          ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                          : 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                      }`}>
+                        {app.status === 'Rejected' || app.status === 'Cancelled' ? '✗' : '৪'}
+                      </div>
+                      <div className={`flex-1 p-4 bg-slate-950/70 rounded-2xl space-y-1.5 border ${
+                        app.status === 'Rejected' || app.status === 'Cancelled'
+                          ? 'border-rose-500/40 bg-rose-950/10'
+                          : 'border-amber-500/40 bg-amber-950/10'
+                      }`}>
+                        <div className="flex justify-between items-center">
+                          <h4 className={`text-xs font-black uppercase tracking-wider ${
+                            app.status === 'Rejected' || app.status === 'Cancelled' ? 'text-rose-300' : 'text-amber-300'
+                          }`}>
+                            ৪. ব্রাঞ্চের তথ্য ও সিদ্ধান্ত (Branch Message / Decision)
+                          </h4>
+                          <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded border ${
+                            app.status === 'Rejected' || app.status === 'Cancelled'
+                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          }`}>
+                            {app.status}
+                          </span>
+                        </div>
+
+                        {/* Automatic Branch Name Display */}
+                        <div className="p-2 rounded-xl bg-slate-900 border border-white/10 flex items-center gap-2">
+                          <Building size={13} className="text-amber-400 shrink-0" />
+                          <p className="text-[10px] text-slate-200 font-bold">
+                            প্রেরক ব্রাঞ্চ: <span className="text-amber-300">{app.branchFeedbackFromShopName || app.branchName || targetBranch.name}</span>
+                          </p>
+                        </div>
+
+                        {/* Text note or rejection message */}
+                        {app.status === 'Rejected' || app.status === 'Cancelled' ? (
+                          <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-[10.5px] text-rose-300 space-y-0.5">
+                            <p className="font-black">❌ আবেদন বাতিল করা হয়েছে (Declined)</p>
+                            <p className="text-[10px] text-rose-400 font-medium">
+                              কারণ / ব্রাঞ্চের নোট: {app.branchFeedbackText || app.notes || 'অনুরোধটি ব্রাঞ্চ থেকে প্রত্যাখ্যাত হয়েছে।'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10.5px] text-amber-300 space-y-0.5">
+                            <p className="font-black">💬 ব্রাঞ্চ প্রেরিত বিশেষ তথ্য / মেসেজ:</p>
+                            <p className="text-[10.5px] text-white font-medium">
+                              {app.branchFeedbackText || app.notes || app.reapplyReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
 
                 </div>
 

@@ -109,6 +109,11 @@ export interface Appointment {
   transferredFromShopId?: string;
   transferredFromShopName?: string;
   reapplyReason?: string;
+  isConfirmedByBranch?: boolean;
+  branchConfirmedAt?: string;
+  branchConfirmedBy?: string;
+  branchFeedbackText?: string;
+  branchFeedbackFromShopName?: string;
 }
 
 export interface Task {

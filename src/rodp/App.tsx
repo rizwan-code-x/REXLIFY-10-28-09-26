@@ -899,6 +899,8 @@ export default function App({ onBack }: AppProps = {}) {
               onlinePayments={onlinePayments}
               addOnlinePayment={addOnlinePayment}
               updateOnlinePayment={updateOnlinePayment}
+              deleteOnlinePayment={deleteOnlinePayment}
+              updateAppointment={updateAppointment}
               branchChats={branchChats}
               addBranchChatMessage={addBranchChatMessage}
             />
@@ -1238,6 +1240,8 @@ export default function App({ onBack }: AppProps = {}) {
             onlinePayments={onlinePayments}
             addOnlinePayment={addOnlinePayment}
             updateOnlinePayment={updateOnlinePayment}
+            deleteOnlinePayment={deleteOnlinePayment}
+            updateAppointment={updateAppointment}
             branchChats={branchChats}
             addBranchChatMessage={addBranchChatMessage}
           />
