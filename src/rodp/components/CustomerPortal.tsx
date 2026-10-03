@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playBookingSuccessSound } from '../lib/audioService';
-import { Appointment, Invoice, DocumentVaultItem, NotificationLog, Task, ServiceModule, AIKnowledgeItem, Notice, OnlinePayment } from '../types';
+import { Appointment, Invoice, DocumentVaultItem, NotificationLog, Task, ServiceModule, AIKnowledgeItem, Notice, OnlinePayment, BranchChatMessage } from '../types';
 import { MOCK_SHOPS } from '../mockData';
 
 interface CustomerPortalProps {
@@ -63,8 +63,8 @@ interface CustomerPortalProps {
     profileCompletion?: number;
   }) => void;
   onLogout?: () => void;
-  activeTab?: 'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments';
-  setActiveTab?: (tab: 'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments') => void;
+  activeTab?: 'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments' | 'services';
+  setActiveTab?: (tab: 'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments' | 'services') => void;
   isAboutOpen?: boolean;
   setIsAboutOpen?: (open: boolean) => void;
   isNotificationsOpen?: boolean;
@@ -79,6 +79,8 @@ interface CustomerPortalProps {
   onlinePayments?: OnlinePayment[];
   addOnlinePayment?: (payment: OnlinePayment) => void;
   updateOnlinePayment?: (id: string, updates: Partial<OnlinePayment>) => void;
+  branchChats?: BranchChatMessage[];
+  addBranchChatMessage?: (msg: BranchChatMessage) => void;
 }
 
 // 8 Curated Premium Cyber-Glass Avatars
@@ -890,9 +892,22 @@ export default function CustomerPortal({
   addInquiry,
   onlinePayments = [],
   addOnlinePayment,
-  updateOnlinePayment
+  updateOnlinePayment,
+  branchChats = [],
+  addBranchChatMessage
 }: CustomerPortalProps) {
   
+  // Payment Clean Two-Button Subview State (Requirement: only 2 buttons at top: Online Payment & Payment History)
+  const [paymentSubView, setPaymentSubView] = useState<'online' | 'history'>('online');
+
+  // Services View Subtabs State (Notice Board | Explore All Services | Connect Branch)
+  const [servicesSubTab, setServicesSubTab] = useState<'notices' | 'services' | 'branch_chat'>('notices');
+  const [selectedChatBranch, setSelectedChatBranch] = useState<any | null>(null);
+  const [chatInputText, setChatInputText] = useState('');
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState('All');
+  const [selectedNoticeForModal, setSelectedNoticeForModal] = useState<Notice | null>(null);
+
   // Dynamic services list: filter out inactive/disabled services from branches/CEO
   const activeServicesList = useMemo(() => {
     const baseList = (services && services.length > 0) ? services : SHOP_SERVICES;
@@ -916,8 +931,8 @@ export default function CustomerPortal({
   // Selected voice language for Sifra AI support: 'bn-IN' | 'en-IN' | 'hi-IN'
   const [voiceLang, setVoiceLang] = useState<'bn-IN' | 'en-IN' | 'hi-IN'>('bn-IN');
 
-  // Tab Navigation: 'home' | 'appointments' | 'rewards' | 'support' | 'profile'
-  const [localActiveTab, setLocalActiveTab] = useState<'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents'>('home');
+  // Tab Navigation: 'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments' | 'services'
+  const [localActiveTab, setLocalActiveTab] = useState<'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments' | 'services'>('home');
   const activeTab = propActiveTab || localActiveTab;
   const setActiveTab = propSetActiveTab || setLocalActiveTab;
   
@@ -1100,6 +1115,21 @@ export default function CustomerPortal({
   const [previewPaymentScreenshot, setPreviewPaymentScreenshot] = useState<string | null>(null);
   const [confirmedPaymentCelebration, setConfirmedPaymentCelebration] = useState<any | null>(null);
   const paymentScreenshotInputRef = useRef<HTMLInputElement>(null);
+
+  // User Requested Clean Payment View Mode: ONLY TWO PRIMARY BUTTONS on entrance ('menu' | 'online_payment' | 'history')
+  const [paymentSectionMode, setPaymentSectionMode] = useState<'menu' | 'online_payment' | 'history'>('menu');
+  const [paymentOnlineSubStep, setPaymentOnlineSubStep] = useState<'upi' | 'screenshot' | 'success'>('upi');
+  const [paymentTextProof, setPaymentTextProof] = useState('');
+
+  // User Requested Services Tab Hub: ('overview' | 'notices' | 'all_services' | 'branch_chat')
+  const [servicesSectionMode, setServicesSectionMode] = useState<'overview' | 'notices' | 'all_services' | 'branch_chat'>('overview');
+  const [branchChatMessageText, setBranchChatMessageText] = useState('');
+  const [serviceSearchTerm, setServiceSearchTerm] = useState('');
+  const [selectedServiceForApply, setSelectedServiceForApply] = useState<ServiceModule | null>(null);
+  const [applyCustName, setApplyCustName] = useState(currentUser?.name || '');
+  const [applyCustPhone, setApplyCustPhone] = useState(currentUser?.mobile || '');
+  const [applyCustNotes, setApplyCustNotes] = useState('');
+  const [applyFeedback, setApplyFeedback] = useState<string | null>(null);
 
   // Filtered customer online payments strictly for logged-in user
   const userOnlinePayments = useMemo(() => {
@@ -2053,6 +2083,7 @@ export default function CustomerPortal({
                 : activeTab === 'support' ? 'AI Support / এআই সাপোর্ট' 
                 : activeTab === 'profile' ? 'Profile / প্রোফাইল' 
                 : activeTab === 'payments' ? 'Payments / পেমেন্ট এবং হিস্ট্রি'
+                : activeTab === 'services' ? 'Services / সেবা, নোটিশ ও ব্রাঞ্চ চ্যাট'
                 : activeTab}
             </span>
           </div>
@@ -5590,14 +5621,14 @@ export default function CustomerPortal({
             </motion.div>
           )}
 
-          {/* TAB 6: ONLINE BILL PAYMENT & UPI DESK */}
+          {/* TAB 6: ONLINE BILL PAYMENT & UPI DESK (Clean 2-Button Architecture & Real-Time Sync) */}
           {activeTab === 'payments' && (
             <motion.div
               key="payments_tab"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="space-y-6 text-left pb-12"
+              className="space-y-6 text-left pb-16"
             >
               {/* Toast Feedback for Copying */}
               <AnimatePresence>
@@ -5616,7 +5647,7 @@ export default function CustomerPortal({
 
               {/* Real-time Branch Payment Confirmed Banner (Requirement: Branch Received Notification & Warm Greeting) */}
               {confirmedPaymentCelebration && (
-                <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-indigo-950/80 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden animate-fade-in space-y-3">
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-slate-900 to-indigo-950/90 border-2 border-emerald-500/50 shadow-2xl relative overflow-hidden animate-fade-in space-y-3">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -5634,13 +5665,13 @@ export default function CustomerPortal({
                     <button
                       type="button"
                       onClick={() => setConfirmedPaymentCelebration(null)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-white"
+                      className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
                     >
                       <X size={16} />
                     </button>
                   </div>
 
-                  <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 space-y-1.5 text-xs">
+                  <div className="p-4 bg-slate-950/70 rounded-2xl border border-white/5 space-y-1.5 text-xs">
                     <p className="text-emerald-300 font-bold leading-relaxed">
                       অভিনন্দন <strong>{confirmedPaymentCelebration.customerName || currentUser.name}</strong>! আপনার ₹{confirmedPaymentCelebration.amount} পেমেন্ট ব্রাঞ্চ সফলভাবে গ্রহণ করেছে। থ্যাংক ইউ!
                     </p>
@@ -5654,244 +5685,413 @@ export default function CustomerPortal({
                 </div>
               )}
 
-              {/* Header Title Banner */}
-              <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-950 border border-amber-500/25 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-[9px] font-black uppercase tracking-widest">
-                        SECURE DIGITAL UPI PAYMENTS
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        Live Branch Node
-                      </span>
+              {/* ========================================================================= */}
+              {/* 1. SELECTION SCREEN: EXACTLY TWO BUTTONS (ZERO CLUTTER) */}
+              {/* ========================================================================= */}
+              {paymentSectionMode === 'menu' && (
+                <div className="space-y-6">
+                  {/* Clean Header Banner */}
+                  <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-950 border border-amber-500/25 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-[9px] font-black uppercase tracking-widest">
+                          SECURE PAYMENT MATRIX
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          Live Real-Time Database
+                        </span>
+                      </div>
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+                        <CreditCard className="text-amber-400" size={28} />
+                        <span>পেমেন্ট পোর্টাল (Payment Portal)</span>
+                      </h1>
+                      <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+                        নিচের দুটি বাটনের মধ্যে যেকোনো একটি বেছে নিন: সরাসরি অনলাইন ইউপিআই পেমেন্ট করুন অথবা আপনার পেমেন্ট হিস্ট্রি দেখুন।
+                      </p>
                     </div>
-                    <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2.5">
-                      <CreditCard className="text-amber-400" size={24} />
-                      <span>অনলাইন বিল পেমেন্ট ও ভেরিফিকেশন</span>
-                    </h1>
-                    <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
-                      নিচের অফিসিয়াল UPI ID অথবা নম্বরে পেমেন্ট করুন এবং "সাবমিট পেমেন্ট" বোতামে ক্লিক করে প্রুফ পাঠান। ব্রাঞ্চ সাথে সাথে ভেরিফাই করে কনফার্ম করবে।
-                    </p>
                   </div>
 
-                  {/* Submit Payment CTA Button */}
-                  <button
-                    type="button"
-                    onClick={() => startPaymentFlow()}
-                    className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(245,158,11,0.35)] transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
-                  >
-                    <Plus size={16} className="text-slate-950 stroke-[3px]" />
-                    <span>সাবমিট পেমেন্ট (Submit Payment)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 1. TOP SECTION: OFFICIAL UPI ID & UPI NUMBER CARDS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* UPI ID Card */}
-                <div className="p-5 rounded-3xl bg-slate-900/70 border border-white/10 shadow-xl space-y-3 relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-mono font-bold">
-                        @
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-mono tracking-widest text-slate-400 font-bold block">
-                          OFFICIAL CENTRAL UPI ID
-                        </span>
-                        <span className="text-base sm:text-lg font-black text-amber-300 font-mono tracking-wide">
-                          9593388785@ybl
-                        </span>
-                      </div>
-                    </div>
-
+                  {/* ONLY TWO PROMINENT BUTTONS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    {/* BUTTON 1: অনলাইন পেমেন্ট (Online Payment) */}
                     <button
                       type="button"
-                      onClick={() => handleCopyUpiText('9593388785@ybl', 'UPI ID')}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-amber-500 hover:text-slate-950 border border-white/10 hover:border-amber-500 text-slate-300 font-black text-[10px] uppercase font-mono tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
-                      title="Copy UPI ID"
+                      onClick={() => {
+                        setPaymentSectionMode('online_payment');
+                        setPaymentOnlineSubStep('upi');
+                      }}
+                      className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-amber-950/30 border-2 border-amber-500/40 hover:border-amber-400 text-left relative overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(245,158,11,0.25)] cursor-pointer active:scale-[0.98] flex flex-col justify-between min-h-[220px]"
                     >
-                      <Copy size={12} />
-                      <span>Copy ID</span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10.5px] text-slate-400 pt-2 border-t border-white/5 font-mono">
-                    <span>Secondary UPI: <strong className="text-slate-200">rizwan.dreams@upi</strong></span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUpiText('rizwan.dreams@upi', 'Alternate UPI ID')}
-                      className="text-amber-400 hover:underline font-bold text-[9.5px]"
-                    >
-                      Copy Alt
-                    </button>
-                  </div>
-                </div>
-
-                {/* UPI Mobile Number Card */}
-                <div className="p-5 rounded-3xl bg-slate-900/70 border border-white/10 shadow-xl space-y-3 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-mono font-bold">
-                        <Phone size={18} />
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-mono tracking-widest text-slate-400 font-bold block">
-                          OFFICIAL UPI MOBILE NUMBER
-                        </span>
-                        <span className="text-base sm:text-lg font-black text-cyan-300 font-mono tracking-wider">
-                          +91 9593388785
+                      <div className="absolute top-0 right-0 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-colors" />
+                      <div className="flex items-start justify-between relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                          <CreditCard size={32} />
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold uppercase">
+                          Direct UPI Payment
                         </span>
                       </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUpiText('9593388785', 'UPI Number')}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-cyan-500 hover:text-slate-950 border border-white/10 hover:border-cyan-500 text-slate-300 font-black text-[10px] uppercase font-mono tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
-                      title="Copy UPI Mobile Number"
-                    >
-                      <Copy size={12} />
-                      <span>Copy Number</span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10.5px] text-slate-400 pt-2 border-t border-white/5 font-mono">
-                    <span>Merchant: <strong className="text-slate-200">Rizwan Online Dreams Platform</strong></span>
-                    <span className="text-emerald-400 font-bold text-[9.5px]">✓ Verified CSC</span>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* 2. GET PAYMENT / OPEN UPI PAYMENT APPS DIRECTLY (Requirement: গেট পেমেন্ট button) */}
-              <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-white/10 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles size={16} className="text-amber-400" />
-                      <span>গেট পেমেন্ট (Get Payment / Pay via Installed App)</span>
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      নিচের "গেট পেমেন্ট" বাটনে ক্লিক করলে আপনার মোবাইলে থাকা পেমেন্ট অ্যাপ স্বয়ংক্রিয়ভাবে খুলে যাবে:
-                    </p>
-                  </div>
-
-                  {/* Direct Intent Button */}
-                  <a
-                    href="upi://pay?pa=9593388785@ybl&pn=Rizwan+Online+Dreams&cu=INR&tn=RODP+Digital+Service"
-                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
-                  >
-                    <CreditCard size={15} className="text-slate-950" />
-                    <span>গেট পেমেন্ট (Open UPI App) ➔</span>
-                  </a>
-                </div>
-
-                {/* Quick App Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  {[
-                    { name: 'Google Pay', color: 'from-blue-600/20 to-emerald-600/20 border-blue-500/30 text-blue-300' },
-                    { name: 'PhonePe', color: 'from-purple-600/20 to-indigo-600/20 border-purple-500/30 text-purple-300' },
-                    { name: 'Paytm UPI', color: 'from-sky-600/20 to-cyan-600/20 border-sky-500/30 text-sky-300' },
-                    { name: 'BHIM / Any UPI', color: 'from-amber-600/20 to-orange-600/20 border-amber-500/30 text-amber-300' }
-                  ].map((app, idx) => (
-                    <a
-                      key={idx}
-                      href="upi://pay?pa=9593388785@ybl&pn=Rizwan+Online+Dreams&cu=INR&tn=RODP+Digital+Service"
-                      className={`p-3 rounded-2xl bg-gradient-to-br ${app.color} border text-center font-mono font-black text-xs hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md`}
-                    >
-                      <Sparkles size={13} />
-                      <span>{app.name}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3. SUBMIT PAYMENT PROOF ACTION BANNER */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 via-slate-900 to-amber-500/5 border border-amber-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-amber-400" />
-                    <span>পেমেন্ট সম্পন্ন করার পর স্ক্রিনশট সাবমিট করুন</span>
-                  </h3>
-                  <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                    পেমেন্ট কনফার্ম হয়ে গেলে নিচের "সাবমিট পেমেন্ট" বাটনে ক্লিক করুন। কত টাকা দিয়েছেন লিখে স্ক্রিনশট শেয়ার করুন ও পিন ভেরিফাই করুন।
-                  </p>
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={() => startPaymentFlow()}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
-                >
-                  <span>সাবমিট পেমেন্ট (Submit Payment) ➔</span>
-                </button>
-              </div>
-
-              {/* 4. TRACKING & STATUS OF SUBMITTED PAYMENTS */}
-              <div className="space-y-4 pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-2">
-                    <History className="text-amber-400" size={18} />
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                      আপনার জমা দেওয়া পেমেন্ট ও লাইভ স্ট্যাটাস (Payment Status Ledger)
-                    </h3>
-                  </div>
-
-                  {/* Tracking Search Input */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search size={14} className="absolute left-3 top-3 text-slate-500" />
-                      <input
-                        type="text"
-                        value={paymentTrackingSearch}
-                        onChange={(e) => setPaymentTrackingSearch(e.target.value)}
-                        placeholder="রেফারেন্স আইডি খুঁজুন..."
-                        className="py-2 pl-9 pr-3 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Submissions List */}
-                {(() => {
-                  const filteredList = userOnlinePayments.filter(p => {
-                    if (paymentTrackingSearch.trim()) {
-                      const q = paymentTrackingSearch.toLowerCase().trim();
-                      const matchId = p.id?.toLowerCase().includes(q);
-                      const matchTxn = p.transactionId?.toLowerCase().includes(q);
-                      const matchInv = p.invoiceNumber?.toLowerCase().includes(q);
-                      if (!matchId && !matchTxn && !matchInv) return false;
-                    }
-                    return true;
-                  });
-
-                  if (filteredList.length === 0) {
-                    return (
-                      <div className="p-10 text-center rounded-3xl bg-slate-950/60 border border-white/5 space-y-3">
-                        <CreditCard size={36} className="mx-auto text-slate-600" />
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                          এখনো কোনো অনলাইন পেমেন্ট সাবমিট করা হয়নি।
+                      <div className="relative z-10 space-y-2 mt-6">
+                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
+                          <span>১. অনলাইন পেমেন্ট</span>
+                          <ChevronRight size={20} className="text-amber-400 group-hover:translate-x-1.5 transition-transform" />
+                        </h2>
+                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                          অফিসিয়াল UPI (9593388785@UPI) দিয়ে সরাসরি পেমেন্ট করুন এবং স্ক্রিনশট বা টেক্সট প্রুফ জমা দিন।
                         </p>
+                      </div>
+                    </button>
+
+                    {/* BUTTON 2: পেমেন্ট হিস্ট্রি (Payment History) */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentSectionMode('history')}
+                      className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-cyan-950/30 border-2 border-cyan-500/40 hover:border-cyan-400 text-left relative overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(6,182,212,0.25)] cursor-pointer active:scale-[0.98] flex flex-col justify-between min-h-[220px]"
+                    >
+                      <div className="absolute top-0 right-0 w-44 h-44 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
+                      <div className="flex items-start justify-between relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                          <History size={32} />
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold uppercase">
+                          {userOnlinePayments.length} টি রেকর্ড (Live)
+                        </span>
+                      </div>
+                      <div className="relative z-10 space-y-2 mt-6">
+                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>২. পেমেন্ট হিস্ট্রি</span>
+                          <ChevronRight size={20} className="text-cyan-400 group-hover:translate-x-1.5 transition-transform" />
+                        </h2>
+                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                          রিয়েল-টাইম ডাটাবেজ কানেক্টেড হিস্ট্রি ড্রাইভার। জমা দেওয়া পেমেন্টের লাইভ স্ট্যাটাস ও ব্রাঞ্চ ভেরিফিকেশন দেখুন।
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* 2. ONLINE PAYMENT VIEW: OPTION 1 (GET UPI) + OPTION 2 (SUBMIT SCREENSHOT) */}
+              {/* ========================================================================= */}
+              {paymentSectionMode === 'online_payment' && (
+                <div className="space-y-6">
+                  {/* Top Bar with Back Control */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentSectionMode('menu')}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>← ফিরে যান (Back to Menu)</span>
+                    </button>
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+                      Online UPI Payment Desk
+                    </span>
+                  </div>
+
+                  {/* OPTION 1: গেট ইউপিআই পেমেন্ট (Get UPI Payment) */}
+                  <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border-2 border-amber-500/30 shadow-2xl space-y-5 text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                      <div>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-black uppercase">
+                          ধাপ ১ • STEP 1
+                        </span>
+                        <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
+                          <Sparkles size={18} className="text-amber-400" />
+                          <span>গেট ইউপিআই পেমেন্ট (Get UPI Payment)</span>
+                        </h2>
+                        <p className="text-xs text-slate-300 mt-1">
+                          আমাদের অফিসিয়াল UPI ID অথবা নম্বরে যেকোনো অ্যাপ দিয়ে পেমেন্ট করুন:
+                        </p>
+                      </div>
+
+                      {/* Direct UPI Intent Button */}
+                      <a
+                        href="upi://pay?pa=9593388785@upi&pn=Rizwan+Online+Dreams&cu=INR"
+                        className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                      >
+                        <CreditCard size={16} className="text-slate-950" />
+                        <span>গেট পেমেন্ট (Get Payment / Open App) ➔</span>
+                      </a>
+                    </div>
+
+                    {/* UPI Credentials Box */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                      {/* UPI ID */}
+                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
+                            OFFICIAL UPI ID
+                          </span>
+                          <span className="text-base sm:text-lg font-black text-amber-300 font-mono">
+                            9593388785@UPI
+                          </span>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => startPaymentFlow()}
-                          className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-black uppercase cursor-pointer"
+                          onClick={() => handleCopyUpiText('9593388785@UPI', 'UPI ID')}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
                         >
-                          পেমেন্ট সাবমিট করুন
+                          <Copy size={13} />
+                          <span>কপি করুন (Copy)</span>
                         </button>
                       </div>
-                    );
-                  }
 
-                  return (
+                      {/* UPI Mobile Number */}
+                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-mono font-bold block">
+                            OFFICIAL UPI NUMBER
+                          </span>
+                          <span className="text-base sm:text-lg font-black text-cyan-300 font-mono">
+                            +91 9593388785
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyUpiText('9593388785', 'UPI Mobile')}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+                        >
+                          <Copy size={13} />
+                          <span>কপি করুন (Copy)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* OPTION 2: সাবমিট পেমেন্ট স্ক্রিনশট (Submit Payment Screenshot) */}
+                  <div className="p-6 md:p-8 rounded-3xl bg-slate-900/80 border-2 border-cyan-500/30 shadow-2xl space-y-5 text-left">
+                    <div className="border-b border-white/5 pb-4">
+                      <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono font-black uppercase">
+                        ধাপ ২ • STEP 2
+                      </span>
+                      <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
+                        <CheckCircle2 size={18} className="text-cyan-400" />
+                        <span>সাবমিট পেমেন্ট স্ক্রিনশট ও তথ্য (Submit Payment Proof)</span>
+                      </h2>
+                      <p className="text-xs text-slate-300 mt-1">
+                        পেমেন্ট সম্পন্ন হলে টাকার পরিমাণ লিখুন এবং স্ক্রিনশট ফটো আপলোড করুন অথবা টেক্সট/UTR বিবরণ দিয়ে রিকোয়েস্ট পাঠান:
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Amount and Branch Row */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                            পেমেন্টের পরিমাণ (Amount in ₹) *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3.5 top-3 text-slate-400 font-bold text-sm">₹</span>
+                            <input
+                              type="number"
+                              required
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(e.target.value)}
+                              placeholder="500"
+                              className="w-full pl-8 pr-4 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white font-mono font-bold text-base focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                            উদ্দিষ্ট ব্রাঞ্চ (Target Branch) *
+                          </label>
+                          <select
+                            value={paymentSelectedShopId}
+                            onChange={(e) => setPaymentSelectedShopId(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                          >
+                            {shops && shops.length > 0 ? (
+                              shops.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))
+                            ) : (
+                              <option value="shop_1">RIZWAN ONLINE DREAMS (Head Office)</option>
+                            )}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Screenshot Upload or File Input */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                          পেমেন্ট স্ক্রিনশটের ফটো (Upload Payment Screenshot Proof)
+                        </label>
+                        <div className="p-4 rounded-2xl bg-slate-950/60 border border-dashed border-white/15 hover:border-amber-400/50 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setPaymentScreenshotName(file.name);
+                                const reader = new FileReader();
+                                reader.onload = (re) => {
+                                  if (re.target?.result) {
+                                    setPaymentScreenshotUrl(re.target.result as string);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          />
+                          {paymentScreenshotUrl ? (
+                            <div className="flex items-center gap-3">
+                              <img src={paymentScreenshotUrl} alt="Preview" className="w-14 h-14 object-cover rounded-xl border border-white/10" />
+                              <div className="text-left">
+                                <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                  <Check size={14} /> স্ক্রিনশট সিলেক্ট হয়েছে
+                                </p>
+                                <p className="text-[10px] text-slate-400">{paymentScreenshotName || 'screenshot.jpg'}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-2">
+                              <Camera size={24} className="mx-auto text-amber-400 mb-1" />
+                              <p className="text-xs font-bold text-slate-200">ছবি বা স্ক্রিনশট আপলোড করতে ক্লিক করুন</p>
+                              <p className="text-[10px] text-slate-500">PNG, JPG, JPEG (মোবাইল গ্যালারি বা ক্যামেরা)</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Text Note / UTR Details (For cases where screenshot photo is not uploaded) */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                          স্ক্রিনশট ছবি না থাকলে টেক্সট বা ট্রানজেকশন/ইউটিআর লিখুন (Text or UTR Notes)
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={paymentTextProof}
+                          onChange={(e) => setPaymentTextProof(e.target.value)}
+                          placeholder="উদাহরণ: GPay দিয়ে পেমেন্ট সম্পন্ন করেছি, UTR নম্বর: 412356789123"
+                          className="w-full px-4 py-2.5 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      {/* Customer Info row */}
+                      <div className="grid grid-cols-2 gap-3 text-xs p-3 rounded-2xl bg-slate-950/80 border border-white/5">
+                        <div>
+                          <span className="text-[9px] text-slate-500 block uppercase font-bold">নাম (Customer Name)</span>
+                          <span className="text-slate-200 font-bold">{currentUser?.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-500 block uppercase font-bold">মোবাইল (Mobile)</span>
+                          <span className="text-amber-400 font-mono font-bold">{currentUser?.mobile || '9593388785'}</span>
+                        </div>
+                      </div>
+
+                      {/* Submit Action Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const amt = parseFloat(paymentAmount);
+                          if (!amt || amt <= 0) {
+                            alert('দয়া করে সঠিক পেমেন্টের পরিমাণ লিখুন।');
+                            return;
+                          }
+                          if (!paymentScreenshotUrl && !paymentTextProof.trim()) {
+                            alert('অনুগ্রহ করে পেমেন্ট স্ক্রিনশট ছবি আপলোড করুন অথবা টেক্সট বক্সে পেমেন্টের বিবরণ/ইউটিআর লিখুন।');
+                            return;
+                          }
+
+                          const generatedId = `ROD-PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+                          const targetShop = shops?.find(s => s.id === paymentSelectedShopId);
+                          const newRecord: OnlinePayment = {
+                            id: generatedId,
+                            customerName: currentUser?.name || 'Customer',
+                            customerMobile: currentUser?.mobile || '9593388785',
+                            customerEmail: currentUser?.email,
+                            amount: amt,
+                            screenshotUrl: paymentScreenshotUrl || '',
+                            transactionId: paymentTextProof.trim().slice(0, 30) || `UPI-TXN-${Date.now().toString().slice(-8)}`,
+                            shopId: paymentSelectedShopId,
+                            shopName: targetShop?.name || 'RIZWAN ONLINE DREAMS (Head Office)',
+                            status: 'Pending',
+                            submittedAt: new Date().toISOString(),
+                            securityPin: '****',
+                            notes: paymentTextProof.trim() || 'Online Bill Payment submission'
+                          };
+
+                          if (addOnlinePayment) {
+                            addOnlinePayment(newRecord);
+                          } else {
+                            try {
+                              const stored = JSON.parse(localStorage.getItem('rodp_onlinePayments') || '[]');
+                              localStorage.setItem('rodp_onlinePayments', JSON.stringify([newRecord, ...stored]));
+                            } catch (e) {}
+                          }
+
+                          try {
+                            playBookingSuccessSound();
+                          } catch (e) {}
+
+                          alert(`🎉 পেমেন্ট রিকোয়েস্ট সফলভাবে সাবমিট হয়েছে!\nট্র্যাকিং আইডি: ${generatedId}\nব্রাঞ্চ ভেরিফিকেশন সম্পন্ন হলে আপনি লাইভ কনফার্মেশন পাবেন।`);
+                          setPaymentAmount('');
+                          setPaymentScreenshotUrl('');
+                          setPaymentScreenshotName('');
+                          setPaymentTextProof('');
+                          setPaymentSectionMode('history');
+                        }}
+                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_4px_25px_rgba(245,158,11,0.35)] transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 size={18} className="text-slate-950 stroke-[2.5px]" />
+                        <span>পেমেন্ট রিকোয়েস্ট সাবমিট করুন (Submit Payment Request) ➔</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* 3. PAYMENT HISTORY VIEW: CONNECTED TO REAL-TIME DATABASE */}
+              {/* ========================================================================= */}
+              {paymentSectionMode === 'history' && (
+                <div className="space-y-6">
+                  {/* Top Bar with Back Control */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentSectionMode('menu')}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>← ফিরে যান (Back to Menu)</span>
+                    </button>
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
+                      Real-Time Database Ledger ({userOnlinePayments.length})
+                    </span>
+                  </div>
+
+                  {userOnlinePayments.length === 0 ? (
+                    <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-white/10 space-y-4">
+                      <History size={40} className="mx-auto text-slate-600" />
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-black text-white uppercase">এখনো কোনো পেমেন্ট জমা দেওয়া হয়নি</h3>
+                        <p className="text-xs text-slate-400">অনলাইন পেমেন্ট সম্পন্ন করে স্ক্রিনশট বা রিকোয়েস্ট পাঠান।</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentSectionMode('online_payment');
+                          setPaymentOnlineSubStep('upi');
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase cursor-pointer transition-all active:scale-95"
+                      >
+                        অনলাইন পেমেন্ট করুন
+                      </button>
+                    </div>
+                  ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredList.map((payment) => {
+                      {userOnlinePayments.map((payment) => {
                         const isPending = payment.status === 'Pending';
                         const isAccepted = payment.status === 'Accepted';
                         const isConfirmed = payment.status === 'Confirmed';
@@ -5950,15 +6150,15 @@ export default function CustomerPortal({
                                 </span>
                               </div>
                               <div className="col-span-2">
-                                <span className="text-[9px] text-slate-500 block">TRANSACTION / UTR ID</span>
-                                <span className="text-cyan-400 font-bold text-[11px] truncate block">
-                                  {payment.transactionId || 'UPI Submission'}
+                                <span className="text-[9px] text-slate-500 block">TARGET BRANCH</span>
+                                <span className="text-amber-300 font-bold text-[11px] truncate block">
+                                  {payment.shopName || 'Main Branch Office'}
                                 </span>
                               </div>
                             </div>
 
-                            {/* Screenshot Thumbnail with Click to Enlarge */}
-                            {payment.screenshotUrl && (
+                            {/* Screenshot Thumbnail (Click to enlarge full-screen) OR Text Proof */}
+                            {payment.screenshotUrl ? (
                               <div className="space-y-1">
                                 <span className="text-[9px] text-slate-500 font-mono block uppercase">
                                   PAYMENT SCREENSHOT PROOF (ক্লিক করে বড় দেখুন)
@@ -5977,6 +6177,15 @@ export default function CustomerPortal({
                                     <span>বড় করে দেখুন / Enlarge</span>
                                   </div>
                                 </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
+                                <span className="text-[9px] text-amber-400 font-mono block uppercase font-bold">
+                                  📝 কাস্টমার টেক্সট বিবরণ:
+                                </span>
+                                <p className="text-xs text-slate-300 font-mono">
+                                  {payment.notes || payment.transactionId || 'অনলাইন বিল পেমেন্ট'}
+                                </p>
                               </div>
                             )}
 
@@ -6016,9 +6225,655 @@ export default function CustomerPortal({
                         );
                       })}
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
+              )}
+
+            </motion.div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 7: CUSTOMER SERVICES HUB (Notice Board + Explore All Services + Connect Branch Chat) */}
+          {/* ========================================================================= */}
+          {activeTab === 'services' && (
+            <motion.div
+              key="services_tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6 text-left pb-16"
+            >
+              {/* Header Title */}
+              <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-950 border border-amber-500/25 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="relative z-10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 font-mono text-[9px] font-black uppercase tracking-widest">
+                      DIGITAL CITIZEN SERVICES & BRANCH NETWORK
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      Live Sync
+                    </span>
+                  </div>
+
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+                    <Server className="text-amber-400" size={28} />
+                    <span>কাস্টমার সার্ভিস হাব ও ডিজিটাল পোর্টাল</span>
+                  </h1>
+
+                  <p className="text-xs text-slate-300 max-w-2xl font-medium leading-relaxed">
+                    অফিসিয়াল নোটিশ বোর্ড দেখুন, সমস্ত ডিজিটাল সেবা খুঁজুন ও আবেদন করুন, এবং যেকোনো ব্রাঞ্চের সাথে সরাসরি হোয়াটসঅ্যাপ স্টাইলে চ্যাট করুন।
+                  </p>
+                </div>
               </div>
+
+              {/* OVERVIEW CARDS: 1. NOTICE BOARD | 2. EXPLORE ALL SERVICES | 3. CONNECT BRANCH */}
+              {servicesSectionMode === 'overview' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    
+                    {/* CARD 1: নোটিশ বোর্ড (Notice Board) */}
+                    <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-amber-950/30 border border-amber-500/30 shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-amber-400 transition-all">
+                      <div className="space-y-3 relative z-10">
+                        <div className="flex items-center justify-between">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                            <BellRing size={22} className="animate-bounce" />
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
+                            {notices?.filter(n => n.status !== 'inactive').length || 0} টি সক্রিয় নোটিশ
+                          </span>
+                        </div>
+                        <h3 className="text-base font-black text-white group-hover:text-amber-300 transition-colors">
+                          ১. নোটিশ বোর্ড (Notice Board)
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          হেড অফিস ও ব্রাঞ্চের রিয়েল-টাইম অফিশিয়াল ঘোষণা, সরকারি প্রকল্পের আপডেট ও রেট লিস্ট দেখুন।
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setServicesSectionMode('notices')}
+                        className="mt-6 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                      >
+                        <span>নোটিশ বোর্ড খুলুন ➔</span>
+                      </button>
+                    </div>
+
+                    {/* CARD 2: এক্সপ্লোর অল সার্ভিস (Explore All Services / ফাইন্ড সার্ভিস) */}
+                    <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-sky-950/30 border border-sky-500/30 shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-sky-400 transition-all">
+                      <div className="space-y-3 relative z-10">
+                        <div className="flex items-center justify-between">
+                          <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center">
+                            <Search size={22} />
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] font-mono font-bold uppercase">
+                            {services?.length || 0} টি সেবা উপলব্ধ
+                          </span>
+                        </div>
+                        <h3 className="text-base font-black text-white group-hover:text-sky-300 transition-colors">
+                          ২. এক্সপ্লোর অল সার্ভিস (Find Service)
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          আধার, প্যান, ভোটার, পাসপোর্ট, ব্যাংকিং ও সরকারি সেবা খুঁজুন এবং সরাসরি ঘরে বসে আবেদন করুন।
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setServicesSectionMode('all_services')}
+                        className="mt-6 px-4 py-2.5 rounded-xl bg-sky-500/20 hover:bg-sky-500 hover:text-slate-950 text-sky-300 border border-sky-500/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                      >
+                        <span>সমস্ত সেবা এক্সপ্লোর করুন ➔</span>
+                      </button>
+                    </div>
+
+                    {/* CARD 3: কানেক্ট ব্রাঞ্চ (Connect Branch / রিয়েল-টাইম চ্যাট) */}
+                    <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-emerald-950/30 border border-emerald-500/30 shadow-xl relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400 transition-all">
+                      <div className="space-y-3 relative z-10">
+                        <div className="flex items-center justify-between">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+                            <MessageSquare size={22} />
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold uppercase">
+                            {shops?.length || 1} টি ব্রাঞ্চ অনলাইন
+                          </span>
+                        </div>
+                        <h3 className="text-base font-black text-white group-hover:text-emerald-300 transition-colors">
+                          ৩. কানেক্ট ব্রাঞ্চ (Connect Branch)
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          আপনার নিকটস্থ ব্রাঞ্চ নির্বাচন করে সরাসরি হোয়াটসঅ্যাপের মতো চ্যাট করুন এবং ম্যানেজারের উত্তর পান।
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (shops && shops.length > 0) {
+                            setSelectedChatBranch(shops[0]);
+                          }
+                          setServicesSectionMode('branch_chat');
+                        }}
+                        className="mt-6 px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 text-emerald-300 border border-emerald-500/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                      >
+                        <span>ব্রাঞ্চ চ্যাট শুরু করুন ➔</span>
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* BRANCH QUICK LIST */}
+                  <div className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 space-y-4 text-left">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                        <Building size={16} className="text-amber-400" />
+                        <span>আমাদের সমস্ত ব্রাঞ্চ নেটওয়ার্ক (Select Branch to Chat)</span>
+                      </h3>
+                      <span className="text-xs text-slate-400 font-mono">ক্লিক করে চ্যাট ওপেন করুন</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {(shops && shops.length > 0 ? shops : [
+                        { id: 'shop_1', name: 'RIZWAN ONLINE DREAMS (Head Office)', address: 'Jalangi Main Road, Murshidabad', mobile: '9593388785' },
+                        { id: 'shop_2', name: 'Beldanga Main Branch', address: 'Beldanga Station Road', mobile: '9593388785' },
+                        { id: 'shop_3', name: 'Berhampore Smart Hub', address: 'Panchanantala, Berhampore', mobile: '9593388785' }
+                      ]).map((branch: any) => (
+                        <div
+                          key={branch.id}
+                          onClick={() => {
+                            setSelectedChatBranch(branch);
+                            setServicesSectionMode('branch_chat');
+                          }}
+                          className="p-4 rounded-2xl bg-slate-950/80 hover:bg-slate-900 border border-white/10 hover:border-emerald-500/50 cursor-pointer transition-all flex items-center justify-between gap-3 group active:scale-98"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                              <Building size={18} />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
+                                {branch.name}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 truncate max-w-[180px]">{branch.address || 'West Bengal'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-mono font-bold">
+                            <MessageSquare size={14} />
+                            <span>চ্যাট</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 1: নোটিশ বোর্ড (Notice Board) */}
+              {servicesSectionMode === 'notices' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setServicesSectionMode('overview')}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>← ফিরে যান (Back to Services Hub)</span>
+                    </button>
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+                      Live Notice Board Matrix
+                    </span>
+                  </div>
+
+                  {notices && notices.filter(n => n.status !== 'inactive').length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4">
+                      {notices.filter(n => n.status !== 'inactive').map((notice) => (
+                        <div 
+                          key={notice.id} 
+                          className="p-6 rounded-3xl bg-gradient-to-r from-amber-950/20 via-slate-900 to-purple-950/20 border-2 border-amber-500/30 backdrop-blur-xl space-y-3 relative overflow-hidden shadow-xl"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2.5 py-0.5 text-[9px] font-black uppercase rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                                  {notice.noticeType || 'OFFICIAL BROADCAST'}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {new Date(notice.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <h3 className="text-base sm:text-lg font-black text-amber-200">
+                                {notice.title}
+                              </h3>
+                            </div>
+                            {notice.rate && (
+                              <span className="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 font-mono font-black text-amber-300 text-sm shrink-0">
+                                {notice.rate}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed whitespace-pre-line bg-slate-950/60 p-4 rounded-2xl border border-white/5">
+                            {notice.body}
+                          </p>
+
+                          {notice.tagline && (
+                            <p className="text-xs text-[#dfac5d] font-bold italic pt-1">
+                              📌 {notice.tagline}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-white/10 space-y-2">
+                      <BellRing size={36} className="mx-auto text-slate-600" />
+                      <p className="text-xs text-slate-400 font-bold uppercase">বর্তমানে কোনো নতুন নোটিশ নেই।</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VIEW 2: এক্সপ্লোর অল সার্ভিস (Explore All Services / ফাইন্ড সার্ভিস) */}
+              {servicesSectionMode === 'all_services' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setServicesSectionMode('overview')}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>← ফিরে যান (Back to Services Hub)</span>
+                    </button>
+                    <span className="text-[10px] font-mono text-sky-400 font-bold uppercase tracking-wider">
+                      All Digital Services Directory
+                    </span>
+                  </div>
+
+                  {/* Search and Filters */}
+                  <div className="relative">
+                    <Search size={16} className="absolute left-4 top-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={serviceSearchTerm}
+                      onChange={(e) => setServiceSearchTerm(e.target.value)}
+                      placeholder="সার্ভিসের নাম খুঁজুন (Search services... e.g. আধার, প্যান, ভোটার, পাসপোর্ট, ব্যাংকিং, রেশন)"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-white/10 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-sky-400 shadow-xl font-medium"
+                    />
+                  </div>
+
+                  {/* Services Grid */}
+                  {(() => {
+                    const list = (services && services.length > 0 ? services : []).filter(s => {
+                      if (!serviceSearchTerm.trim()) return true;
+                      const q = serviceSearchTerm.toLowerCase();
+                      return s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q);
+                    });
+
+                    if (list.length === 0) {
+                      return (
+                        <div className="p-10 text-center rounded-3xl bg-slate-900/60 border border-white/10">
+                          <p className="text-xs text-slate-400 font-bold">কোনো ম্যাচিং সার্ভিস পাওয়া যায়নি।</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {list.map((srv) => (
+                          <div
+                            key={srv.id}
+                            className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-sky-500/40 transition-all flex flex-col justify-between space-y-4 shadow-xl group text-left"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 text-[9px] font-mono font-bold uppercase">
+                                  {srv.category || 'General'}
+                                </span>
+                                {srv.price && (
+                                  <span className="font-mono font-black text-amber-400 text-sm">
+                                    ₹{srv.price}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-sm font-black text-white group-hover:text-sky-300 transition-colors">
+                                {srv.name}
+                              </h4>
+                              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                {srv.description || 'RIZWAN ONLINE DREAMS অনুমোদিত ডিজিটাল সিটিজেন সেবা।'}
+                              </p>
+                              {srv.requiredDocs && srv.requiredDocs.length > 0 && (
+                                <div className="pt-2 border-t border-white/5">
+                                  <span className="text-[9px] text-slate-500 uppercase font-mono block">প্রয়োজনীয় ডকুমেন্ট:</span>
+                                  <span className="text-[10px] text-slate-300">{srv.requiredDocs.join(', ')}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedServiceForApply(srv);
+                                setApplyCustName(currentUser?.name || '');
+                                setApplyCustPhone(currentUser?.mobile || '');
+                                setApplyCustNotes(`Service application for ${srv.name}`);
+                              }}
+                              className="w-full py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500 hover:text-slate-950 text-sky-300 border border-sky-500/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                            >
+                              <span>এপ্লিকেশন করুন (Apply Now) ➔</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* VIEW 3: FULL SCREEN WHATSAPP-STYLE BRANCH CHAT */}
+              {servicesSectionMode === 'branch_chat' && (
+                <div className="space-y-4 animate-fade-in">
+                  {/* Top Bar with Back & Branch Selector */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setServicesSectionMode('overview')}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={16} />
+                      <span>← ফিরে যান (Back to Services)</span>
+                    </button>
+
+                    {/* Branch Switcher Pill */}
+                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-2xl border border-white/10">
+                      <Building size={14} className="text-emerald-400" />
+                      <select
+                        value={selectedChatBranch?.id || ''}
+                        onChange={(e) => {
+                          const found = shops?.find(s => s.id === e.target.value);
+                          if (found) setSelectedChatBranch(found);
+                        }}
+                        className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+                      >
+                        {(shops && shops.length > 0 ? shops : [
+                          { id: 'shop_1', name: 'RIZWAN ONLINE DREAMS (Head Office)' },
+                          { id: 'shop_2', name: 'Beldanga Main Branch' },
+                          { id: 'shop_3', name: 'Berhampore Smart Hub' }
+                        ]).map((b: any) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* FULL-SCREEN WHATSAPP CHAT WINDOW */}
+                  <div className="rounded-3xl bg-slate-900 border-2 border-emerald-500/40 shadow-2xl overflow-hidden flex flex-col min-h-[550px] max-h-[750px] relative">
+                    
+                    {/* WhatsApp Top Header Bar */}
+                    <div className="p-4 bg-emerald-950/80 border-b border-emerald-500/30 flex items-center justify-between gap-3 text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-center font-black">
+                          <Building size={20} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-white">
+                              {selectedChatBranch?.name || 'RIZWAN ONLINE DREAMS (Branch)'}
+                            </h3>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          </div>
+                          <p className="text-[10px] text-emerald-300/80 font-mono">
+                            Online • রিয়েল-টাইম ব্রাঞ্চ মেসেঞ্জার (WhatsApp Style)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right text-[10px] text-slate-400 font-mono hidden sm:block">
+                        <span>হেল্পলাইন: </span>
+                        <strong className="text-white">+91 9593388785</strong>
+                      </div>
+                    </div>
+
+                    {/* Chat Messages Stream Area */}
+                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-3 bg-[radial-gradient(#10b98115_1px,transparent_1px)] [background-size:16px_16px] bg-slate-950/90 text-left">
+                      {/* Notice Info Bubble */}
+                      <div className="max-w-md mx-auto p-2.5 rounded-xl bg-slate-900/90 border border-white/5 text-center text-[10.5px] text-slate-400 font-mono shadow-inner">
+                        🔒 মেসেজগুলি সম্পূর্ণ নিরাপদ এবং রিয়েল-টাইম ডাটাবেজের সাথে সংযুক্ত। ব্রাঞ্চের ম্যানেজার আপনার প্রশ্নের উত্তর দেবেন।
+                      </div>
+
+                      {/* Filtered Messages for this Branch & Customer */}
+                      {(() => {
+                        const currentBranchId = selectedChatBranch?.id || 'shop_1';
+                        const myMob = (currentUser?.mobile || '').replace(/[^0-9]/g, '');
+                        const myId = currentUser?.id || '';
+
+                        const msgs = (branchChats || []).filter(m => {
+                          if (m.branchId !== currentBranchId) return false;
+                          const senderMob = (m.senderMobile || '').replace(/[^0-9]/g, '');
+                          if (m.senderId === myId) return true;
+                          if (myMob && senderMob && (myMob === senderMob || myMob.includes(senderMob) || senderMob.includes(myMob))) return true;
+                          if (m.senderRole === 'branch_manager' || m.senderRole === 'ceo' || m.senderRole === 'super_admin') return true;
+                          return false;
+                        });
+
+                        if (msgs.length === 0) {
+                          return (
+                            <div className="py-16 text-center space-y-2">
+                              <MessageSquare size={32} className="mx-auto text-slate-600 animate-bounce" />
+                              <p className="text-xs text-slate-400 font-bold">এখনো কোনো মেসেজ পাঠানো হয়নি।</p>
+                              <p className="text-[11px] text-slate-500">নিচে মেসেজ টাইপ করে ব্রাঞ্চকে প্রশ্ন পাঠান।</p>
+                            </div>
+                          );
+                        }
+
+                        return msgs.map((msg) => {
+                          const isMe = msg.senderRole === 'customer';
+
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[85%] sm:max-w-[70%] p-3.5 rounded-2xl text-xs space-y-1 shadow-lg ${
+                                  isMe
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-tr-none'
+                                    : 'bg-slate-800 text-slate-100 border border-white/10 rounded-tl-none'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-3 text-[9px] opacity-75 font-mono">
+                                  <span className="font-bold">
+                                    {isMe ? 'You (আপনি)' : (msg.senderName || 'Branch Manager')}
+                                  </span>
+                                  <span>
+                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                                  {msg.message}
+                                </p>
+                                {isMe && (
+                                  <div className="text-right text-[8px] opacity-80 font-mono">
+                                    ✓✓ Delivered
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+
+                    {/* WhatsApp Chat Input Footer */}
+                    <div className="p-3 bg-slate-900 border-t border-white/10 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={branchChatMessageText}
+                        onChange={(e) => setBranchChatMessageText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (!branchChatMessageText.trim()) return;
+                            const branch = selectedChatBranch || (shops && shops[0]) || { id: 'shop_1', name: 'RIZWAN ONLINE DREAMS' };
+                            const newMsg: BranchChatMessage = {
+                              id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                              branchId: branch.id,
+                              branchName: branch.name,
+                              senderId: currentUser?.id || currentUser?.mobile || 'cust_1',
+                              senderName: currentUser?.name || 'Citizen Customer',
+                              senderMobile: currentUser?.mobile || '9593388785',
+                              senderRole: 'customer',
+                              message: branchChatMessageText.trim(),
+                              timestamp: new Date().toISOString(),
+                              read: false
+                            };
+                            if (addBranchChatMessage) {
+                              addBranchChatMessage(newMsg);
+                            }
+                            setBranchChatMessageText('');
+                          }
+                        }}
+                        placeholder="ব্রাঞ্চ ম্যানেজারকে মেসেজ লিখুন... (Type a message)"
+                        className="flex-1 px-4 py-3 bg-slate-950 border border-white/10 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 font-medium"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!branchChatMessageText.trim()) return;
+                          const branch = selectedChatBranch || (shops && shops[0]) || { id: 'shop_1', name: 'RIZWAN ONLINE DREAMS' };
+                          const newMsg: BranchChatMessage = {
+                            id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                            branchId: branch.id,
+                            branchName: branch.name,
+                            senderId: currentUser?.id || currentUser?.mobile || 'cust_1',
+                            senderName: currentUser?.name || 'Citizen Customer',
+                            senderMobile: currentUser?.mobile || '9593388785',
+                            senderRole: 'customer',
+                            message: branchChatMessageText.trim(),
+                            timestamp: new Date().toISOString(),
+                            read: false
+                          };
+                          if (addBranchChatMessage) {
+                            addBranchChatMessage(newMsg);
+                          }
+                          setBranchChatMessageText('');
+                        }}
+                        className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all shrink-0"
+                      >
+                        <Send size={15} className="text-slate-950" />
+                        <span className="hidden sm:inline">পাঠান (Send)</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* Service Application Modal */}
+              <AnimatePresence>
+                {selectedServiceForApply && (
+                  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.7 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setSelectedServiceForApply(null)}
+                      className="absolute inset-0 bg-black cursor-pointer"
+                    />
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                      className="relative w-full max-w-lg bg-slate-900 border border-sky-500/40 rounded-3xl p-6 md:p-8 shadow-2xl z-10 text-left space-y-4"
+                    >
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div>
+                          <span className="text-[9px] font-mono text-sky-400 uppercase font-bold">
+                            ডিজিটাল সার্ভিস অ্যাপ্লিকেশন
+                          </span>
+                          <h3 className="text-base font-black text-white">
+                            {selectedServiceForApply.name}
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedServiceForApply(null)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-white"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">আপনার নাম</label>
+                          <input
+                            type="text"
+                            value={applyCustName}
+                            onChange={(e) => setApplyCustName(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">মোবাইল নম্বর</label>
+                          <input
+                            type="text"
+                            value={applyCustPhone}
+                            onChange={(e) => setApplyCustPhone(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">বিশেষ তথ্য বা রিকোয়েস্ট নোট</label>
+                          <textarea
+                            rows={3}
+                            value={applyCustNotes}
+                            onChange={(e) => setApplyCustNotes(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedServiceForApply(null)}
+                          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300"
+                        >
+                          বাতিল
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (addInquiry) {
+                              addInquiry({
+                                id: `inq_${Date.now()}`,
+                                customerName: applyCustName || currentUser?.name || 'Citizen',
+                                customerMobile: applyCustPhone || currentUser?.mobile || '9593388785',
+                                subject: `Application for ${selectedServiceForApply.name}`,
+                                message: applyCustNotes || 'Customer applied through Customer Portal Services section',
+                                status: 'Open',
+                                createdAt: new Date().toISOString()
+                              });
+                            }
+                            try { playBookingSuccessSound(); } catch (e) {}
+                            alert(`✅ আপনার "${selectedServiceForApply.name}" সার্ভিসের আবেদন সফলভাবে গৃহীত হয়েছে! ব্রাঞ্চ প্রতিনিধি শীঘ্রই আপনার সাথে যোগাযোগ করবেন।`);
+                            setSelectedServiceForApply(null);
+                          }}
+                          className="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase"
+                        >
+                          আবেদন জমা দিন (Submit)
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
 
             </motion.div>
           )}

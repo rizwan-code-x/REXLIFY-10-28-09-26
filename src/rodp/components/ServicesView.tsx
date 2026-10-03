@@ -3,10 +3,11 @@ import {
   Plus, Minus, Search, Sparkles, Filter, Trash2, Edit2, Save, Check, X,
   Briefcase, Fingerprint, CreditCard, Vote, Landmark, HelpCircle, 
   MapPin, Eye, CheckCircle, Clock, PlusCircle, AlertCircle,
-  ShoppingCart, ShoppingBag, Trash, ChevronRight, Ticket, CheckCircle2, Star
+  ShoppingCart, ShoppingBag, Trash, ChevronRight, Ticket, CheckCircle2, Star,
+  MessageSquare, Send, Building, BellRing, UserCheck, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ServiceModule, Appointment } from '../types';
+import { ServiceModule, Appointment, BranchChatMessage, Shop, User as AppUser, Notice } from '../types';
 import { playBookingSuccessSound } from '../lib/audioService';
 
 interface ServicesViewProps {
@@ -18,6 +19,11 @@ interface ServicesViewProps {
   appointments?: Appointment[];
   userRole?: string;
   addAppointment?: (app: Appointment) => void;
+  branchChats?: BranchChatMessage[];
+  addBranchChatMessage?: (msg: BranchChatMessage) => void;
+  shops?: Shop[];
+  currentUser?: AppUser;
+  notices?: Notice[];
 }
 
 export default function ServicesView({
@@ -28,12 +34,23 @@ export default function ServicesView({
   deleteService,
   appointments = [], // default to empty array if not passed
   userRole,
-  addAppointment
+  addAppointment,
+  branchChats = [],
+  addBranchChatMessage,
+  shops = [],
+  currentUser,
+  notices = []
 }: ServicesViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Real-Time Branch Chat Messenger (Requirement: Explore Chat in Service Section)
+  const [isExploreChatOpen, setIsExploreChatOpen] = useState(false);
+  const [selectedChatCustomerId, setSelectedChatCustomerId] = useState<string | null>(null);
+  const [managerReplyText, setManagerReplyText] = useState('');
+  const [chatBranchFilter, setChatBranchFilter] = useState<string>('all');
 
   if (userRole === 'customer') {
     return (
@@ -170,15 +187,280 @@ export default function ServicesView({
           </p>
         </div>
 
-        {userRole !== 'customer' && (
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* REQUIREMENT: "এক্সপ্লোর চ্যাট" (Explore Chat) at top of Service section */}
           <button
-            onClick={() => setIsAdding(true)}
-            className="px-6 py-3 bg-gradient-to-tr from-amber-500 to-yellow-600 text-[#050505] rounded-xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(223,172,93,0.4)] cursor-pointer shrink-0"
+            type="button"
+            onClick={() => setIsExploreChatOpen(!isExploreChatOpen)}
+            className={`px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-lg ${
+              isExploreChatOpen
+                ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-emerald-500/30'
+                : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+            }`}
           >
-            <Plus size={16} className="stroke-[3]" /> Add New Module
+            <MessageSquare size={16} />
+            <span>💬 এক্সপ্লোর চ্যাট (Explore Chat)</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-950/80 text-emerald-300 text-[10px] font-mono">
+              {branchChats.length}
+            </span>
           </button>
-        )}
+
+          {userRole !== 'customer' && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="px-6 py-3 bg-gradient-to-tr from-amber-500 to-yellow-600 text-[#050505] rounded-xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(223,172,93,0.4)] cursor-pointer shrink-0"
+            >
+              <Plus size={16} className="stroke-[3]" /> Add New Module
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* EXPLORE CHAT PANEL FOR CEO & BRANCH MANAGERS (Requirement: Explore Chat in Service section) */}
+      <AnimatePresence>
+        {isExploreChatOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border-2 border-emerald-500/40 shadow-2xl space-y-5 text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold uppercase">
+                      Live Real-Time Messenger
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <MessageSquare size={18} className="text-emerald-400" />
+                    <span>এক্সপ্লোর চ্যাট • কাস্টমার মেসেঞ্জার কনসোল (Customer Messages)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    কাস্টমারদের পাঠানো মেসেজ দেখুন এবং সরাসরি হোয়াটসঅ্যাপ স্টাইলে উত্তর দিন:
+                  </p>
+                </div>
+
+                {/* Filter by Branch if Super Admin */}
+                {shops && shops.length > 0 && (
+                  <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-white/10 shrink-0">
+                    <Building size={14} className="text-emerald-400" />
+                    <select
+                      value={chatBranchFilter}
+                      onChange={(e) => setChatBranchFilter(e.target.value)}
+                      className="bg-transparent text-xs text-white font-bold focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">All Branches (সব ব্রাঞ্চ)</option>
+                      {shops.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Thread Cards and Reply Box */}
+              {(() => {
+                const filteredChats = (branchChats || []).filter(m => {
+                  if (chatBranchFilter !== 'all' && m.branchId !== chatBranchFilter) return false;
+                  return true;
+                });
+
+                // Group by customer ID or mobile
+                const threadsMap = new Map<string, {
+                  customerId: string;
+                  customerName: string;
+                  customerMobile: string;
+                  branchId: string;
+                  branchName: string;
+                  messages: BranchChatMessage[];
+                  lastTimestamp: string;
+                }>();
+
+                filteredChats.forEach(m => {
+                  const key = m.senderMobile || m.senderId || 'unknown';
+                  if (!threadsMap.has(key)) {
+                    threadsMap.set(key, {
+                      customerId: m.senderId,
+                      customerName: m.senderRole === 'customer' ? m.senderName : 'Citizen User',
+                      customerMobile: m.senderMobile || '9593388785',
+                      branchId: m.branchId,
+                      branchName: m.branchName || 'Branch',
+                      messages: [],
+                      lastTimestamp: m.timestamp
+                    });
+                  }
+                  const th = threadsMap.get(key)!;
+                  th.messages.push(m);
+                  if (new Date(m.timestamp) > new Date(th.lastTimestamp)) {
+                    th.lastTimestamp = m.timestamp;
+                  }
+                });
+
+                const threadsList = Array.from(threadsMap.values()).sort(
+                  (a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
+                );
+
+                if (threadsList.length === 0) {
+                  return (
+                    <div className="py-12 text-center rounded-2xl bg-slate-950/60 border border-white/5 space-y-2">
+                      <MessageSquare size={32} className="mx-auto text-slate-600 animate-bounce" />
+                      <p className="text-xs text-slate-400 font-bold">এখনো কোনো কাস্টমার মেসেজ পাঠাননি।</p>
+                      <p className="text-[11px] text-slate-500">কাস্টমার পোর্টাল থেকে মেসেজ পাঠানো হলে তা এখানে লাইভ দেখা যাবে।</p>
+                    </div>
+                  );
+                }
+
+                const activeThread = threadsList.find(th => (th.customerMobile || th.customerId) === selectedChatCustomerId) || threadsList[0];
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Left Column: Customer Threads List */}
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block mb-1">
+                        ইনবক্স থ্রেড ({threadsList.length})
+                      </span>
+                      {threadsList.map(th => {
+                        const isSelected = (th.customerMobile || th.customerId) === (activeThread.customerMobile || activeThread.customerId);
+                        const lastMsg = th.messages[th.messages.length - 1];
+
+                        return (
+                          <div
+                            key={th.customerMobile || th.customerId}
+                            onClick={() => setSelectedChatCustomerId(th.customerMobile || th.customerId)}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left ${
+                              isSelected
+                                ? 'bg-emerald-950/40 border-emerald-500/50 shadow-md'
+                                : 'bg-slate-950/60 border-white/5 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-xs font-bold text-white truncate">{th.customerName}</h4>
+                              <span className="text-[9px] text-slate-500 font-mono">
+                                {new Date(th.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] text-amber-400 font-mono mt-0.5">{th.customerMobile}</p>
+                            <p className="text-[11px] text-slate-300 line-clamp-1 mt-1">
+                              {lastMsg?.message || 'মেসেজ নেই'}
+                            </p>
+                            <span className="text-[9px] text-emerald-400 font-mono block mt-1">
+                              📍 {th.branchName}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Right Column: Active Conversation & Reply Window */}
+                    <div className="md:col-span-2 rounded-2xl bg-slate-950 border border-white/10 flex flex-col justify-between overflow-hidden min-h-[420px]">
+                      {/* Thread Top Bar */}
+                      <div className="p-3.5 bg-slate-900 border-b border-white/10 flex items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-xs font-black text-white">{activeThread.customerName}</h4>
+                          <span className="text-[10px] text-amber-400 font-mono">{activeThread.customerMobile} • {activeThread.branchName}</span>
+                        </div>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-mono">
+                          Live Active
+                        </span>
+                      </div>
+
+                      {/* Messages Stream */}
+                      <div className="flex-1 p-4 space-y-2.5 overflow-y-auto max-h-[300px]">
+                        {activeThread.messages.map((m) => {
+                          const isStaff = m.senderRole === 'branch_manager' || m.senderRole === 'ceo' || m.senderRole === 'super_admin';
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex ${isStaff ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[80%] p-3 rounded-2xl text-xs space-y-1 ${
+                                  isStaff
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-tr-none'
+                                    : 'bg-slate-800 text-slate-100 border border-white/10 rounded-tl-none'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2 text-[9px] opacity-75 font-mono">
+                                  <span>{isStaff ? 'You (Manager / CEO)' : m.senderName}</span>
+                                  <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <p className="text-xs leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Reply Input Bar */}
+                      <div className="p-3 bg-slate-900 border-t border-white/10 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={managerReplyText}
+                          onChange={(e) => setManagerReplyText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (!managerReplyText.trim()) return;
+                              const reply: BranchChatMessage = {
+                                id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                branchId: activeThread.branchId,
+                                branchName: activeThread.branchName,
+                                senderId: currentUser?.id || 'mgr_1',
+                                senderName: `${currentUser?.name || 'Manager'} (Official)`,
+                                senderMobile: currentUser?.mobile || '9593388785',
+                                senderRole: 'branch_manager',
+                                message: managerReplyText.trim(),
+                                timestamp: new Date().toISOString(),
+                                read: true
+                              };
+                              if (addBranchChatMessage) {
+                                addBranchChatMessage(reply);
+                              }
+                              setManagerReplyText('');
+                            }
+                          }}
+                          placeholder="কাস্টমারকে উত্তর লিখুন... (Type reply to customer)"
+                          className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!managerReplyText.trim()) return;
+                            const reply: BranchChatMessage = {
+                              id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                              branchId: activeThread.branchId,
+                              branchName: activeThread.branchName,
+                              senderId: currentUser?.id || 'mgr_1',
+                              senderName: `${currentUser?.name || 'Manager'} (Official)`,
+                              senderMobile: currentUser?.mobile || '9593388785',
+                              senderRole: 'branch_manager',
+                              message: managerReplyText.trim(),
+                              timestamp: new Date().toISOString(),
+                              read: true
+                            };
+                            if (addBranchChatMessage) {
+                              addBranchChatMessage(reply);
+                            }
+                            setManagerReplyText('');
+                          }}
+                          className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase rounded-xl flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                        >
+                          <Send size={14} />
+                          <span>পাঠান (Reply)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filters & Search Control Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

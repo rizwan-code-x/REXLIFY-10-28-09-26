@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   ShieldCheck, FileText, CheckCircle2, Clock, AlertTriangle, Eye, Download, 
   Search, Check, X, Building, ArrowRight, Sparkles, Filter, 
-  ZoomIn, ZoomOut, RotateCw, IndianRupee, User, Phone, Mail, QrCode, Tag
+  ZoomIn, ZoomOut, RotateCw, IndianRupee, User, Phone, Mail, QrCode, Tag, AlertCircle, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { OnlinePayment, DocumentVaultItem, Shop, Invoice, User as AppUser } from '../types';
@@ -15,6 +15,7 @@ interface VerifyBillsDocsViewProps {
   updateOnlinePayment: (id: string, updates: Partial<OnlinePayment>) => void;
   deleteOnlinePayment?: (id: string) => void;
   vault: DocumentVaultItem[];
+  addVaultItem?: (item: DocumentVaultItem) => void;
   updateVaultItem?: (id: string, updates: Partial<DocumentVaultItem>) => void;
   deleteVaultItem?: (id: string) => void;
   invoices: Invoice[];
@@ -30,6 +31,7 @@ export default function VerifyBillsDocsView({
   updateOnlinePayment,
   deleteOnlinePayment,
   vault,
+  addVaultItem,
   updateVaultItem,
   deleteVaultItem,
   invoices,
@@ -41,6 +43,16 @@ export default function VerifyBillsDocsView({
 
   // Active top tab
   const [activeTab, setActiveTab] = useState<'verify_bills' | 'verify_docs'>('verify_bills');
+
+  // Add Document Modal State
+  const [isAddDocModalOpen, setIsAddDocModalOpen] = useState(false);
+  const [newDocName, setNewDocName] = useState('');
+  const [newDocCategory, setNewDocCategory] = useState<DocumentVaultItem['category']>('Aadhaar');
+  const [newDocCustName, setNewDocCustName] = useState('');
+  const [newDocCustMobile, setNewDocCustMobile] = useState('');
+  const [newDocUrl, setNewDocUrl] = useState('');
+  const [newDocShopId, setNewDocShopId] = useState(userShopId || 'shop_1');
+  const [newDocStatus, setNewDocStatus] = useState<'Verified' | 'Pending'>('Verified');
 
   // Bill filters
   const [billStatusFilter, setBillStatusFilter] = useState<'All' | 'Pending' | 'Accepted' | 'Confirmed' | 'Rejected'>('All');
@@ -209,6 +221,35 @@ export default function VerifyBillsDocsView({
       });
       triggerToast(newStatus === 'Verified' ? `✓ ডকুমেন্ট "${doc.name}" অনুমোদিত (Verified) হয়েছে।` : `ডকুমেন্ট "${doc.name}" রিজেক্ট করা হয়েছে।`);
     }
+  };
+
+  const handleAddNewDocument = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDocName.trim()) return;
+    const newDoc: DocumentVaultItem = {
+      id: `doc_${Date.now()}`,
+      name: newDocName.trim(),
+      category: newDocCategory,
+      customerName: newDocCustName.trim() || 'Citizen User',
+      customerMobile: newDocCustMobile.trim() || '9593388785',
+      url: newDocUrl || 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800',
+      fileType: 'image/jpeg',
+      fileSize: '1.2 MB',
+      uploadedAt: new Date().toISOString(),
+      shopId: newDocShopId,
+      status: newDocStatus,
+      verifiedAt: newDocStatus === 'Verified' ? new Date().toISOString() : undefined,
+      verifiedBy: currentUser.name
+    };
+    if (addVaultItem) {
+      addVaultItem(newDoc);
+    }
+    setIsAddDocModalOpen(false);
+    setNewDocName('');
+    setNewDocCustName('');
+    setNewDocCustMobile('');
+    setNewDocUrl('');
+    triggerToast('✓ নতুন ভেরিফাইড ডকুমেন্ট সফলভাবে স্টোরেজে যুক্ত করা হয়েছে!');
   };
 
   // Stats calculation
@@ -469,43 +510,58 @@ export default function VerifyBillsDocsView({
                     </div>
                   </div>
 
-                  {/* Screenshot Preview Card */}
-                  <div className="p-3 bg-slate-950/80 rounded-2xl border border-white/5 space-y-2 relative z-10">
-                    <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                      <span className="font-bold uppercase flex items-center gap-1.5">
-                        <Eye size={12} className="text-amber-400" />
-                        <span>Payment Slip / রসিদের স্ক্রিনশট</span>
-                      </span>
-                      <span className="text-[9px] text-amber-400/80">Click image to expand full-screen</span>
-                    </div>
+                  {/* Screenshot Preview Card OR Text-Only Payment Request */}
+                  {pay.screenshotUrl && pay.screenshotUrl !== 'text_only' ? (
+                    <div className="p-3 bg-slate-950/80 rounded-2xl border border-white/5 space-y-2 relative z-10">
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                        <span className="font-bold uppercase flex items-center gap-1.5">
+                          <Eye size={12} className="text-amber-400" />
+                          <span>Payment Slip / রসিদের স্ক্রিনশট</span>
+                        </span>
+                        <span className="text-[9px] text-amber-400/80">Click image to expand full-screen</span>
+                      </div>
 
-                    <div
-                      onClick={() => {
-                        setPreviewImage({
-                          url: pay.screenshotUrl,
-                          title: `Payment Slip: ₹${pay.amount} • ${pay.customerName}`,
-                          subtitle: `Ref #${pay.id} • Txn: ${pay.transactionId || 'N/A'} • ${pay.shopName || 'Branch'}`,
-                          metadata: pay
-                        });
-                        setImageZoom(1);
-                        setImageRotation(0);
-                      }}
-                      className="relative h-44 rounded-xl overflow-hidden bg-slate-900 border border-white/10 group/img cursor-pointer flex items-center justify-center"
-                    >
-                      <img
-                        src={pay.screenshotUrl}
-                        alt="Payment Proof Slip"
-                        className="w-full h-full object-contain group-hover/img:scale-105 transition-transform duration-300"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <div className="p-3 rounded-full bg-amber-500 text-slate-950 font-black shadow-xl flex items-center gap-1.5 text-xs uppercase">
-                          <Eye size={16} />
-                          <span>বড় করে দেখুন (Full View)</span>
+                      <div
+                        onClick={() => {
+                          setPreviewImage({
+                            url: pay.screenshotUrl,
+                            title: `Payment Slip: ₹${pay.amount} • ${pay.customerName}`,
+                            subtitle: `Ref #${pay.id} • Txn: ${pay.transactionId || 'N/A'} • ${pay.shopName || 'Branch'}`,
+                            metadata: pay
+                          });
+                          setImageZoom(1);
+                          setImageRotation(0);
+                        }}
+                        className="relative h-44 rounded-xl overflow-hidden bg-slate-900 border border-white/10 group/img cursor-pointer flex items-center justify-center"
+                      >
+                        <img
+                          src={pay.screenshotUrl}
+                          alt="Payment Proof Slip"
+                          className="w-full h-full object-contain group-hover/img:scale-105 transition-transform duration-300"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <div className="p-3 rounded-full bg-amber-500 text-slate-950 font-black shadow-xl flex items-center gap-1.5 text-xs uppercase">
+                            <Eye size={16} />
+                            <span>বড় করে দেখুন (Full View)</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 text-left relative z-10">
+                      <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                        <AlertCircle size={15} />
+                        <span>কাস্টমার পেমেন্ট রিকোয়েস্ট (Text Submission)</span>
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed font-mono bg-slate-950/60 p-2.5 rounded-xl border border-white/5">
+                        {pay.notes || pay.transactionId || 'অনলাইন বিল পেমেন্ট রিকোয়েস্ট'}
+                      </p>
+                      <p className="text-[11px] text-amber-300 font-medium">
+                        এই ব্যক্তি একটি পেমেন্ট রিকোয়েস্ট পাঠিয়েছেন যার পরিমাণ <strong>₹{pay.amount}</strong> এবং নাম <strong>{pay.customerName}</strong>, অনুগ্রহ করে তথ্য দেখে একসেপ্ট ও কনফার্ম করুন।
+                      </p>
+                    </div>
+                  )}
 
                   {/* Action Decision Buttons */}
                   <div className="pt-2 border-t border-white/5 flex flex-wrap gap-2 items-center justify-between relative z-10">
@@ -586,6 +642,28 @@ export default function VerifyBillsDocsView({
       {activeTab === 'verify_docs' && (
         <div className="space-y-6 animate-fade-in">
           
+          {/* Top Row: Title & Add Document Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-slate-900/60 border border-white/10 shadow-xl">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-tight flex items-center gap-2">
+                <FileText className="text-cyan-400" size={18} />
+                <span>নাগরিক ডকুমেন্টস ও ভেরিফিকেশন স্টোরেজ (Citizen Verified Proofs)</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                ডকুমেন্ট স্টোরেজে সংরক্ষিত ফাইল প্রিভিউ করুন বা নতুন ভেরিফাইড ডকুমেন্ট সরাসরি যুক্ত করুন।
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddDocModalOpen(true)}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+            >
+              <Plus size={15} className="stroke-[3px]" />
+              <span>নতুন ডকুমেন্ট যুক্ত করুন (Add Document)</span>
+            </button>
+          </div>
+
           {/* Filter Bar */}
           <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/60 backdrop-blur-xl border border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl">
             
@@ -1004,6 +1082,170 @@ export default function VerifyBillsDocsView({
                   Confirm Reject
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================
+          ADD NEW VERIFIED CITIZEN DOCUMENT MODAL
+      ======================================================== */}
+      <AnimatePresence>
+        {isAddDocModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-lg bg-slate-900 border border-cyan-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 text-left relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-2xl">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                      নতুন ডকুমেন্ট সংরক্ষণ করুন
+                    </h3>
+                    <p className="text-[10.5px] text-slate-400 font-mono">Store Verified Proof to System Vault</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddDocModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddNewDocument} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                    Document Title / ফাইলের নাম *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDocName}
+                    onChange={(e) => setNewDocName(e.target.value)}
+                    placeholder="e.g. Aadhaar Card (Front & Back)"
+                    className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                      Category / বিভাগ *
+                    </label>
+                    <select
+                      value={newDocCategory}
+                      onChange={(e) => setNewDocCategory(e.target.value as any)}
+                      className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="Aadhaar">Aadhaar Card</option>
+                      <option value="PAN">PAN Card</option>
+                      <option value="Passport">Passport / Visa</option>
+                      <option value="Certificate">Certificate / Marksheet</option>
+                      <option value="Photo">Passport Photo</option>
+                      <option value="PDF">PDF Document</option>
+                      <option value="Other">Other Proof</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                      Verification Status
+                    </label>
+                    <select
+                      value={newDocStatus}
+                      onChange={(e) => setNewDocStatus(e.target.value as any)}
+                      className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="Verified">✓ Verified (অনুমোদিত)</option>
+                      <option value="Pending">⏳ Pending (অপেক্ষমান)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newDocCustName}
+                      onChange={(e) => setNewDocCustName(e.target.value)}
+                      placeholder="e.g. Asif Iqbal"
+                      className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                      Mobile Connection
+                    </label>
+                    <input
+                      type="tel"
+                      value={newDocCustMobile}
+                      onChange={(e) => setNewDocCustMobile(e.target.value)}
+                      placeholder="e.g. 9593388785"
+                      className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold uppercase text-slate-400 block mb-1">
+                    Document Image / File Upload (বা ইমেজ URL)
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (ev.target?.result) {
+                              setNewDocUrl(ev.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-cyan-500 file:text-slate-950 hover:file:bg-cyan-400 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={newDocUrl}
+                      onChange={(e) => setNewDocUrl(e.target.value)}
+                      placeholder="https://... ইমেজ লিংক (বা ফাইল সিলেক্ট করুন)"
+                      className="w-full p-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddDocModalOpen(false)}
+                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs uppercase"
+                  >
+                    বাতিল (Cancel)
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Check size={16} />
+                    <span>সংরক্ষণ করুন (Save)</span>
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

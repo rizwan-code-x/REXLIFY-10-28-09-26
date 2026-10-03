@@ -3,7 +3,8 @@ import {
   User, Shop, ServiceModule, Appointment, Task, 
   CustomerCRM, Invoice, InventoryItem, DocumentVaultItem, 
   Staff, FinanceRecord, NotificationLog, SecurityLog, UserRole,
-  AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings, OnlinePayment
+  AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings, OnlinePayment,
+  BranchChatMessage
 } from './types';
 import { 
   DEFAULT_SERVICES, MOCK_SHOPS, MOCK_CUSTOMERS, 
@@ -84,6 +85,7 @@ export function useAppState() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [onlinePayments, setOnlinePayments] = useState<OnlinePayment[]>([]);
+  const [branchChats, setBranchChats] = useState<BranchChatMessage[]>([]);
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({
     onlyAdminsCanPost: false,
     isGroupMuted: false
@@ -421,6 +423,45 @@ export function useAppState() {
             }
           }
         }, (err) => console.warn('RTDB online payments stream warning:', err));
+
+        // 7. Realtime Branch Live Chats (Customer <-> Branch WhatsApp Style)
+        const chatRef = ref(rtdb, 'rodp_branch_chats');
+        onValue(chatRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: BranchChatMessage[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              list.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+              setBranchChats(list);
+              localStorage.setItem('rodp_branch_chats', JSON.stringify(list));
+            }
+          }
+        }, (err) => console.warn('RTDB branch chats warning:', err));
+
+        // 8. Realtime Document Vault (Citizen Verified Proofs)
+        const vaultRef = ref(rtdb, 'rodp_vault');
+        onValue(vaultRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: DocumentVaultItem[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              setVault(prev => {
+                const map = new Map<string, DocumentVaultItem>();
+                prev.forEach(item => map.set(item.id, item));
+                list.forEach(item => map.set(item.id, { ...map.get(item.id), ...item }));
+                const merged = Array.from(map.values());
+                localStorage.setItem('rodp_vault', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        }, (err) => console.warn('RTDB vault warning:', err));
       });
     }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
 
@@ -949,9 +990,39 @@ export function useAppState() {
     deleteFinanceRecord: (id: string) => deleteRecord('finance', id, setFinance, finance),
     
     vault,
-    addVaultItem: (record: DocumentVaultItem) => addRecord('vault', record, setVault, vault),
-    updateVaultItem: (id: string, updates: any) => updateRecord('vault', id, updates, setVault, vault),
-    deleteVaultItem: (id: string) => deleteRecord('vault', id, setVault, vault),
+    addVaultItem: (record: DocumentVaultItem) => {
+      addRecord('vault', record, setVault, vault);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_vault/' + record.id), {
+            ...record,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB vault save warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for vault', err));
+    },
+    updateVaultItem: (id: string, updates: any) => {
+      updateRecord('vault', id, updates, setVault, vault);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_vault/' + id), {
+            ...updates,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB vault update warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for vault update', err));
+    },
+    deleteVaultItem: (id: string) => {
+      deleteRecord('vault', id, setVault, vault);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_vault/' + id)).catch(err => console.warn('RTDB vault delete warning:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for vault delete', err));
+    },
 
     onlinePayments,
     addOnlinePayment: (record: OnlinePayment) => {
@@ -1058,6 +1129,24 @@ export function useAppState() {
         }
         return next;
       });
+    },
+
+    branchChats,
+    addBranchChatMessage: (msg: BranchChatMessage) => {
+      setBranchChats(prev => {
+        const updated = [...prev, msg];
+        localStorage.setItem('rodp_branch_chats', JSON.stringify(updated));
+        return updated;
+      });
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_branch_chats/' + msg.id), {
+            ...msg,
+            updatedAt: Date.now()
+          }).catch(err => console.warn('RTDB chat save notice:', err));
+        }
+      }).catch(err => console.warn('Could not load RTDB for chat', err));
     },
     
     loading,

@@ -438,3 +438,16 @@ export interface GroupSettings {
   isGroupMuted: boolean;
 }
 
+export interface BranchChatMessage {
+  id: string;
+  branchId: string;
+  branchName?: string;
+  senderId: string;
+  senderName: string;
+  senderMobile?: string;
+  senderRole: 'customer' | 'branch_manager' | 'ceo' | 'super_admin';
+  message: string;
+  timestamp: string;
+  read?: boolean;
+}
+

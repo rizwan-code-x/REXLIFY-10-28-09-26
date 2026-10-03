@@ -5,7 +5,7 @@ import {
   Phone, MapPin, Grid, Layers, ClipboardList, Info, Sparkles, Check, X, RefreshCw, Upload, FileText,
   Calendar, Users, BarChart3, FileCheck, Search, Eye, AlertCircle, Building, Mail, Clock, Globe,
   Landmark, CreditCard, Tag, ShieldAlert, ChevronLeft, ChevronRight, MessageSquare, Bot, AlertTriangle,
-  LayoutDashboard, Activity
+  LayoutDashboard, Activity, Send
 } from 'lucide-react';
 import { Shop, Invoice, Appointment, CustomerCRM } from '../types';
 import VerifyBillsDocsView from './VerifyBillsDocsView';
@@ -32,7 +32,15 @@ interface BranchDashboardViewProps {
   updateOnlinePayment?: (id: string, updates: any) => void;
   deleteOnlinePayment?: (id: string) => void;
   vault?: any[];
+  addVaultItem?: (item: any) => void;
   updateVaultItem?: (id: string, updates: any) => void;
+  branchChats?: any[];
+  addBranchChatMessage?: (msg: any) => void;
+  services?: any[];
+  addService?: (srv: any) => void;
+  updateService?: (id: string, updates: any) => void;
+  deleteService?: (id: string) => void;
+  notices?: any[];
 }
 
 interface CustomProduct {
@@ -85,7 +93,15 @@ export default function BranchDashboardView({
   updateOnlinePayment,
   deleteOnlinePayment,
   vault = [],
-  updateVaultItem
+  addVaultItem,
+  updateVaultItem,
+  branchChats = [],
+  addBranchChatMessage,
+  services = [],
+  addService,
+  updateService,
+  deleteService,
+  notices = []
 }: BranchDashboardViewProps) {
   
   // CEO / Super Admin Branch Selection
@@ -285,6 +301,11 @@ export default function BranchDashboardView({
   const [newProdCategory, setNewProdCategory] = useState('Services');
   const [newProdDesc, setNewProdDesc] = useState('');
   const [productMessage, setProductMessage] = useState<string | null>(null);
+
+  // Real-time Branch Chat States (Requirement: Explore Chat in Service section)
+  const [activeChatCustomerId, setActiveChatCustomerId] = useState<string | null>(null);
+  const [branchReplyText, setBranchReplyText] = useState('');
+  const [isExploreChatOpen, setIsExploreChatOpen] = useState(false);
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1644,6 +1665,200 @@ export default function BranchDashboardView({
       {/* SUB-TAB 4: SERVICES & PRODUCTS */}
       {activeSubTab === 'services' && (
         <div className="space-y-6 text-left">
+          {/* TOP SECTION: EXPLORE CHAT & LIVE MESSENGER (Requirement: Explore Chat in Service section) */}
+          <div className="p-6 rounded-3xl bg-slate-900/80 border border-emerald-500/30 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold uppercase">
+                    Branch Messenger Console
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                  <MessageSquare size={17} className="text-emerald-400" />
+                  <span>এক্সপ্লোর চ্যাট • কাস্টমারদের লাইভ মেসেজ (Explore Customer Chats)</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  আপনার ব্রাঞ্চে কাস্টমারদের পাঠানো মেসেজ দেখুন ও সরাসরি হোয়াটসঅ্যাপের মতো উত্তর দিন।
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsExploreChatOpen(!isExploreChatOpen)}
+                className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-lg shrink-0 ${
+                  isExploreChatOpen
+                    ? 'bg-emerald-500 text-slate-950 font-extrabold'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                }`}
+              >
+                <MessageSquare size={15} />
+                <span>{isExploreChatOpen ? 'চ্যাট বন্ধ করুন' : '💬 এক্সপ্লোর চ্যাট খুলুন'}</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-950 text-emerald-300 text-[10px] font-mono font-bold">
+                  {branchChats.filter(m => m.branchId === currentShop.id).length}
+                </span>
+              </button>
+            </div>
+
+            {/* EXPANDED CHAT CONSOLE */}
+            {isExploreChatOpen && (
+              <div className="pt-4 border-t border-white/10 space-y-4">
+                {(() => {
+                  const branchMsgs = branchChats.filter(m => m.branchId === currentShop.id);
+                  if (branchMsgs.length === 0) {
+                    return (
+                      <div className="py-8 text-center bg-slate-950/60 rounded-2xl border border-white/5 space-y-2">
+                        <MessageSquare size={28} className="mx-auto text-slate-600 animate-bounce" />
+                        <p className="text-xs text-slate-400 font-bold">এই ব্রাঞ্চে এখনো কোনো কাস্টমার মেসেজ পাঠাননি।</p>
+                        <p className="text-[11px] text-slate-500">কাস্টমার পোর্টাল থেকে কানেক্ট ব্রাঞ্চ করলে এখানে তৎক্ষণাৎ মেসেজ আসবে।</p>
+                      </div>
+                    );
+                  }
+
+                  // Group by customer mobile or senderId
+                  const custMap = new Map<string, typeof branchMsgs>();
+                  branchMsgs.forEach(m => {
+                    const key = m.senderMobile || m.senderId || 'unknown';
+                    if (!custMap.has(key)) custMap.set(key, []);
+                    custMap.get(key)!.push(m);
+                  });
+
+                  const activeCustKey = activeChatCustomerId || Array.from(custMap.keys())[0];
+                  const activeCustMsgs = custMap.get(activeCustKey) || [];
+                  const activeCustInfo = activeCustMsgs.find(m => m.senderRole === 'customer') || activeCustMsgs[0];
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Customer Thread List */}
+                      <div className="space-y-2 max-h-[350px] overflow-y-auto">
+                        <span className="text-[9px] font-mono text-slate-400 uppercase font-bold block">
+                          কাস্টমার ইনবক্স ({custMap.size})
+                        </span>
+                        {Array.from(custMap.entries()).map(([key, msgs]) => {
+                          const isSel = key === activeCustKey;
+                          const lastM = msgs[msgs.length - 1];
+                          const cust = msgs.find(m => m.senderRole === 'customer') || msgs[0];
+
+                          return (
+                            <div
+                              key={key}
+                              onClick={() => setActiveChatCustomerId(key)}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer text-left ${
+                                isSel ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-950/80 border-white/5 hover:border-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <h4 className="text-xs font-bold text-white truncate">{cust?.senderName || 'Citizen'}</h4>
+                                <span className="text-[8px] text-slate-500 font-mono">
+                                  {new Date(lastM.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-amber-400 font-mono">{cust?.senderMobile}</p>
+                              <p className="text-[10.5px] text-slate-300 truncate mt-0.5">{lastM.message}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Chat Messages and Reply window */}
+                      <div className="md:col-span-2 rounded-2xl bg-slate-950 border border-white/10 flex flex-col justify-between overflow-hidden min-h-[350px]">
+                        <div className="p-3 bg-slate-900 border-b border-white/10 flex items-center justify-between">
+                          <div>
+                            <h4 className="text-xs font-bold text-white">{activeCustInfo?.senderName || 'Customer'}</h4>
+                            <span className="text-[9px] text-amber-400 font-mono">{activeCustInfo?.senderMobile}</span>
+                          </div>
+                          <span className="text-[8px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
+                            Live Chat
+                          </span>
+                        </div>
+
+                        {/* Messages Stream */}
+                        <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[240px]">
+                          {activeCustMsgs.map(m => {
+                            const isManager = m.senderRole === 'branch_manager' || m.senderRole === 'ceo' || m.senderRole === 'super_admin';
+                            return (
+                              <div key={m.id} className={`flex ${isManager ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] p-2.5 rounded-xl text-xs space-y-0.5 ${
+                                  isManager ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-tr-none' : 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/10'
+                                }`}>
+                                  <div className="flex items-center justify-between gap-2 text-[8px] opacity-75 font-mono">
+                                    <span>{isManager ? 'You (Manager)' : m.senderName}</span>
+                                    <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  <p className="text-xs">{m.message}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Reply Input */}
+                        <div className="p-2.5 bg-slate-900 border-t border-white/10 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={branchReplyText}
+                            onChange={(e) => setBranchReplyText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (!branchReplyText.trim() || !activeCustInfo) return;
+                                const reply = {
+                                  id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                  branchId: currentShop.id,
+                                  branchName: currentShop.name,
+                                  senderId: currentUser?.id || 'mgr_1',
+                                  senderName: `${currentUser?.name || 'Branch Manager'}`,
+                                  senderMobile: currentUser?.mobile || (currentShop as any).managerMobile || (currentShop as any).contact || '9593388785',
+                                  senderRole: 'branch_manager',
+                                  message: branchReplyText.trim(),
+                                  timestamp: new Date().toISOString(),
+                                  read: true
+                                };
+                                if (addBranchChatMessage) {
+                                  addBranchChatMessage(reply);
+                                }
+                                setBranchReplyText('');
+                              }
+                            }}
+                            placeholder="কাস্টমারকে উত্তর পাঠান... (Type reply)"
+                            className="flex-1 px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!branchReplyText.trim() || !activeCustInfo) return;
+                              const reply = {
+                                id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                branchId: currentShop.id,
+                                branchName: currentShop.name,
+                                senderId: currentUser?.id || 'mgr_1',
+                                senderName: `${currentUser?.name || 'Branch Manager'}`,
+                                senderMobile: currentUser?.mobile || (currentShop as any).managerMobile || (currentShop as any).contact || '9593388785',
+                                senderRole: 'branch_manager',
+                                message: branchReplyText.trim(),
+                                timestamp: new Date().toISOString(),
+                                read: true
+                              };
+                              if (addBranchChatMessage) {
+                                addBranchChatMessage(reply);
+                              }
+                              setBranchReplyText('');
+                            }}
+                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase rounded-xl flex items-center gap-1 cursor-pointer active:scale-95"
+                          >
+                            <Send size={13} />
+                            <span>পাঠান</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 space-y-4">
             <h3 className="text-sm font-black uppercase text-amber-400 font-mono">
               Branch Service Catalog & Products ({products.length})
@@ -2164,6 +2379,7 @@ export default function BranchDashboardView({
             updateOnlinePayment={updateOnlinePayment || (() => {})}
             deleteOnlinePayment={deleteOnlinePayment}
             vault={vault}
+            addVaultItem={addVaultItem}
             updateVaultItem={updateVaultItem}
             invoices={invoices}
           />

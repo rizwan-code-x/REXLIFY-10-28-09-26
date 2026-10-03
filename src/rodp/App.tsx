@@ -171,7 +171,9 @@ export default function App({ onBack }: AppProps = {}) {
     updateGroupMessage,
     deleteGroupMessage,
     groupSettings,
-    updateGroupSettings
+    updateGroupSettings,
+    branchChats,
+    addBranchChatMessage
   } = useAppState();
 
   const isBranchVerified = (() => {
@@ -606,7 +608,7 @@ export default function App({ onBack }: AppProps = {}) {
   // Computer browser navigation history state
   const [navHistory, setNavHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
-  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments'>('home');
+  const [customerActiveTab, setCustomerActiveTab] = useState<'home' | 'appointments' | 'rewards' | 'support' | 'profile' | 'documents' | 'payments' | 'services'>('home');
   const [customerAboutOpen, setCustomerAboutOpen] = useState(false);
   const [customerNotificationsOpen, setCustomerNotificationsOpen] = useState(false);
   const [languageSetting, setLanguageSetting] = useState<'English' | 'Bengali / বাংলা'>('English');
@@ -743,7 +745,7 @@ export default function App({ onBack }: AppProps = {}) {
     if (currentUser.role === 'customer') {
       return [
         { id: 'customer_portal_home', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'services', label: 'Services', icon: Server },
+        { id: 'customer_portal_services', label: 'Services', icon: Server },
         { id: 'customer_portal_documents', label: 'Task Bar', icon: CheckSquare },
         { id: 'customer_portal_payments', label: 'Payment', icon: CreditCard },
       ];
@@ -834,7 +836,15 @@ export default function App({ onBack }: AppProps = {}) {
               updateOnlinePayment={updateOnlinePayment}
               deleteOnlinePayment={deleteOnlinePayment}
               vault={vault}
+              addVaultItem={addVaultItem}
               updateVaultItem={updateVaultItem}
+              branchChats={branchChats}
+              addBranchChatMessage={addBranchChatMessage}
+              services={services}
+              addService={addService}
+              updateService={updateService}
+              deleteService={deleteService}
+              notices={notices}
             />
           );
         }
@@ -858,6 +868,42 @@ export default function App({ onBack }: AppProps = {}) {
           />
         );
       case 'services':
+        if (currentUser?.role === 'customer') {
+          return (
+            <CustomerPortal
+              theme={theme}
+              appointments={appointments}
+              invoices={invoices}
+              vault={vault}
+              notifications={notifications}
+              addAppointment={addAppointment}
+              addVaultItem={addVaultItem}
+              deleteVaultItem={deleteVaultItem}
+              currentUser={currentUser}
+              tasks={tasks}
+              updateCustomerProfile={updateCustomerProfile}
+              activeTab={'services'}
+              setActiveTab={setCustomerActiveTab}
+              isAboutOpen={customerAboutOpen}
+              setIsAboutOpen={setCustomerAboutOpen}
+              isNotificationsOpen={customerNotificationsOpen}
+              setIsNotificationsOpen={setCustomerNotificationsOpen}
+              languageSetting={languageSetting}
+              setLanguageSetting={setLanguageSetting}
+              services={services}
+              aiKnowledge={aiKnowledge}
+              shops={shops}
+              notices={notices}
+              inquiries={inquiries}
+              addInquiry={addInquiry}
+              onlinePayments={onlinePayments}
+              addOnlinePayment={addOnlinePayment}
+              updateOnlinePayment={updateOnlinePayment}
+              branchChats={branchChats}
+              addBranchChatMessage={addBranchChatMessage}
+            />
+          );
+        }
         return (
           <ServicesView
             theme={theme}
@@ -866,8 +912,13 @@ export default function App({ onBack }: AppProps = {}) {
             updateService={updateService}
             deleteService={deleteService}
             appointments={appointments}
-            userRole={currentUser.role}
+            userRole={currentUser?.role}
             addAppointment={addAppointment}
+            branchChats={branchChats}
+            addBranchChatMessage={addBranchChatMessage}
+            shops={shops}
+            currentUser={currentUser}
+            notices={notices}
           />
         );
       case 'appointments':
@@ -1148,6 +1199,7 @@ export default function App({ onBack }: AppProps = {}) {
             updateOnlinePayment={updateOnlinePayment}
             deleteOnlinePayment={deleteOnlinePayment}
             vault={vault}
+            addVaultItem={addVaultItem}
             updateVaultItem={updateVaultItem}
             deleteVaultItem={deleteVaultItem}
             invoices={invoices}
@@ -1186,6 +1238,8 @@ export default function App({ onBack }: AppProps = {}) {
             onlinePayments={onlinePayments}
             addOnlinePayment={addOnlinePayment}
             updateOnlinePayment={updateOnlinePayment}
+            branchChats={branchChats}
+            addBranchChatMessage={addBranchChatMessage}
           />
         );
       case 'ai_assistant':
@@ -1596,7 +1650,7 @@ export default function App({ onBack }: AppProps = {}) {
       </div>
 
       {/* Persistent Bottom Horizontal Navigation Bar for both Desktop and Mobile */}
-      {(currentUser.role !== 'customer' || (currentTab === 'customer_portal' && (customerActiveTab === 'home' || customerActiveTab === 'documents' || customerActiveTab === 'payments')) || currentTab === 'services') && (
+      {(currentUser.role !== 'customer' || (currentTab === 'customer_portal' && (customerActiveTab === 'home' || customerActiveTab === 'documents' || customerActiveTab === 'payments' || customerActiveTab === 'services')) || currentTab === 'services') && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#070709]/95 backdrop-blur-lg border-t border-[#dfac5d]/15 px-4 py-2 flex items-center justify-around shadow-[0_-8px_30px_rgba(0,0,0,0.8)] overflow-x-auto gap-2 scrollbar-none">
           {getBottomNavItems().map((item) => {
             const IconComponent = item.icon;
