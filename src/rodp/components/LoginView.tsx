@@ -880,24 +880,43 @@ export default function LoginView({
 
       const statusLower = (matchedBranch.status || 'approved').toLowerCase();
       if (statusLower === 'suspended') {
-        setErrorMsg('Access Denied: This Branch has been suspended by the CEO.');
+        setErrorMsg('🚫 আপনার ব্রাঞ্চ সাসপেন্ড করা হয়েছে! আইডি/পাসওয়ার্ড ও ফিচার্স সম্পূর্ণ লক রয়েছে। অনুগ্রহ করে মেইন ব্রাঞ্চ (CEO Panel)-এর সঙ্গে যোগাযোগ করুন।');
         return;
       }
       if (statusLower === 'hold') {
-        setErrorMsg('Access Denied: This Branch is currently on hold. Please contact the CEO.');
-        return;
+        // Check if hold has expired
+        if (matchedBranch.holdUntil) {
+          const remainingMs = new Date(matchedBranch.holdUntil).getTime() - Date.now();
+          if (remainingMs <= 0) {
+            // Auto release expired hold
+            if (updateShop) {
+              updateShop(matchedBranch.id, { status: 'approved', holdUntil: undefined, holdReason: undefined });
+            }
+          } else {
+            const remMinutes = Math.ceil(remainingMs / (60 * 1000));
+            const timeLabel = remMinutes > 60 ? `${Math.floor(remMinutes / 60)} ঘণ্টা ${remMinutes % 60} মিনিট` : `${remMinutes} মিনিট`;
+            setErrorMsg(`⏳ ব্রাঞ্চ সাময়িকভাবে হোল্ডে রয়েছে! সিইও বার্তা: "${matchedBranch.holdReason || 'সাময়িক স্থগিতাদেশ'}"। অবশিষ্ট সময়: ${timeLabel}। এই সময়ের মধ্যে লগইন বা কাজ করা যাবে না।`);
+            return;
+          }
+        } else {
+          setErrorMsg(`⏳ ব্রাঞ্চ সাময়িকভাবে হোল্ডে রয়েছে! সিইও বার্তা: "${matchedBranch.holdReason || 'সাময়িক স্থগিতাদেশ'}"। অনুগ্রহ করে মেইন ব্রাঞ্চ এর সঙ্গে যোগাযোগ করুন।`);
+          return;
+        }
       }
       if (statusLower === 'deleted' || statusLower === 'pending') {
         setErrorMsg('Access Denied: This Branch account is pending activation or terminated.');
         return;
       }
 
-      // Check if this branch requires mandatory initial password change (e.g. MB107)
-      const isInitialMbPassword = (bid === 'MB107' || matchedBranch.id === 'shop_7') && 
-        localStorage.getItem('rodp_pwd_changed_MB107') !== 'true' && 
-        !matchedBranch.passwordChanged;
+      // Check if this branch requires mandatory initial password change (e.g. MB107 or any reset branch)
+      const isInitialBranchPassword = !matchedBranch.isMainBranch && 
+        matchedBranch.customId !== 'ROD001' && 
+        matchedBranch.id !== 'shop_1' && (
+          ((bid === 'MB107' || matchedBranch.id === 'shop_7') && localStorage.getItem('rodp_pwd_changed_MB107') !== 'true' && !matchedBranch.passwordChanged) ||
+          (matchedBranch.passwordChanged === false && localStorage.getItem(`rodp_pwd_changed_${matchedBranch.customId}`) !== 'true')
+        );
 
-      if (isInitialMbPassword) {
+      if (isInitialBranchPassword) {
         setForcePasswordChangeBranch(matchedBranch);
         setForcedNewPass('');
         setForcedConfirmPass('');
@@ -3082,7 +3101,7 @@ export default function LoginView({
                 স্বাগতম, {forcePasswordChangeBranch.branchHead || forcePasswordChangeBranch.ownerName}!
               </p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                আপনার এটি প্রথম লগইন। কেন্দ্রীয় নিরাপত্তা নিয়ম অনুযায়ী অস্থায়ী পাসওয়ার্ড <strong>(Pervez@00123)</strong> পরিবর্তন করে আপনার স্থায়ী গোপনীয় পাসওয়ার্ড সেট করতে হবে।
+                আপনার এটি প্রথম লগইন। কেন্দ্রীয় নিরাপত্তা নিয়ম অনুযায়ী অস্থায়ী পাসওয়ার্ড <strong>({forcePasswordChangeBranch.password || 'অস্থায়ী পাসওয়ার্ড'})</strong> পরিবর্তন করে আপনার স্থায়ী গোপনীয় পাসওয়ার্ড সেট করতে হবে।
               </p>
             </div>
 

@@ -863,6 +863,91 @@ export default function BranchDashboardView({
         </div>
       </div>
 
+      {/* OFFICIAL CEO WARNING BANNER (Requirement: Warning with dismiss '×' button) */}
+      {currentShop.warningMessage && !currentShop.warningDismissed && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-yellow-950/90 via-amber-950/80 to-slate-900 border-2 border-yellow-500/70 text-white shadow-2xl flex items-start justify-between gap-4 animate-bounce-subtle text-left">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 flex items-center justify-center shrink-0 shadow-inner">
+              <AlertTriangle size={22} className="animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-yellow-500 text-slate-950 text-[9px] font-mono font-black uppercase">
+                  ⚠️ OFFICIAL CEO WARNING / প্রধান কার্যালয়ের সতর্কবার্তা
+                </span>
+                {currentShop.warningSentAt && (
+                  <span className="text-[10px] text-yellow-200/80 font-mono">
+                    {new Date(currentShop.warningSentAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-yellow-100 leading-relaxed">
+                {currentShop.warningMessage}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateShop(currentShop.id, { warningDismissed: true })}
+            className="p-1.5 rounded-xl bg-white/10 hover:bg-yellow-500 hover:text-slate-950 text-white transition-all cursor-pointer shrink-0"
+            title="Dismiss Warning (বন্ধ করুন)"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* SUSPENDED STATUS BLOCKING BANNER */}
+      {!isSuperAdmin && currentShop.status === 'suspended' && (
+        <div className="p-6 rounded-3xl bg-rose-950/95 border-2 border-rose-500 text-white shadow-2xl space-y-3 text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <Lock size={24} className="animate-bounce" />
+            </div>
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-mono font-black uppercase">
+                🚫 BRANCH SUSPENDED BY CEO
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-rose-100 mt-1">
+                আপনার ব্রাঞ্চটি সাময়িকভাবে সাসপেন্ড করা হয়েছে!
+              </h3>
+            </div>
+          </div>
+          <p className="text-xs text-rose-200 leading-relaxed font-semibold">
+            আইডি, পাসওয়ার্ড ও সকল ডিজিটাল কার্যক্রম সাময়িকভাবে লক রয়েছে। অনুগ্রহ করে অবিলম্বে মেইন ব্রাঞ্চ (CEO Panel)-এর সঙ্গে যোগাযোগ করুন।
+          </p>
+        </div>
+      )}
+
+      {/* ON HOLD STATUS BLOCKING BANNER */}
+      {!isSuperAdmin && currentShop.status === 'hold' && (
+        <div className="p-6 rounded-3xl bg-amber-950/95 border-2 border-amber-500 text-white shadow-2xl space-y-3 text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <Clock size={24} className="animate-pulse" />
+            </div>
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-mono font-black uppercase">
+                ⏳ BRANCH CURRENTLY ON HOLD
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-amber-100 mt-1">
+                আপনার ব্রাঞ্চ সাময়িকভাবে হোল্ডে রাখা হয়েছে
+              </h3>
+            </div>
+          </div>
+          <div className="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1 text-xs">
+            <p className="text-amber-200 font-bold">
+              সিইও বার্তা: "{currentShop.holdReason || 'সাময়িক স্থগিতাদেশ ও সার্ভার রক্ষণাবেক্ষণ'}"
+            </p>
+            {currentShop.holdUntil && (
+              <p className="text-[11px] text-amber-300/80 font-mono">
+                হোল্ড মেয়াদ শেষ হবে: {new Date(currentShop.holdUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({new Date(currentShop.holdUntil).toLocaleDateString()})
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* SUB-TAB 1: OVERVIEW & DASHBOARD ANALYTICS + QUICK ACTIONS */}
       {activeSubTab === 'overview' && (
         <div className="space-y-6">

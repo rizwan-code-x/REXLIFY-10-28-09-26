@@ -251,10 +251,12 @@ export default function NotificationsView({
     );
   };
 
-  const filteredLogs = notifications.filter(log => {
-    const matchesSearch = log.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          log.recipientMobile.includes(searchQuery) ||
-                          log.message.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredLogs = (notifications || []).filter(log => {
+    if (!log) return false;
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = (log.recipientName || '').toLowerCase().includes(q) || 
+                          (log.recipientMobile || '').includes(searchQuery || '') ||
+                          (log.message || '').toLowerCase().includes(q);
     const matchesChannel = filterChannel === 'All' || log.type === filterChannel;
     return matchesSearch && matchesChannel;
   });

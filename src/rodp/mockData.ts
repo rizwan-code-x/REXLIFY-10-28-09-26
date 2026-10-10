@@ -237,8 +237,8 @@ export const MOCK_SHOPS: Shop[] = [
     isMainBranch: false,
     managerBio: '৭ম স্বাধীন ব্রাঞ্চ (MB COMPUTER - MB107) এর ব্রাঞ্চ ম্যানেজার। সকল আধুনিক কম্পিউটার, অনলাইন ফর্ম ও সিএসসি ডিজিটাল সেবায় নিয়োজিত।',
     congratulationsMsg: 'অভিনন্দন পারভেজ হোসেন! ৭ম ব্রাঞ্চ (MB COMPUTER) এর ব্রাঞ্চ ম্যানেজার হিসেবে আপনাকে আন্তরিক অভিনন্দন।',
-    distanceFromHeadOffice: '4.8 km',
-    geoCoords: { lat: 24.228, lng: 88.698 },
+    distanceFromHeadOffice: '2.7 km (500m from RR 105)',
+    geoCoords: { lat: 24.212, lng: 88.678 },
     branchPhotosApproved: true,
     branchPhotos: [
       MAIN_OFFICE_PHOTO_URL,

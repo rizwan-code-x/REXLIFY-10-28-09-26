@@ -63,6 +63,11 @@ export interface Shop {
   geoCoords?: { lat: number; lng: number };
   profileConfirmed?: boolean;
   passwordChanged?: boolean;
+  holdUntil?: string; // ISO timestamp when hold expires
+  holdReason?: string; // Reason set by CEO
+  warningMessage?: string; // Warning sent by CEO
+  warningSentAt?: string; // Timestamp when warning was issued
+  warningDismissed?: boolean; // Whether branch dismissed the warning banner
 }
 
 export interface ServiceModule {

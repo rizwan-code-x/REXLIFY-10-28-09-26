@@ -862,6 +862,11 @@ function AppContent() {
 
   // Lenis Smooth Scroll Engine (Zero Lag & 60/120 FPS Butter-Smooth Experience)
   useEffect(() => {
+    // Disable Lenis for application dashboards like RODP where nested panes manage their own native scrolling
+    if (view === 'rodp' || view === 'admin-dashboard' || view === 'rexlify-ai') {
+      return;
+    }
+
     let lenis: Lenis | null = null;
     let rafId: number;
 
@@ -886,7 +891,7 @@ function AppContent() {
       if (rafId) cancelAnimationFrame(rafId);
       if (lenis) lenis.destroy();
     };
-  }, []);
+  }, [view]);
 
   // Home View 30-sec Non-intrusive Newsletter toast check (Disabled to avoid cluttering the landing page experience)
   useEffect(() => {

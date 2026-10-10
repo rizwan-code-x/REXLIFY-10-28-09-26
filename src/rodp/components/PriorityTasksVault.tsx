@@ -562,26 +562,28 @@ export default function PriorityTasksVault({
   const innerCard = isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200';
 
   // Filter completed tasks list in real-time
-  const filteredTasks = completedTasks.filter(t => {
-    const q = searchTerm.toLowerCase();
+  const filteredTasks = (completedTasks || []).filter(t => {
+    if (!t) return false;
+    const q = (searchTerm || '').toLowerCase();
     const matchesTitle = t.customTitle && t.customTitle.toLowerCase().includes(q);
-    const matchesCustomer = t.customerName.toLowerCase().includes(q);
-    const matchesRef = t.referenceId.toLowerCase().includes(q);
-    const matchesDate = t.completionDate.toLowerCase().includes(q);
-    const matchesService = t.serviceType.toLowerCase().includes(q);
+    const matchesCustomer = (t.customerName || '').toLowerCase().includes(q);
+    const matchesRef = (t.referenceId || '').toLowerCase().includes(q);
+    const matchesDate = (t.completionDate || '').toLowerCase().includes(q);
+    const matchesService = (t.serviceType || '').toLowerCase().includes(q);
     const matchesNotes = t.notes && t.notes.toLowerCase().includes(q);
-    const matchesExtracted = t.allExtractedIds && t.allExtractedIds.some(id => id.value.toLowerCase().includes(q));
+    const matchesExtracted = t.allExtractedIds && t.allExtractedIds.some(id => (id?.value || '').toLowerCase().includes(q));
 
     return matchesTitle || matchesCustomer || matchesRef || matchesDate || matchesService || matchesNotes || matchesExtracted;
   });
 
   if (activeSubView === 'history') {
-    const filteredHistory = completedTasks.filter(t => {
-      const q = historySearchTerm.toLowerCase();
+    const filteredHistory = (completedTasks || []).filter(t => {
+      if (!t) return false;
+      const q = (historySearchTerm || '').toLowerCase();
       const matchesTitle = t.customTitle && t.customTitle.toLowerCase().includes(q);
-      const matchesCustomer = t.customerName.toLowerCase().includes(q);
-      const matchesRef = t.referenceId.toLowerCase().includes(q);
-      const matchesService = t.serviceType.toLowerCase().includes(q);
+      const matchesCustomer = (t.customerName || '').toLowerCase().includes(q);
+      const matchesRef = (t.referenceId || '').toLowerCase().includes(q);
+      const matchesService = (t.serviceType || '').toLowerCase().includes(q);
       const matchesNotes = t.notes && t.notes.toLowerCase().includes(q);
       return matchesTitle || matchesCustomer || matchesRef || matchesService || matchesNotes;
     });

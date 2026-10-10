@@ -973,6 +973,93 @@ export function useAppState() {
         }
       }).catch(err => console.warn(err));
     },
+    resetBranchData: async (id: string) => {
+      const targetShop = shops.find(s => s.id === id);
+      if (!targetShop) return;
+      if (id === 'shop_1' || targetShop.isMainBranch || targetShop.customId === 'ROD001') {
+        alert('You cannot reset the Main Head Office (ROD001)!');
+        return;
+      }
+
+      // Determine default password
+      let defaultPassword = 'pass';
+      if (targetShop.customId === 'MB107') defaultPassword = 'Pervez@00123';
+      else if (targetShop.customId === 'RRR105') defaultPassword = 'RRR@0012352';
+      else if (targetShop.customId === 'CSCL106') defaultPassword = 'CSCL 0012350';
+      else if (targetShop.customId === 'FAR104' || targetShop.customId === 'FARIDPUR106') defaultPassword = 'FAR@0012352';
+      else if (targetShop.customId === 'MAM103' || targetShop.customId === 'EB105') defaultPassword = 'MAM@0012352';
+      else if (targetShop.customId === 'RCS102' || targetShop.customId === 'JH104') defaultPassword = 'RCS@0012352';
+      else if (targetShop.customId) defaultPassword = `${targetShop.customId}@00123`;
+
+      // 1. Reset shop fields to fresh brand new state
+      const resetShopUpdates: Partial<Shop> = {
+        password: defaultPassword,
+        passwordChanged: false,
+        profileConfirmed: false,
+        managerPhoto: '',
+        managerBio: 'To provide honest, super-fast digital services to every citizen in our franchise network.',
+        branchPhoto: '',
+        branchPhotos: [],
+        branchPhotosApproved: false,
+        status: 'approved',
+        holdUntil: undefined,
+        holdReason: undefined,
+        warningMessage: undefined,
+        warningSentAt: undefined,
+        warningDismissed: undefined,
+      };
+
+      updateRecord('shops', id, resetShopUpdates, setShops, shops);
+      
+      // Sync to RTDB
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_shops/' + id), { ...resetShopUpdates, updatedAt: Date.now() }).catch(err => console.warn('RTDB shop reset notice:', err));
+        }
+      }).catch(err => console.warn(err));
+
+      // 2. Remove all invoices belonging to this branch
+      const remainingInvoices = invoices.filter(inv => inv.shopId !== id && inv.shopId !== targetShop.customId);
+      setInvoices(remainingInvoices);
+      localStorage.setItem('rodp_invoices', JSON.stringify(remainingInvoices));
+
+      // Remove from Firestore
+      const removedInvoices = invoices.filter(inv => inv.shopId === id || inv.shopId === targetShop.customId);
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        removedInvoices.forEach(inv => {
+          try {
+            deleteDoc(doc(db, 'invoices', inv.id)).catch(() => {});
+          } catch (e) {}
+        });
+      }
+
+      // 3. Remove all appointments belonging to this branch
+      const remainingAppointments = appointments.filter(apt => apt.shopId !== id && apt.shopId !== targetShop.customId && apt.branchId !== id);
+      setAppointments(remainingAppointments);
+      localStorage.setItem('rodp_appointments', JSON.stringify(remainingAppointments));
+
+      const removedAppointments = appointments.filter(apt => apt.shopId === id || apt.shopId === targetShop.customId || apt.branchId === id);
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        removedAppointments.forEach(apt => {
+          try {
+            deleteDoc(doc(db, 'appointments', apt.id)).catch(() => {});
+          } catch (e) {}
+        });
+      }
+
+      // 4. Clear local storage flags for this branch
+      localStorage.removeItem(`rodp_profile_confirmed_${id}`);
+      localStorage.removeItem(`rodp_profile_confirmed_${targetShop.customId}`);
+      localStorage.removeItem(`rodp_pwd_changed_${targetShop.customId}`);
+      localStorage.removeItem(`rodp_pwd_changed_${id}`);
+      localStorage.removeItem(`rodp_new_leader_dismissed_${id}`);
+      localStorage.removeItem(`rodp_new_leader_dismissed_${targetShop.customId}`);
+      localStorage.removeItem(`rodp_branch_products_${id}`);
+      localStorage.removeItem(`rodp_branch_products_${targetShop.customId}`);
+      localStorage.removeItem(`rodp_branch_proofs_${id}`);
+      localStorage.removeItem(`rodp_branch_proofs_${targetShop.customId}`);
+    },
     
     customers,
     addCustomer: (record: CustomerCRM) => {

@@ -4,7 +4,7 @@ import {
   Store, Users, Sparkles, KeyRound, MapPin, CheckSquare, Calendar,
   Lock, Unlock, ShieldCheck, UserCheck, Power, AlertTriangle, Eye, ArrowLeft, TrendingUp,
   Wallet, Clock, BarChart3, Receipt, CreditCard, Check, X, FileText, Download, Settings,
-  User, Phone
+  User, Phone, RotateCcw, Pause, Play, AlertOctagon, Send, ShieldOff, AlertCircle, Clock3, RotateCw
 } from 'lucide-react';
 import { Shop, SecurityLog, UserRole, ServiceModule, Task, Notice, Inquiry, ServiceChangeNotification } from '../types';
 
@@ -14,6 +14,7 @@ interface AdminPanelProps {
   addShop: (shop: Shop) => void;
   updateShop: (id: string, updates: any) => void;
   deleteShop: (id: string) => void;
+  onResetBranch?: (id: string) => Promise<void> | void;
   securityLogs: SecurityLog[];
   sessionLogs?: any[];
   invoices?: any[];
@@ -85,8 +86,24 @@ export default function AdminPanel({
   serviceNotifications = [],
   replyToServiceNotification,
   markServiceNotificationRead,
-  onNavigateToConnectAllBranches
+  onNavigateToConnectAllBranches,
+  onResetBranch
 }: AdminPanelProps) {
+  // Branch Control Action Modals (Suspend, Hold, Reset, Warning)
+  const [holdingShop, setHoldingShop] = useState<Shop | null>(null);
+  const [holdDurationOption, setHoldDurationOption] = useState<'15m' | '30m' | '1h' | '2h' | '24h' | 'custom'>('1h');
+  const [customHoldMinutes, setCustomHoldMinutes] = useState(60);
+  const [holdReasonInput, setHoldReasonInput] = useState('সিইও নির্দেশিত সাময়িক সার্ভার রক্ষণাবেক্ষণ ও অডিট স্থগিতাদেশ');
+
+  const [warningShop, setWarningShop] = useState<Shop | null>(null);
+  const [warningMessageInput, setWarningMessageInput] = useState('');
+
+  const [resettingShop, setResettingShop] = useState<Shop | null>(null);
+  const [resetConfirmChecked, setResetConfirmChecked] = useState(false);
+  const [isResettingLoading, setIsResettingLoading] = useState(false);
+
+  const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
+
   // Service Change Activity Drawer State
   const [showServiceNotifDrawer, setShowServiceNotifDrawer] = useState(false);
   const [serviceReplyInput, setServiceReplyInput] = useState<{[key: string]: string}>({});
@@ -1116,8 +1133,8 @@ export default function AdminPanel({
                       
                       {/* Live Branch Dashboard Direct Access Buttons */}
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-                        {/* Quick action status triggers */}
-                        <div className="flex items-center gap-1 bg-slate-950/50 p-1 rounded-xl border border-slate-800 shrink-0">
+                        {/* Quick action status triggers (Requirement: Suspend, Hold, Reset, Warning) */}
+                        <div className="flex items-center gap-1.5 bg-slate-950/70 p-1.5 rounded-xl border border-slate-800 shrink-0 flex-wrap">
                           {shop.id === 'shop_1' ? (
                             <span className="px-2.5 py-1 text-[#dfac5d] flex items-center gap-1 text-[8px] font-black uppercase tracking-widest font-mono">
                               <Lock size={10} className="text-amber-500 shrink-0" />
@@ -1125,17 +1142,21 @@ export default function AdminPanel({
                             </span>
                           ) : (
                             <>
+                              {/* 1. SUSPEND BUTTON */}
                               {shop.status === 'suspended' ? (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateShop(shop.id, { status: 'approved' });
+                                    setActionSuccessToast(`ব্রাঞ্চ "${shop.name}" সফলভাবে সক্রিয় (Active) করা হয়েছে!`);
+                                    setTimeout(() => setActionSuccessToast(null), 3500);
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
-                                  title="Resume Branch to Active status"
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500 hover:text-slate-950 transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                  title="ব্রাঞ্চ পুনরায় সক্রিয় করুন (Activate Branch)"
                                 >
-                                  Resume
+                                  <Play size={10} />
+                                  <span>Active / আন-সাসপেন্ড</span>
                                 </button>
                               ) : (
                                 <button
@@ -1143,40 +1164,81 @@ export default function AdminPanel({
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateShop(shop.id, { status: 'suspended' });
+                                    setActionSuccessToast(`ব্রাঞ্চ "${shop.name}" সাসপেন্ড করা হয়েছে! কোনো লগইন বা কাজ হবে না।`);
+                                    setTimeout(() => setActionSuccessToast(null), 3500);
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
-                                  title="Suspend Branch Access"
+                                  className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-600 hover:text-white transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                  title="ব্রাঞ্চ সম্পূর্ণ সাসপেন্ড করুন (Suspend Branch)"
                                 >
-                                  Suspend
+                                  <Ban size={10} />
+                                  <span>সাসপেন্ড</span>
                                 </button>
                               )}
 
+                              {/* 2. HOLD BUTTON */}
                               {shop.status === 'hold' ? (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateShop(shop.id, { status: 'approved' });
+                                    updateShop(shop.id, { status: 'approved', holdUntil: undefined, holdReason: undefined });
+                                    setActionSuccessToast(`ব্রাঞ্চ "${shop.name}"-এর হোল্ড প্রত্যাহার করা হয়েছে!`);
+                                    setTimeout(() => setActionSuccessToast(null), 3500);
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
-                                  title="Resume Branch to Active status"
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                  title="হোল্ড প্রত্যাহার করুন (Release Hold)"
                                 >
-                                  Resume
+                                  <Play size={10} />
+                                  <span>হোল্ড রিলিজ</span>
                                 </button>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateShop(shop.id, { status: 'hold' });
+                                    setHoldingShop(shop);
+                                    setHoldReasonInput('সিইও নির্দেশিত সাময়িক সার্ভার রক্ষণাবেক্ষণ ও অডিট স্থগিতাদেশ');
+                                    setHoldDurationOption('1h');
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/25 hover:bg-amber-500 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
-                                  title="Place Branch on Hold"
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/25 hover:bg-amber-500 hover:text-slate-950 transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                  title="নির্দিষ্ট সময়ের জন্য হোল্ড করুন (Set Hold Timer)"
                                 >
-                                  Hold
+                                  <Pause size={10} />
+                                  <span>হোল্ড</span>
                                 </button>
                               )}
 
+                              {/* 3. RESET BUTTON */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setResettingShop(shop);
+                                  setResetConfirmChecked(false);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                title="সম্পূর্ণ ডাটা মুছে ফ্যাক্টরি রিসেট করুন (Factory Reset)"
+                              >
+                                <RotateCcw size={10} />
+                                <span>রিসেট</span>
+                              </button>
+
+                              {/* 4. WARNING BUTTON */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setWarningShop(shop);
+                                  setWarningMessageInput('');
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500 hover:text-slate-950 transition-all text-[8.5px] font-black uppercase cursor-pointer flex items-center gap-1 active:scale-95"
+                                title="ব্রাঞ্চে অফিসিয়াল সতর্কবার্তা পাঠান (Send Warning)"
+                              >
+                                <AlertTriangle size={10} />
+                                <span>ওয়ার্নিং</span>
+                              </button>
+
+                              {/* Delete option */}
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1188,10 +1250,10 @@ export default function AdminPanel({
                                     }
                                   }
                                 }}
-                                className="px-2 py-1 rounded-lg bg-red-600/15 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
+                                className="px-2 py-1 rounded-lg bg-red-600/10 text-red-400 border border-red-500/20 hover:bg-red-600 hover:text-white transition-all text-[8px] font-black uppercase cursor-pointer"
                                 title="Delete Branch"
                               >
-                                Delete
+                                <Trash size={10} />
                               </button>
                             </>
                           )}
@@ -3657,6 +3719,421 @@ export default function AdminPanel({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 1. HOLD BRANCH ACCESS MODAL */}
+      {/* ========================================================================= */}
+      {holdingShop && (
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-left text-white my-auto animate-scale-in">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-inner">
+                  <Pause size={22} className="animate-pulse" />
+                </div>
+                <div>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[9px] font-black uppercase">
+                    CEO COMMAND • HOLD BRANCH
+                  </span>
+                  <h3 className="text-base font-black text-white mt-0.5">
+                    ব্রাঞ্চ সাময়িক হোল্ড করুন
+                  </h3>
+                  <p className="text-[11px] text-amber-400 font-mono font-bold">
+                    🏢 {holdingShop.name} [{holdingShop.customId || holdingShop.id}]
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHoldingShop(null)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Notice Description */}
+            <p className="text-xs text-slate-300 leading-relaxed">
+              হোল্ড কার্যকর থাকাকালীন এই ব্রাঞ্চের আইডি/পাসওয়ার্ড দিয়ে কোনো লগইন বা কার্যক্রম চলবে না। সময় শেষ হলে অথবা সিইও রিলিজ করলে স্বয়ংক্রিয়ভাবে পুনরায় সক্রিয় হবে।
+            </p>
+
+            {/* Hold Duration Options */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-mono font-black text-amber-400 tracking-wider block">
+                কত সময়ের জন্য হোল্ড থাকবে (Hold Duration):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: '15m', label: '১৫ মিনিট', mins: 15 },
+                  { id: '30m', label: '৩০ মিনিট', mins: 30 },
+                  { id: '1h', label: '১ ঘণ্টা', mins: 60 },
+                  { id: '2h', label: '২ ঘণ্টা', mins: 120 },
+                  { id: '24h', label: '২৪ ঘণ্টা', mins: 1440 },
+                  { id: 'custom', label: 'কাস্টম সময়', mins: customHoldMinutes }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setHoldDurationOption(opt.id as any)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      holdDurationOption === opt.id
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-md'
+                        : 'bg-slate-900 border-white/10 text-slate-300 hover:border-amber-500/40'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {holdDurationOption === 'custom' && (
+                <div className="pt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="10080"
+                    value={customHoldMinutes}
+                    onChange={(e) => setCustomHoldMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-32 py-2 px-3 bg-slate-950 border border-amber-500/40 rounded-xl text-xs font-mono text-white focus:outline-none"
+                    placeholder="মিনিট লিখুন"
+                  />
+                  <span className="text-xs text-slate-400 font-bold">মিনিট নির্ধারণ করুন</span>
+                </div>
+              )}
+            </div>
+
+            {/* CEO Hold Reason / Message */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-mono font-black text-amber-400 tracking-wider block">
+                ব্রাঞ্চে প্রদর্শিত সিইও বার্তা (Reason / Message):
+              </label>
+              <textarea
+                rows={3}
+                value={holdReasonInput}
+                onChange={(e) => setHoldReasonInput(e.target.value)}
+                placeholder="হোল্ডের কারণ লিখুন যা ব্রাঞ্চের স্ক্রিনে প্রদর্শিত হবে..."
+                className="w-full p-3 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 resize-none leading-relaxed"
+              />
+
+              {/* Quick Pills */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  'সিইও নির্দেশিত সার্ভার রক্ষণাবেক্ষণ',
+                  'হিসাব ও ক্যাশ লেজার অডিট স্থগিতাদেশ',
+                  'জরুরি নিরাপত্তা প্রোটোকল পরীক্ষা'
+                ].map((pill, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setHoldReasonInput(pill)}
+                    className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-amber-300 border border-white/5 cursor-pointer"
+                  >
+                    "{pill}"
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setHoldingShop(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  let mins = 60;
+                  if (holdDurationOption === '15m') mins = 15;
+                  else if (holdDurationOption === '30m') mins = 30;
+                  else if (holdDurationOption === '1h') mins = 60;
+                  else if (holdDurationOption === '2h') mins = 120;
+                  else if (holdDurationOption === '24h') mins = 1440;
+                  else if (holdDurationOption === 'custom') mins = customHoldMinutes;
+
+                  const holdExpiry = new Date(Date.now() + mins * 60 * 1000).toISOString();
+                  updateShop(holdingShop.id, {
+                    status: 'hold',
+                    holdUntil: holdExpiry,
+                    holdReason: holdReasonInput.trim() || 'সিইও নির্দেশিত সাময়িক স্থগিতাদেশ'
+                  });
+
+                  setActionSuccessToast(`ব্রাঞ্চ "${holdingShop.name}" ${mins} মিনিটের জন্য হোল্ডে রাখা হয়েছে!`);
+                  setTimeout(() => setActionSuccessToast(null), 3500);
+                  setHoldingShop(null);
+                }}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Pause size={14} />
+                <span>হোল্ড কার্যকর করুন</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. OFFICIAL CEO WARNING MODAL */}
+      {/* ========================================================================= */}
+      {warningShop && (
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-yellow-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-left text-white my-auto animate-scale-in">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center shadow-inner">
+                  <AlertTriangle size={22} className="animate-pulse" />
+                </div>
+                <div>
+                  <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-mono text-[9px] font-black uppercase">
+                    CEO WARNING DESK
+                  </span>
+                  <h3 className="text-base font-black text-white mt-0.5">
+                    ব্রাঞ্চে সতর্কবার্তা পাঠান
+                  </h3>
+                  <p className="text-[11px] text-yellow-400 font-mono font-bold">
+                    🏢 {warningShop.name} [{warningShop.customId || warningShop.id}]
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWarningShop(null)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              এই সতর্কবার্তাটি সংশ্লিষ্ট ব্রাঞ্চ ম্যানেজারের হোমপেজে একটি স্পষ্ট নোটিশ ব্যানার হিসেবে প্রদর্শিত হবে। ব্রাঞ্চ ম্যানেজার বার্তাটি পড়ে গুণ চিহ্ন (×) আকারে কেটে দিতে পারবেন।
+            </p>
+
+            {/* Warning Message Input */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-mono font-black text-yellow-400 tracking-wider block">
+                সতর্কবার্তা লিখুন (Warning Message) *:
+              </label>
+              <textarea
+                rows={4}
+                required
+                value={warningMessageInput}
+                onChange={(e) => setWarningMessageInput(e.target.value)}
+                placeholder="ব্রাঞ্চের উদ্দেশ্যে প্রয়োজনীয় সতর্কবার্তা লিখুন..."
+                className="w-full p-3 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-yellow-400 resize-none leading-relaxed"
+              />
+
+              {/* Preset Warning Pills */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-slate-500 uppercase font-mono block">দ্রুত মেসেজ প্রিসেট:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'দৈনিক বিল ও ক্যাশ লেজার দ্রুত সেন্ট্রাল সিস্টেমে জমা দিন।',
+                    'গ্রাহকদের সেবায় কোনো গাফিলতি বা অতিরিক্ত ফি নেওয়া গ্রহণযোগ্য নয়।',
+                    'সিইও অফিশিয়াল নির্দেশিকা ও সময়সূচি কঠোরভাবে অনুসরণ করুন।'
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setWarningMessageInput(preset)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-yellow-500/20 text-[10px] text-slate-300 hover:text-yellow-300 border border-white/5 cursor-pointer text-left"
+                    >
+                      "{preset}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setWarningShop(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                disabled={!warningMessageInput.trim()}
+                onClick={() => {
+                  if (!warningMessageInput.trim()) return;
+                  updateShop(warningShop.id, {
+                    warningMessage: warningMessageInput.trim(),
+                    warningSentAt: new Date().toISOString(),
+                    warningDismissed: false
+                  });
+
+                  setActionSuccessToast(`ব্রাঞ্চ "${warningShop.name}"-এ সতর্কবার্তা সফলভাবে পাঠানো হয়েছে!`);
+                  setTimeout(() => setActionSuccessToast(null), 3500);
+                  setWarningShop(null);
+                }}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 cursor-pointer transition-all ${
+                  warningMessageInput.trim()
+                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-950 active:scale-95 shadow-yellow-500/20'
+                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                <Send size={14} />
+                <span>ওয়ার্নিং পাঠান</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. COMPLETE FACTORY RESET BRANCH MODAL */}
+      {/* ========================================================================= */}
+      {resettingShop && (
+        <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-purple-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-left text-white my-auto animate-scale-in">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-inner">
+                  <RotateCcw size={22} className="animate-spin-slow" />
+                </div>
+                <div>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[9px] font-black uppercase">
+                    DANGER ZONE • FACTORY RESET
+                  </span>
+                  <h3 className="text-base font-black text-white mt-0.5">
+                    ব্রাঞ্চ সম্পূর্ণ ফ্যাক্টরি রিসেট
+                  </h3>
+                  <p className="text-[11px] text-purple-400 font-mono font-bold">
+                    🏢 {resettingShop.name} [{resettingShop.customId || resettingShop.id}]
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResettingShop(null)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Warning Details Card */}
+            <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-3">
+              <div className="flex items-center gap-2 text-rose-400 text-xs font-black uppercase font-mono">
+                <AlertOctagon size={16} />
+                <span>আপনি কি নিশ্চিত যে সম্পূর্ণ রিসেট করতে চান?</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+                ওকে ক্লিক করলে এই ব্রাঞ্চের সমস্ত ডাটা মুছে যাবে এবং নতুন ব্রাঞ্চ লগইন করার মতো একদম প্রথম অবস্থায় ফিরে যাবে:
+              </p>
+              <ul className="text-[11px] text-slate-300 space-y-1.5 pl-2">
+                <li className="flex items-center gap-2">
+                  <span className="text-rose-400">✕</span>
+                  <span>সকল বিল হিস্ট্রি ও আর্থিক লেনদেন মুছে যাবে।</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-rose-400">✕</span>
+                  <span>সকল অ্যাপয়েন্টমেন্ট ও সার্ভিস রেকর্ড মুছে যাবে।</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-rose-400">✕</span>
+                  <span>ম্যানেজারের ফটো, বায়ো এবং প্রোফাইল ভেরিফিকেশন ক্লিয়ার হবে।</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-rose-400">✕</span>
+                  <span>পাসওয়ার্ড প্রাথমিক মূল পাসওয়ার্ডে রিসেট হবে।</span>
+                </li>
+                <li className="flex items-center gap-2 font-bold text-amber-300">
+                  <span>✓</span>
+                  <span>ব্রাঞ্চটি নতুনের মতো প্রথম লগইন ও সেটআপ পেজ থেকে শুরু হবে।</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Checkbox confirmation */}
+            <label className="flex items-start gap-3 p-3.5 bg-slate-950 border border-white/10 rounded-xl cursor-pointer hover:border-purple-500/40 select-none">
+              <input
+                type="checkbox"
+                checked={resetConfirmChecked}
+                onChange={(e) => setResetConfirmChecked(e.target.checked)}
+                className="mt-0.5 rounded border-slate-700 text-purple-600 focus:ring-0 cursor-pointer w-4 h-4"
+              />
+              <span className="text-xs text-slate-300 leading-relaxed font-semibold">
+                আমি সম্পূর্ণ জেনে-বুঝে নিশ্চিত করছি যে <strong>{resettingShop.name}</strong>-এর সকল ডাটা স্থায়ীভাবে মুছে দেওয়া হবে।
+              </span>
+            </label>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setResettingShop(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                disabled={!resetConfirmChecked || isResettingLoading}
+                onClick={async () => {
+                  if (!resetConfirmChecked) return;
+                  setIsResettingLoading(true);
+                  try {
+                    if (onResetBranch) {
+                      await onResetBranch(resettingShop.id);
+                    } else {
+                      updateShop(resettingShop.id, {
+                        profileConfirmed: false,
+                        passwordChanged: false,
+                        managerPhoto: '',
+                        managerBio: '',
+                        status: 'approved',
+                        holdUntil: undefined,
+                        holdReason: undefined,
+                        warningMessage: undefined
+                      });
+                    }
+                    setActionSuccessToast(`ব্রাঞ্চ "${resettingShop.name}" সফলভাবে সম্পূর্ণ ফ্যাক্টরি রিসেট করা হয়েছে!`);
+                    setTimeout(() => setActionSuccessToast(null), 3500);
+                  } catch (err) {
+                    console.error(err);
+                    alert('রিসেট করতে ত্রুটি হয়েছে।');
+                  } finally {
+                    setIsResettingLoading(false);
+                    setResettingShop(null);
+                  }
+                }}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 cursor-pointer transition-all ${
+                  resetConfirmChecked && !isResettingLoading
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white active:scale-95 shadow-purple-600/30'
+                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                <RotateCcw size={14} className={isResettingLoading ? 'animate-spin' : ''} />
+                <span>{isResettingLoading ? 'রিসেট হচ্ছে...' : 'হ্যাঁ, সম্পূর্ণ রিসেট করুন'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Success Toast */}
+      {actionSuccessToast && (
+        <div className="fixed top-6 right-6 z-[10001] px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl border border-white/20 flex items-center gap-2.5 animate-bounce-subtle backdrop-blur-md">
+          <CheckCircle2 size={18} className="text-amber-300 shrink-0" />
+          <span>{actionSuccessToast}</span>
+          <button
+            type="button"
+            onClick={() => setActionSuccessToast(null)}
+            className="p-1 hover:bg-white/10 rounded-lg text-white ml-2 cursor-pointer"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

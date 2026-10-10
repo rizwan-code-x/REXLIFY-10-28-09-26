@@ -64,7 +64,8 @@ export default function CRMView({
   const [notes, setNotes] = useState('');
 
   // Selected customer and editing states
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(customers[0]?.id || null);
+  const safeCustomers = Array.isArray(customers) ? customers.filter(Boolean) : [];
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(safeCustomers[0]?.id || null);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editMobile, setEditMobile] = useState('');
@@ -76,7 +77,7 @@ export default function CRMView({
 
   React.useEffect(() => {
     if (preselectedCustomerMobile) {
-      const match = customers.find(c => c.mobile === preselectedCustomerMobile || c.customId === preselectedCustomerMobile);
+      const match = safeCustomers.find(c => c && (c.mobile === preselectedCustomerMobile || c.customId === preselectedCustomerMobile));
       if (match) {
         setSelectedCustomerId(match.id);
       }
@@ -84,15 +85,24 @@ export default function CRMView({
         clearPreselectedCustomerMobile();
       }
     }
-  }, [preselectedCustomerMobile, customers, clearPreselectedCustomerMobile]);
+  }, [preselectedCustomerMobile, safeCustomers, clearPreselectedCustomerMobile]);
 
   // Filtering customers by search query and category tab
-  const filteredCustomers = customers.filter((cust) => {
-    const matchesSearch = 
-      cust.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      cust.mobile.includes(searchQuery) ||
-      (cust.email && cust.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      cust.id.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredCustomers = safeCustomers.filter((cust) => {
+    if (!cust) return false;
+    const q = (searchQuery || '').toLowerCase().trim();
+    const custName = (cust.name || '').toLowerCase();
+    const custMobile = cust.mobile || '';
+    const custEmail = (cust.email || '').toLowerCase();
+    const custId = (cust.id || '').toLowerCase();
+    const custCustomId = (cust.customId || '').toLowerCase();
+
+    const matchesSearch = !q ||
+      custName.includes(q) || 
+      custMobile.includes(q) ||
+      custEmail.includes(q) ||
+      custId.includes(q) ||
+      custCustomId.includes(q);
 
     const custStatus = cust.status || 'active';
     const matchesTab = 
@@ -110,7 +120,7 @@ export default function CRMView({
     if (!name.trim() || !mobile.trim()) return;
 
     // Check unique email/mobile
-    const exists = customers.some(c => c.mobile === mobile.trim() || (email && c.email?.toLowerCase() === email.trim().toLowerCase()));
+    const exists = safeCustomers.some(c => c && (c.mobile === mobile.trim() || (email && c.email && c.email.toLowerCase() === email.trim().toLowerCase())));
     if (exists) {
       alert("❌ A citizen with this Mobile or Email already exists!");
       return;
@@ -120,7 +130,7 @@ export default function CRMView({
     let generatedCustomId = '';
     while (true) {
       const randId = String(Math.floor(10000 + Math.random() * 90000));
-      if (!customers.some(c => c.customId === randId)) {
+      if (!safeCustomers.some(c => c && c.customId === randId)) {
         generatedCustomId = randId;
         break;
       }
@@ -201,12 +211,12 @@ export default function CRMView({
     }
   };
 
-  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+  const selectedCustomer = safeCustomers.find(c => c && c.id === selectedCustomerId);
   
   // Calculations for selected customer
-  const customerAppointments = appointments.filter(a => a.mobileNumber === selectedCustomer?.mobile);
-  const customerInvoices = invoices.filter(i => i.customerMobile === selectedCustomer?.mobile);
-  const totalLcv = customerInvoices.reduce((sum, i) => sum + i.totalAmount, 0);
+  const customerAppointments = (appointments || []).filter(a => a && a.mobileNumber === selectedCustomer?.mobile);
+  const customerInvoices = (invoices || []).filter(i => i && i.customerMobile === selectedCustomer?.mobile);
+  const totalLcv = customerInvoices.reduce((sum, i) => sum + (i?.totalAmount || 0), 0);
 
   const getStatusBadge = (s?: string) => {
     const value = s || 'active';
@@ -312,23 +322,28 @@ export default function CRMView({
     );
   }
 
-  const highlightText = (text: string, highlight: string) => {
-    if (!highlight.trim()) return <span>{text}</span>;
-    const regex = new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-    const parts = text.split(regex);
-    return (
-      <span>
-        {parts.map((part, i) => 
-          regex.test(part) ? (
-            <mark key={i} className="bg-yellow-500/30 text-yellow-300 rounded px-0.5 font-extrabold font-mono">
-              {part}
-            </mark>
-          ) : (
-            part
-          )
-        )}
-      </span>
-    );
+  const highlightText = (text?: string | null, highlight?: string) => {
+    if (!text) return null;
+    if (!highlight || !highlight.trim()) return <span>{text}</span>;
+    try {
+      const regex = new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+      const parts = text.split(regex);
+      return (
+        <span>
+          {parts.map((part, i) => 
+            regex.test(part) ? (
+              <mark key={i} className="bg-yellow-500/30 text-yellow-300 rounded px-0.5 font-extrabold font-mono">
+                {part}
+              </mark>
+            ) : (
+              part
+            )
+          )}
+        </span>
+      );
+    } catch {
+      return <span>{text}</span>;
+    }
   };
 
   return (
@@ -428,13 +443,16 @@ export default function CRMView({
                 </div>
               ) : (
                 filteredCustomers.map((cust, idx) => {
+                  if (!cust) return null;
                   const isActive = selectedCustomerId === cust.id;
-                  const custInvoices = invoices.filter(i => i.customerMobile === cust.mobile);
-                  const custLcv = custInvoices.reduce((sum, i) => sum + i.totalAmount, 0);
+                  const custMobile = cust.mobile || '';
+                  const custInvoices = (invoices || []).filter(i => i && i.customerMobile === custMobile);
+                  const custLcv = custInvoices.reduce((sum, i) => sum + (i?.totalAmount || 0), 0);
+                  const custName = cust.name || 'Unnamed Citizen';
 
                   return (
                     <button
-                      key={cust.id}
+                      key={cust.id || `cust_${idx}`}
                       onClick={() => {
                         setSelectedCustomerId(cust.id);
                         setIsEditing(false);
@@ -453,15 +471,15 @@ export default function CRMView({
 
                         <div className="overflow-hidden">
                           <span className="text-xs font-black block truncate">
-                            {highlightText(cust.name, searchQuery)}
+                            {highlightText(custName, searchQuery)}
                           </span>
                           <span className="text-[9px] text-slate-400 font-bold block mt-1 flex flex-wrap items-center gap-1">
                             <span className="text-slate-500 font-mono">ID:</span>
                             <span className="font-mono bg-slate-950 px-1 py-0.2 rounded border border-slate-800 text-[#dfac5d] font-bold">
-                              {cust.customId ? highlightText(cust.customId, searchQuery) : highlightText(cust.id.replace('cust_', '').substring(0, 5), searchQuery)}
+                              {cust.customId ? highlightText(cust.customId, searchQuery) : highlightText((cust.id || '').replace('cust_', '').substring(0, 5), searchQuery)}
                             </span>
                             <span className="text-slate-500">| Mob:</span>
-                            <span className="text-slate-300 font-mono">{highlightText(cust.mobile, searchQuery)}</span>
+                            <span className="text-slate-300 font-mono">{highlightText(custMobile, searchQuery)}</span>
                           </span>
                         </div>
                       </div>
@@ -625,17 +643,17 @@ export default function CRMView({
                       <img 
                         src={selectedCustomer.avatar} 
                         referrerPolicy="no-referrer" 
-                        alt={selectedCustomer.name} 
+                        alt={selectedCustomer.name || 'User'} 
                         className="w-14 h-14 rounded-2xl border-2 border-[#dfac5d]/40 object-cover shadow-[0_0_15px_rgba(223,172,93,0.15)] shrink-0" 
                       />
                     ) : (
                       <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-600 to-indigo-600 flex items-center justify-center font-black text-[#050505] text-xl uppercase shadow-[0_0_15px_rgba(223,172,93,0.15)] shrink-0">
-                        {selectedCustomer.name.charAt(0)}
+                        {(selectedCustomer.name || 'U').charAt(0)}
                       </div>
                     )}
                     <div>
                       <h3 className="text-xl font-black text-slate-100 flex items-center gap-2">
-                        {selectedCustomer.name}
+                        {selectedCustomer.name || 'Unnamed Citizen'}
                       </h3>
                       <p className="text-slate-400 text-[10px] mt-1 flex flex-col gap-1">
                         <span className="font-mono">User ID: <strong className="text-amber-400">{selectedCustomer.id}</strong></span>

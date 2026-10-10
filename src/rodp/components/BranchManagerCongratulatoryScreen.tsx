@@ -123,7 +123,11 @@ export default function BranchManagerCongratulatoryScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] min-h-screen w-full bg-[#05070d] text-slate-100 flex flex-col overflow-y-auto select-auto font-sans">
+    <div 
+      data-lenis-prevent="true"
+      className="fixed inset-0 z-[9999] h-screen max-h-screen w-full bg-[#05070d] text-slate-100 flex flex-col overflow-y-auto overscroll-contain select-auto font-sans custom-scrollbar"
+      style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}
+    >
       {/* Background ambience sparkles & radial glows */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.12),transparent_50%)] pointer-events-none" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.12),transparent_50%)] pointer-events-none" />
@@ -136,7 +140,7 @@ export default function BranchManagerCongratulatoryScreen({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col min-h-screen w-full relative z-10"
+            className="flex-1 flex flex-col min-h-full w-full relative z-10"
           >
             {/* Top decorative gradient bar */}
             <div className="w-full h-1 bg-gradient-to-r from-amber-500 via-indigo-500 to-amber-500 shrink-0" />
@@ -158,7 +162,7 @@ export default function BranchManagerCongratulatoryScreen({
                     </span>
                   </div>
                   <h1 className="text-base sm:text-lg font-black text-white uppercase tracking-tight mt-0.5 flex items-center gap-2">
-                    <span>ব্রাঞ্চ ম্যানেজার কমিশন ও প্রোফাইল সেটআপ</span>
+                    <span className="text-white drop-shadow-sm">ব্রাঞ্চ ম্যানেজার কমিশন ও প্রোফাইল সেটআপ</span>
                     <span className="text-[10px] text-amber-400 font-mono font-normal">| Leadership Setup</span>
                   </h1>
                 </div>
@@ -239,7 +243,11 @@ export default function BranchManagerCongratulatoryScreen({
             )}
 
             {/* MAIN 16:9 DUAL-WINDOW CONTAINER (FULLY SCROLLABLE, ZERO CLAMPING) */}
-            <main className="flex-1 px-4 sm:px-8 py-6 w-full max-w-[1700px] mx-auto pb-32">
+            <main 
+              data-lenis-prevent="true"
+              className="flex-1 px-4 sm:px-8 py-6 w-full max-w-[1700px] mx-auto pb-48 md:pb-56 overflow-y-visible"
+              style={{ touchAction: 'pan-y' }}
+            >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
                 
                 {/* ========================================================================= */}
@@ -385,19 +393,28 @@ export default function BranchManagerCongratulatoryScreen({
                       </ul>
                     </div>
 
-                    {/* Quick Next Button for Single-Tab Mode */}
-                    {activeWindowTab === 'win1' && (
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setActiveWindowTab('win2')}
-                          className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer"
-                        >
-                          <span>পরবর্তী উইন্ডো: ফটো আপলোড ও সেভ (Next Window)</span>
-                          <ArrowRight size={15} />
-                        </button>
-                      </div>
-                    )}
+                    {/* Advance Button to Window 2 */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeWindowTab === 'win1') {
+                            setActiveWindowTab('win2');
+                          } else {
+                            const win2El = document.getElementById('window-2-container');
+                            if (win2El) {
+                              win2El.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            } else {
+                              setActiveWindowTab('win2');
+                            }
+                          }
+                        }}
+                        className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer active:scale-98"
+                      >
+                        <span>পরবর্তী উইন্ডো: ফটো আপলোড ও সেভ (Next Step: Photo & Save)</span>
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
 
@@ -406,10 +423,11 @@ export default function BranchManagerCongratulatoryScreen({
                 {/* ========================================================================= */}
                 {(activeWindowTab === 'dual' || activeWindowTab === 'win2') && (
                   <motion.div
+                    id="window-2-container"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="p-6 sm:p-7 rounded-[28px] bg-[#090c16]/90 border border-slate-800 shadow-2xl space-y-6 relative overflow-hidden"
+                    className="p-6 sm:p-7 rounded-[28px] bg-[#090c16]/90 border border-slate-800 shadow-2xl space-y-6 relative overflow-hidden scroll-mt-24"
                   >
                     {/* Top Glow Accent */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-amber-500" />
@@ -601,6 +619,16 @@ export default function BranchManagerCongratulatoryScreen({
                         <p className="text-[10px] text-center text-amber-500/80 font-mono mt-2">
                           * সেভ করতে উপরের চেকবক্সে টিক দিন (Check confirmation above to enable)
                         </p>
+                      )}
+                      {activeWindowTab === 'win2' && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveWindowTab('win1')}
+                          className="w-full mt-2.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                        >
+                          <ArrowLeft size={14} />
+                          <span>পূর্ববর্তী উইন্ডো: ব্যক্তিগত তথ্য (Back to Step 1: Details)</span>
+                        </button>
                       )}
                     </div>
                   </motion.div>

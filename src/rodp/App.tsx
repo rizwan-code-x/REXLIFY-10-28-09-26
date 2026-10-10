@@ -180,6 +180,7 @@ export default function App({ onBack }: AppProps = {}) {
     branchServiceSettings,
     saveBranchServiceSetting,
     deleteBranchServiceSetting,
+    resetBranchData,
     serviceNotifications,
     addServiceNotification,
     replyToServiceNotification,
@@ -1168,6 +1169,7 @@ export default function App({ onBack }: AppProps = {}) {
             replyToServiceNotification={replyToServiceNotification}
             markServiceNotificationRead={markServiceNotificationRead}
             onNavigateToConnectAllBranches={() => navigateToTab('connect_all_branches')}
+            onResetBranch={resetBranchData}
           />
         );
       case 'ceo_branch_vault':
@@ -1185,6 +1187,7 @@ export default function App({ onBack }: AppProps = {}) {
             currentUser={currentUser}
             setCurrentTab={setCurrentTab}
             onCeoViewBranch={handleCeoViewBranch}
+            onResetBranch={resetBranchData}
           />
         );
       case 'shop_profile':
@@ -1616,7 +1619,7 @@ export default function App({ onBack }: AppProps = {}) {
       )}
 
       {/* Main Layout Container (Sidebar + Rendered View) */}
-      <div className="flex flex-col md:flex-row flex-1">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 w-full">
         {/* Sidebar navigation */}
         <Sidebar
           currentTab={currentTab === 'customer_portal' ? `customer_portal_${customerActiveTab}` : currentTab}
@@ -1645,7 +1648,11 @@ export default function App({ onBack }: AppProps = {}) {
         />
 
         {/* Main dashboard content view container */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto h-full custom-scrollbar relative overflow-x-hidden">
+        <main 
+          data-lenis-prevent="true"
+          className="flex-1 p-4 md:p-8 overflow-y-auto h-full custom-scrollbar relative overflow-x-hidden min-h-[calc(100vh-140px)]"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {/* Persistent Non-dismissible Pending Verification Banner */}
           {!isBranchVerified && currentUser?.role === 'shop_owner' && (
             <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border border-rose-500/20 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">

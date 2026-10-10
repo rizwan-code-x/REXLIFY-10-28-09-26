@@ -28,9 +28,14 @@ export default function BranchMapVisualizer({
     'RCS102': { x: 42, y: 38, distance: '1.5 km' },
     'MAM103': { x: 68, y: 32, distance: '3.0 km (Harekrishnapur)' },
     'FAR104': { x: 78, y: 72, distance: '7.0 km (Faridpur)' },
-    'RRR105': { x: 32, y: 64, distance: '2.2 km' },
+    'RRR105': { x: 31, y: 65, distance: '2.2 km (RR 105)' },
+    'RR105': { x: 31, y: 65, distance: '2.2 km (RR 105)' },
+    '105': { x: 31, y: 65, distance: '2.2 km (RR 105)' },
     'CSCL106': { x: 22, y: 28, distance: '5.5 km' },
-    'MB107': { x: 58, y: 56, distance: '4.8 km (Sagarpara Main)' }
+    'MB107': { x: 35.5, y: 62.5, distance: '2.7 km (500m from RR 105)' },
+    'RR107': { x: 35.5, y: 62.5, distance: '2.7 km (500m from RR 105)' },
+    '107': { x: 35.5, y: 62.5, distance: '2.7 km (500m from RR 105)' },
+    'SHOP_7': { x: 35.5, y: 62.5, distance: '2.7 km (500m from RR 105)' }
   };
 
   const isDark = theme === 'dark';
@@ -98,10 +103,32 @@ export default function BranchMapVisualizer({
             <div className="w-1/2 h-1/2 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-tl-full" />
           </div>
 
+          {/* Proximity Link between RR 105 and Branch 107 (500m Distance Indicator) */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <svg className="w-full h-full overflow-visible">
+              <line
+                x1="31%"
+                y1="65%"
+                x2="35.5%"
+                y2="62.5%"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                strokeDasharray="3 3"
+                className="animate-pulse"
+              />
+            </svg>
+            <div 
+              style={{ left: '33.25%', top: '63.75%' }} 
+              className="absolute -translate-x-1/2 -translate-y-1/2 px-1.5 py-0.2 rounded-full bg-slate-950/90 border border-amber-500/60 text-[7.5px] font-mono font-black text-amber-300 shadow-md whitespace-nowrap z-10"
+            >
+              ⚡ 500m (RR105 ↔ MB107)
+            </div>
+          </div>
+
           {/* Branch Nodes */}
           {shops.map((s, idx) => {
-            const customCode = (s.customId || '').toUpperCase();
-            const pos = nodePositions[customCode] || {
+            const customCode = (s.customId || s.id || '').toUpperCase();
+            const pos = nodePositions[customCode] || nodePositions[(s.id || '').toUpperCase()] || {
               x: 30 + (idx * 12) % 60,
               y: 25 + (idx * 15) % 60,
               distance: s.distanceFromHeadOffice || '4 km'
