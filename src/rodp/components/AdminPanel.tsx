@@ -6,7 +6,7 @@ import {
   Wallet, Clock, BarChart3, Receipt, CreditCard, Check, X, FileText, Download, Settings,
   User, Phone
 } from 'lucide-react';
-import { Shop, SecurityLog, UserRole, ServiceModule, Task, Notice, Inquiry } from '../types';
+import { Shop, SecurityLog, UserRole, ServiceModule, Task, Notice, Inquiry, ServiceChangeNotification } from '../types';
 
 interface AdminPanelProps {
   theme: 'light' | 'dark';
@@ -42,6 +42,10 @@ interface AdminPanelProps {
   onUpdateGroupMessage?: (id: string, updates: any) => void;
   onNavigateToBranchVault?: () => void;
   onNavigateToVerifyBillsDocs?: () => void;
+  serviceNotifications?: ServiceChangeNotification[];
+  replyToServiceNotification?: (id: string, replyText: string) => void;
+  markServiceNotificationRead?: (id: string) => void;
+  onNavigateToConnectAllBranches?: () => void;
 }
 
 export default function AdminPanel({
@@ -77,8 +81,16 @@ export default function AdminPanel({
   onUpdateGroupSettings,
   onUpdateGroupMessage,
   onNavigateToBranchVault,
-  onNavigateToVerifyBillsDocs
+  onNavigateToVerifyBillsDocs,
+  serviceNotifications = [],
+  replyToServiceNotification,
+  markServiceNotificationRead,
+  onNavigateToConnectAllBranches
 }: AdminPanelProps) {
+  // Service Change Activity Drawer State
+  const [showServiceNotifDrawer, setShowServiceNotifDrawer] = useState(false);
+  const [serviceReplyInput, setServiceReplyInput] = useState<{[key: string]: string}>({});
+
   // Authentication Clearance State
   const [replyTexts, setReplyTexts] = useState<{[key: string]: string}>({});
   const [isCleared, setIsCleared] = useState(() => {
@@ -3210,13 +3222,152 @@ export default function AdminPanel({
               <X size={14} />
             </button>
 
-            <div className="border-b border-slate-800 pb-3 flex items-center gap-2">
-              <IndianRupee className="text-amber-500 animate-pulse" size={18} />
-              <div>
-                <h3 className="font-black text-slate-100 text-sm uppercase">Service Details & Price Management Module</h3>
-                <p className="text-[9px] text-slate-500 mt-0.5">Add new services, adjust prices manually, toggle enable/disable status, or delete items across the global workspace.</p>
+            <div className="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <IndianRupee className="text-amber-500 animate-pulse" size={18} />
+                <div>
+                  <h3 className="font-black text-slate-100 text-sm uppercase">Service Details & Price Management Module</h3>
+                  <p className="text-[9px] text-slate-500 mt-0.5">Central Firebase-backed catalogue with instant real-time synchronization across all branches.</p>
+                </div>
+              </div>
+
+              {/* Real-time Branch Service Activity Notification Indicator (Requirements 12, 13, 14) */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowServiceNotifDrawer(!showServiceNotifDrawer)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 transition-all cursor-pointer border ${
+                    serviceNotifications.some(n => !n.read)
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg animate-pulse'
+                      : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                  }`}
+                >
+                  <BellRing size={13} className={serviceNotifications.some(n => !n.read) ? 'text-amber-400' : ''} />
+                  <span>ব্রাঞ্চ সার্ভিস নোটিফিকেশন</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                    serviceNotifications.filter(n => !n.read).length > 0
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {serviceNotifications.filter(n => !n.read).length}
+                  </span>
+                </button>
               </div>
             </div>
+
+            {/* REAL-TIME SERVICE NOTIFICATIONS DRAWER (Requirements 12, 13, 14) */}
+            {showServiceNotifDrawer && (
+              <div className="p-4 rounded-2xl bg-[#07090f] border border-amber-500/30 space-y-3 animate-fade-in text-left">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider font-mono">
+                      ব্রাঞ্চের সার্ভিস পরিবর্তন ও মূল্য নোটিফিকেশন ({serviceNotifications.length})
+                    </h4>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-mono">
+                    Firebase Live Stream
+                  </span>
+                </div>
+
+                {serviceNotifications.length === 0 ? (
+                  <div className="p-6 text-center text-slate-400 space-y-1">
+                    <CheckCircle size={22} className="mx-auto text-emerald-400 opacity-60" />
+                    <p className="text-xs font-bold text-slate-300">কোনো নতুন ব্রাঞ্চ সার্ভিস পরিবর্তন নেই</p>
+                    <p className="text-[10px] text-slate-500">ব্রাঞ্চ কোনো সার্ভিস কাস্টমাইজ বা যোগ করলে তাৎক্ষণিক এখানে আসবে।</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {serviceNotifications.map(notif => {
+                      const replyVal = serviceReplyInput[notif.id] ?? '';
+                      return (
+                        <div
+                          key={notif.id}
+                          className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                            notif.read ? 'bg-slate-950/60 border-white/5' : 'bg-slate-900 border-amber-500/40 shadow-sm'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-mono text-[9px] font-black uppercase">
+                                {notif.branchName} [{notif.branchId}]
+                              </span>
+                              <span className="text-white font-bold">{notif.serviceName}</span>
+                              <span className={`px-2 py-0.5 rounded text-[8.5px] font-mono font-black uppercase ${
+                                notif.changeType === 'created' ? 'bg-emerald-500/20 text-emerald-300' :
+                                notif.changeType === 'repriced' ? 'bg-cyan-500/20 text-cyan-300' :
+                                notif.changeType === 'disabled' ? 'bg-rose-500/20 text-rose-300' :
+                                'bg-slate-800 text-slate-300'
+                              }`}>
+                                {notif.changeType}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-mono">
+                              {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(notif.timestamp).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-slate-950/80 p-2 rounded-lg border border-white/5 font-mono">
+                            <div>
+                              <span className="text-slate-500">পূর্বের মান (Previous): </span>
+                              <span className="text-slate-300">{notif.previousValue !== undefined ? notif.previousValue : 'N/A'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">নতুন মান (New Value): </span>
+                              <span className="text-emerald-400 font-bold">{notif.newValue !== undefined ? notif.newValue : 'Modified'}</span>
+                            </div>
+                          </div>
+
+                          {/* Existing CEO Reply */}
+                          {notif.ceoReply && (
+                            <div className="p-2 bg-emerald-950/30 border border-emerald-500/30 rounded-lg text-[10.5px] space-y-0.5 text-left">
+                              <span className="text-[9px] font-mono uppercase text-emerald-400 font-black">
+                                ✓ CEO REPLY SENT ({new Date(notif.ceoRepliedAt || '').toLocaleTimeString()}):
+                              </span>
+                              <p className="text-emerald-200">{notif.ceoReply}</p>
+                            </div>
+                          )}
+
+                          {/* Inline Reply Input for CEO */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                            <input
+                              type="text"
+                              value={replyVal}
+                              onChange={(e) => setServiceReplyInput({ ...serviceReplyInput, [notif.id]: e.target.value })}
+                              placeholder={`ব্রাঞ্চে উত্তর লিখুন (${notif.branchName})...`}
+                              className="flex-1 px-3 py-1.5 bg-slate-950 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!replyVal.trim()) return;
+                                if (replyToServiceNotification) {
+                                  replyToServiceNotification(notif.id, replyVal.trim());
+                                }
+                                setServiceReplyInput({ ...serviceReplyInput, [notif.id]: '' });
+                                alert(`ব্রাঞ্চ (${notif.branchName}) এ সফলভাবে সিইও রিপ্লাই পৌঁছে গেছে!`);
+                              }}
+                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase rounded-lg cursor-pointer transition-all active:scale-95 shrink-0"
+                            >
+                              উত্তর দিন (Reply)
+                            </button>
+                            {!notif.read && markServiceNotificationRead && (
+                              <button
+                                type="button"
+                                onClick={() => markServiceNotificationRead(notif.id)}
+                                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded-lg cursor-pointer"
+                              >
+                                পঠিত
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
               {/* Left Form: Add / Edit Service (5 cols) */}

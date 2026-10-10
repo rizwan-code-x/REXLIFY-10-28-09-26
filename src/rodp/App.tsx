@@ -27,6 +27,7 @@ import BranchManagerCongratulatoryScreen from './components/BranchManagerCongrat
 import BranchDashboardView from './components/BranchDashboardView';
 import CeoBranchVaultView from './components/CeoBranchVaultView';
 import VerifyBillsDocsView from './components/VerifyBillsDocsView';
+import ConnectBranchesMessenger from './components/ConnectBranchesMessenger';
 import { connectGoogleDrive, disconnectGoogleDrive, syncToGoogleDrive, getCachedToken } from './lib/googleDrive';
 import { 
   Sparkles, BrainCircuit, ChevronLeft, ChevronRight, Home, 
@@ -39,6 +40,8 @@ import { RodpLogo } from '../components/Logo';
 import { SecureExitModal } from '../components/SecureExitModal';
 
 const TAB_ORDER = [
+  'connect_all_branches',
+  'connect_branch',
   'super_admin_panel',
   'ceo_branch_vault',
   'shop_profile',
@@ -173,7 +176,19 @@ export default function App({ onBack }: AppProps = {}) {
     groupSettings,
     updateGroupSettings,
     branchChats,
-    addBranchChatMessage
+    addBranchChatMessage,
+    branchServiceSettings,
+    saveBranchServiceSetting,
+    deleteBranchServiceSetting,
+    serviceNotifications,
+    addServiceNotification,
+    replyToServiceNotification,
+    markServiceNotificationRead,
+    conversations,
+    conversationMessages,
+    sendConversationMessage,
+    createOrGetConversation,
+    markConversationRead
   } = useAppState();
 
   const isBranchVerified = (() => {
@@ -790,6 +805,7 @@ export default function App({ onBack }: AppProps = {}) {
         deleteGroupMessage={deleteGroupMessage}
         groupSettings={groupSettings}
         updateGroupSettings={updateGroupSettings}
+        updateShop={updateShop}
         onLoginSuccess={(role, name, email, permissions, mobile, shopId) => {
           localStorage.setItem('rodp_logged_in', 'true');
           setIsLoggedIn(true);
@@ -813,6 +829,21 @@ export default function App({ onBack }: AppProps = {}) {
   // Choose component dynamically based on tab id
   const renderActiveView = () => {
     switch (currentTab) {
+      case 'connect_all_branches':
+      case 'connect_branch':
+        return (
+          <ConnectBranchesMessenger
+            theme={theme}
+            currentUser={currentUser}
+            shops={shops}
+            conversations={conversations}
+            conversationMessages={conversationMessages}
+            sendConversationMessage={sendConversationMessage}
+            createOrGetConversation={createOrGetConversation}
+            markConversationRead={markConversationRead}
+            onBack={() => navigateToTab(currentUser.role === 'super_admin' ? 'super_admin_panel' : 'dashboard')}
+          />
+        );
       case 'dashboard':
         if (currentUser?.role === 'shop_owner' || currentUser?.role === 'staff') {
           return (
@@ -844,6 +875,9 @@ export default function App({ onBack }: AppProps = {}) {
               addService={addService}
               updateService={updateService}
               deleteService={deleteService}
+              branchServiceSettings={branchServiceSettings}
+              saveBranchServiceSetting={saveBranchServiceSetting}
+              deleteBranchServiceSetting={deleteBranchServiceSetting}
               notices={notices}
             />
           );
@@ -1130,6 +1164,10 @@ export default function App({ onBack }: AppProps = {}) {
             onUpdateGroupMessage={updateGroupMessage}
             onNavigateToBranchVault={() => setCurrentTab('ceo_branch_vault')}
             onNavigateToVerifyBillsDocs={() => setCurrentTab('verify_bills_docs')}
+            serviceNotifications={serviceNotifications}
+            replyToServiceNotification={replyToServiceNotification}
+            markServiceNotificationRead={markServiceNotificationRead}
+            onNavigateToConnectAllBranches={() => navigateToTab('connect_all_branches')}
           />
         );
       case 'ceo_branch_vault':

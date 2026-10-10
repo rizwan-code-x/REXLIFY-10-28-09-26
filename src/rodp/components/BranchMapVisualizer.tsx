@@ -29,7 +29,8 @@ export default function BranchMapVisualizer({
     'MAM103': { x: 68, y: 32, distance: '3.0 km (Harekrishnapur)' },
     'FAR104': { x: 78, y: 72, distance: '7.0 km (Faridpur)' },
     'RRR105': { x: 32, y: 64, distance: '2.2 km' },
-    'CSCL106': { x: 22, y: 28, distance: '5.5 km' }
+    'CSCL106': { x: 22, y: 28, distance: '5.5 km' },
+    'MB107': { x: 58, y: 56, distance: '4.8 km (Sagarpara Main)' }
   };
 
   const isDark = theme === 'dark';

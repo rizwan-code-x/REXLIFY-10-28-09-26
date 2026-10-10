@@ -216,6 +216,35 @@ export const MOCK_SHOPS: Shop[] = [
     branchPhotosApproved: false,
     branchPhotos: [],
     branchDescription: 'CSC Service Centre Branch 6 - Currently pending manager registration and 5-photo upload approval from CEO.'
+  },
+  {
+    id: 'shop_7',
+    name: 'MB COMPUTER',
+    ownerName: 'Pervez Hossain',
+    ownerEmail: 'mb107@rodp.com',
+    mobile: '9593388785',
+    address: 'MAIN MARKET, SAGARPARA, MURSHIDABAD, W.B. 742305',
+    gstNumber: '',
+    logoUrl: MAIN_OFFICE_PHOTO_URL,
+    status: 'approved',
+    subscriptionType: 'premium_yearly',
+    createdAt: '2026-03-01',
+    customId: 'MB107',
+    password: 'Pervez@00123',
+    permissions: ['dashboard', 'services', 'appointments', 'crm', 'database', 'billing', 'inventory', 'vault', 'staff', 'finance', 'ai_assistant', 'notifications'],
+    branchHead: 'Pervez Hossain',
+    roleType: 'branch',
+    isMainBranch: false,
+    managerBio: '৭ম স্বাধীন ব্রাঞ্চ (MB COMPUTER - MB107) এর ব্রাঞ্চ ম্যানেজার। সকল আধুনিক কম্পিউটার, অনলাইন ফর্ম ও সিএসসি ডিজিটাল সেবায় নিয়োজিত।',
+    congratulationsMsg: 'অভিনন্দন পারভেজ হোসেন! ৭ম ব্রাঞ্চ (MB COMPUTER) এর ব্রাঞ্চ ম্যানেজার হিসেবে আপনাকে আন্তরিক অভিনন্দন।',
+    distanceFromHeadOffice: '4.8 km',
+    geoCoords: { lat: 24.228, lng: 88.698 },
+    branchPhotosApproved: true,
+    branchPhotos: [
+      MAIN_OFFICE_PHOTO_URL,
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800'
+    ],
+    branchDescription: 'MB COMPUTER (MB107) - Independent computer and CSC center branch providing all RODP digital services in Sagarpara.'
   }
 ];
 
@@ -226,6 +255,26 @@ export const MOCK_APPOINTMENTS: Appointment[] = [];
 export const MOCK_TASKS: Task[] = [];
 export const MOCK_INVENTORIES: InventoryItem[] = [];
 export const MOCK_STAFF: Staff[] = [
+  {
+    id: 'stf_mb107',
+    name: 'Pervez Hossain',
+    email: 'pervez.mb107@rodp.com',
+    mobile: '9593388785',
+    role: 'Manager',
+    designation: 'MB COMPUTER Branch Head Manager',
+    status: 'Active',
+    salary: 45000,
+    permissions: ['dashboard', 'services', 'appointments', 'crm', 'database', 'billing', 'inventory', 'vault', 'staff', 'finance'],
+    attendance: { '2026-08-01': 'Present' },
+    shopId: 'shop_7',
+    branchCode: 'MB107',
+    address: 'Main Market, Sagarpara, Murshidabad, WB - 742305',
+    customId: 'MB107',
+    password: 'Pervez@00123',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    issueDate: '2026-03-01',
+    validTill: '2030-12-31'
+  },
   {
     id: 'stf_ceo',
     name: 'Rizwan Roushan',

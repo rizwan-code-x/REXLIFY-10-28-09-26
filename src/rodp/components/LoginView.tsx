@@ -26,6 +26,7 @@ interface LoginViewProps {
   deleteGroupMessage?: (id: string) => void;
   groupSettings?: any;
   updateGroupSettings?: (updates: any) => void;
+  updateShop?: (id: string, updates: any) => void;
 }
 
 export default function LoginView({ 
@@ -43,6 +44,7 @@ export default function LoginView({
   deleteGroupMessage,
   groupSettings = { onlyAdminsCanPost: false, isGroupMuted: false },
   updateGroupSettings,
+  updateShop,
   onExitToRexlify
 }: LoginViewProps) {
   // Navigation State
@@ -196,6 +198,19 @@ export default function LoginView({
       branchHead: '[Manager Pending Registration]',
       isMainBranch: false,
       status: 'pending'
+    },
+    {
+      id: 'shop_7',
+      customId: 'MB107',
+      password: 'Pervez@00123',
+      name: 'MB COMPUTER',
+      ownerName: 'Pervez Hossain',
+      ownerEmail: 'mb107@rodp.com',
+      mobile: '9593388785',
+      permissions: ['dashboard', 'services', 'appointments', 'crm', 'database', 'billing', 'inventory', 'vault', 'staff', 'finance', 'ai_assistant', 'notifications'],
+      branchHead: 'Pervez Hossain',
+      isMainBranch: false,
+      status: 'approved'
     }
   ];
   
@@ -220,6 +235,12 @@ export default function LoginView({
   const [isQrScanning, setIsQrScanning] = useState(false);
   const [qrScanSuccess, setQrScanSuccess] = useState<string | null>(null);
 
+  // Forced Initial Password Change (e.g. MB107 Initial Login)
+  const [forcePasswordChangeBranch, setForcePasswordChangeBranch] = useState<Shop | null>(null);
+  const [forcedNewPass, setForcedNewPass] = useState('');
+  const [forcedConfirmPass, setForcedConfirmPass] = useState('');
+  const [forcedPassError, setForcedPassError] = useState<string | null>(null);
+
   const handleSimulateQrScan = (targetCode: string) => {
     setIsQrScanning(true);
     setQrScanSuccess(null);
@@ -231,7 +252,8 @@ export default function LoginView({
         'ROD001': { id: 'shop_1', customId: 'ROD001', password: 'RTX@0012352', name: 'RIZWAN ONLINE DREAMS (Head Office)', branchHead: 'Rizwan RR', isMainBranch: true, status: 'approved' },
         'RCS102': { id: 'shop_2', customId: 'RCS102', password: 'RCS@0012352', name: 'RIZWAN CSC CENTER', branchHead: 'Rizwan RR', isMainBranch: false, status: 'approved' },
         'MAM103': { id: 'shop_3', customId: 'MAM103', password: 'MAM@0012352', name: 'MAM TELECOM', branchHead: 'Ebne Farhad', isMainBranch: false, status: 'approved' },
-        'FAR104': { id: 'shop_4', customId: 'FAR104', password: 'FAR@0012352', name: 'FARIDPUR CSC CENTER', branchHead: 'Humayan K.', isMainBranch: false, status: 'approved' }
+        'FAR104': { id: 'shop_4', customId: 'FAR104', password: 'FAR@0012352', name: 'FARIDPUR CSC CENTER', branchHead: 'Humayan K.', isMainBranch: false, status: 'approved' },
+        'MB107': { id: 'shop_7', customId: 'MB107', password: 'Pervez@00123', name: 'MB COMPUTER', branchHead: 'Pervez Hossain', isMainBranch: false, status: 'approved' }
       };
 
       const matched = shops.find(s => (s.customId || '').toUpperCase() === targetCode || (s.id || '').toUpperCase() === targetCode) 
@@ -847,7 +869,8 @@ export default function LoginView({
       (bid === 'MAM103' && (bpass === 'MAM@0012352' || bpass.toUpperCase() === 'MAM103')) ||
       (bid === 'FAR104' && (bpass === 'FAR@0012352' || bpass.toUpperCase() === 'FAR104')) ||
       (bid === 'RRR105' && (bpass === 'RRR@0012352' || bpass.toUpperCase() === 'RRR105')) ||
-      (bid === 'CSCL106' && (bpass === 'CSCL 0012350' || bpass.toUpperCase() === 'CSCL106'));
+      (bid === 'CSCL106' && (bpass === 'CSCL 0012350' || bpass.toUpperCase() === 'CSCL106')) ||
+      (bid === 'MB107' && (bpass === 'Pervez@00123' || bpass.toLowerCase() === 'pervez@00123' || bpass.toUpperCase() === 'MB107'));
 
     if (passMatches) {
       setBranchPassFailCount(0);
@@ -866,6 +889,19 @@ export default function LoginView({
       }
       if (statusLower === 'deleted' || statusLower === 'pending') {
         setErrorMsg('Access Denied: This Branch account is pending activation or terminated.');
+        return;
+      }
+
+      // Check if this branch requires mandatory initial password change (e.g. MB107)
+      const isInitialMbPassword = (bid === 'MB107' || matchedBranch.id === 'shop_7') && 
+        localStorage.getItem('rodp_pwd_changed_MB107') !== 'true' && 
+        !matchedBranch.passwordChanged;
+
+      if (isInitialMbPassword) {
+        setForcePasswordChangeBranch(matchedBranch);
+        setForcedNewPass('');
+        setForcedConfirmPass('');
+        setForcedPassError(null);
         return;
       }
       
@@ -2481,8 +2517,8 @@ export default function LoginView({
 
         {/* BENGALI MANAGER IDENTITY CONFIRMATION OVERLAY */}
         {confirmingBranch && (
-          <div className="fixed inset-0 z-50 bg-[#070709]/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-8 text-center space-y-6 shadow-2xl animate-scale-in">
+          <div className="fixed inset-0 z-50 bg-[#070709]/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-8 text-center space-y-6 shadow-2xl animate-scale-in my-auto">
               <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mx-auto shadow-sm">
                 <UserCheck size={28} />
               </div>
@@ -2611,8 +2647,8 @@ export default function LoginView({
 
         {/* JOIN ROD GROUP MODAL OVERLAY */}
         {showJoinModal && (
-          <div className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-[0_20px_50px_rgba(107,33,168,0.3)] border border-purple-200 animate-scale-up space-y-6 relative text-left">
+          <div className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-[0_20px_50px_rgba(107,33,168,0.3)] border border-purple-200 animate-scale-up space-y-6 relative text-left my-auto">
               <button 
                 onClick={() => setShowJoinModal(false)}
                 className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -3019,6 +3055,139 @@ export default function LoginView({
         </div>
 
       </div>
+
+      {/* Mandatory First-Login Password Change Modal (Requirement 6: MB107 Initial Password Change) */}
+      {forcePasswordChangeBranch && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-left text-white my-auto">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-inner">
+                <Lock size={22} className="animate-pulse" />
+              </div>
+              <div>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
+                  SECURITY ENFORCEMENT
+                </span>
+                <h3 className="text-base font-black text-white mt-0.5">
+                  পাসওয়ার্ড পরিবর্তন বাধ্যতামূলক
+                </h3>
+                <p className="text-[10px] text-amber-400 font-mono">
+                  {forcePasswordChangeBranch.name} • {forcePasswordChangeBranch.customId}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/10 text-xs text-slate-300 space-y-1">
+              <p className="font-semibold text-white">
+                স্বাগতম, {forcePasswordChangeBranch.branchHead || forcePasswordChangeBranch.ownerName}!
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                আপনার এটি প্রথম লগইন। কেন্দ্রীয় নিরাপত্তা নিয়ম অনুযায়ী অস্থায়ী পাসওয়ার্ড <strong>(Pervez@00123)</strong> পরিবর্তন করে আপনার স্থায়ী গোপনীয় পাসওয়ার্ড সেট করতে হবে।
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setForcedPassError(null);
+
+                const newP = forcedNewPass.trim();
+                const confP = forcedConfirmPass.trim();
+
+                if (newP.length < 6) {
+                  setForcedPassError('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+                  return;
+                }
+                if (newP.toLowerCase() === 'pervez@00123') {
+                  setForcedPassError('নতুন পাসওয়ার্ড প্রাথমিক পাসওয়ার্ড থেকে ভিন্ন হতে হবে।');
+                  return;
+                }
+                if (newP !== confP) {
+                  setForcedPassError('উভয় পাসওয়ার্ড একই হতে হবে।');
+                  return;
+                }
+
+                // Update shop password
+                if (updateShop) {
+                  updateShop(forcePasswordChangeBranch.id, {
+                    password: newP,
+                    passwordChanged: true
+                  });
+                }
+                localStorage.setItem(`rodp_pwd_changed_${forcePasswordChangeBranch.customId}`, 'true');
+
+                const userRole = 'shop_owner';
+                const branchToLogin = forcePasswordChangeBranch;
+                setForcePasswordChangeBranch(null);
+                setSuccessMsg(`পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে! ড্যাশবোর্ডে প্রবেশ হচ্ছে...`);
+                playTechIndustryLoginSound();
+
+                setTimeout(() => {
+                  onLoginSuccess(
+                    userRole,
+                    branchToLogin.branchHead || branchToLogin.ownerName || branchToLogin.name,
+                    branchToLogin.ownerEmail || `${branchToLogin.customId?.toLowerCase()}@rodp.com`,
+                    branchToLogin.permissions || ['dashboard', 'services', 'appointments', 'crm', 'database', 'billing', 'inventory', 'vault', 'staff', 'finance', 'ai_assistant', 'notifications'],
+                    branchToLogin.mobile || '9593388785',
+                    branchToLogin.id
+                  );
+                }, 700);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                  নতুন পাসওয়ার্ড (New Password) *
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={forcedNewPass}
+                  onChange={(e) => setForcedNewPass(e.target.value)}
+                  placeholder="কমপক্ষে ৬ অক্ষরের গোপনীয় পাসওয়ার্ড"
+                  className="w-full py-2.5 px-3 bg-slate-900 border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                  পাসওয়ার্ড নিশ্চিত করুন (Confirm Password) *
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={forcedConfirmPass}
+                  onChange={(e) => setForcedConfirmPass(e.target.value)}
+                  placeholder="পুনরায় পাসওয়ার্ড লিখুন"
+                  className="w-full py-2.5 px-3 bg-slate-900 border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              {forcedPassError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold text-center">
+                  ⚠️ {forcedPassError}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setForcePasswordChangeBranch(null)}
+                  className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95"
+                >
+                  সেভ ও ড্যাশবোর্ডে প্রবেশ ➔
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Security Captcha Exit Modal for RODP Gateway (Requirement 02) */}
       <SecureExitModal

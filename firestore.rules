@@ -135,6 +135,30 @@ service cloud.firestore {
     match /rexlify_voice_sessions/{sessionId} {
       allow read, write: if true;
     }
+
+    // Branch Conversations & Messaging
+    match /conversations/{conversationId} {
+      allow read, write: if true;
+    }
+
+    match /conversation_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    // Branch Service Settings & Overrides
+    match /branch_service_settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Service Change Notifications for CEO
+    match /service_notifications/{notificationId} {
+      allow read, write: if true;
+    }
+
+    // Branch Customer Live Chats
+    match /branch_chats/{chatId} {
+      allow read, write: if true;
+    }
   }
 }
 

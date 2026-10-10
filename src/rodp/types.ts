@@ -62,6 +62,7 @@ export interface Shop {
   distanceFromHeadOffice?: string; // Distance from Head Office e.g. "0 km", "3 km", "7 km"
   geoCoords?: { lat: number; lng: number };
   profileConfirmed?: boolean;
+  passwordChanged?: boolean;
 }
 
 export interface ServiceModule {
@@ -454,5 +455,69 @@ export interface BranchChatMessage {
   message: string;
   timestamp: string;
   read?: boolean;
+}
+
+export interface BranchServiceSetting {
+  id: string; // e.g. `${branchId}_${serviceId}`
+  branchId: string;
+  branchName?: string;
+  serviceId: string;
+  isBranchOnly?: boolean;
+  name?: string;
+  category?: string;
+  description?: string;
+  bengaliDesc?: string;
+  price?: number;
+  disabled?: boolean;
+  hasCustomPrice?: boolean;
+  overrideActive?: boolean;
+  updatedAt: string;
+}
+
+export interface ServiceChangeNotification {
+  id: string;
+  branchId: string;
+  branchName: string;
+  serviceId: string;
+  serviceName: string;
+  changeType: 'created' | 'edited' | 'repriced' | 'disabled' | 'enabled' | 'deleted';
+  previousValue?: string | number;
+  newValue?: string | number;
+  timestamp: string;
+  read?: boolean;
+  ceoReply?: string;
+  ceoRepliedAt?: string;
+}
+
+export interface BranchConversation {
+  id: string;
+  type: 'direct' | 'announcement';
+  participantIds: string[];
+  participantNames?: { [id: string]: string };
+  participantBranchIds?: { [id: string]: string };
+  lastMessage?: string;
+  lastMessageTime?: string;
+  lastSenderId?: string;
+  lastSenderName?: string;
+  unreadCounts?: { [participantId: string]: number };
+  targetBranchIds?: string[]; // for announcements e.g. ['all'] or list of shopIds
+  title?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderBranchId?: string;
+  senderName: string;
+  senderRole: 'ceo' | 'branch';
+  text: string;
+  timestamp: string;
+  status: 'sent' | 'delivered' | 'read';
+  readBy?: string[];
+  isAnnouncement?: boolean;
+  targetBranches?: string[];
 }
 

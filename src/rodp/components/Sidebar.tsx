@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Server, CalendarCheck2, Users, Receipt, 
   PackageOpen, FolderKey, ShieldAlert, BrainCircuit, BellRing, 
   Menu, X, Sun, Moon, Sparkles, UserCheck, BriefcaseBusiness, TrendingUp, CheckSquare,
-  Store, Calendar, Gift, HelpCircle, ChevronRight, Database, Trash2, Lock, KeyRound, Building2, ShieldCheck
+  Store, Calendar, Gift, HelpCircle, ChevronRight, Database, Trash2, Lock, KeyRound, Building2, ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { RodpLogo } from '../../components/Logo';
@@ -53,6 +54,7 @@ export default function Sidebar({
 
     if (userRole === 'super_admin') {
       return [
+        { id: 'connect_all_branches', label: 'Connect All Branches / ব্রাঞ্চ কানেক্ট', icon: MessageSquare },
         { id: 'dashboard', label: 'Dashboard Control', icon: LayoutDashboard },
         { id: 'super_admin_panel', label: 'Super Admin HQ', icon: ShieldAlert },
         { id: 'ceo_branch_vault', label: 'All Branches & Passwords / ব্রাঞ্চ পাসওয়ার্ড', icon: KeyRound },
@@ -73,6 +75,7 @@ export default function Sidebar({
 
     if (userRole === 'shop_owner') {
       return [
+        { id: 'connect_branch', label: 'Connect Branch / ব্রাঞ্চ কানেক্ট', icon: MessageSquare },
         { id: 'shop_profile', label: 'RODP HQ Profile', icon: Store },
         ...common,
         { id: 'priority_tasks_vault', label: 'Priority Tasks Proof', icon: CheckSquare },

@@ -7,7 +7,7 @@ import {
   Landmark, CreditCard, Tag, ShieldAlert, ChevronLeft, ChevronRight, MessageSquare, Bot, AlertTriangle,
   LayoutDashboard, Activity, Send
 } from 'lucide-react';
-import { Shop, Invoice, Appointment, CustomerCRM } from '../types';
+import { Shop, Invoice, Appointment, CustomerCRM, ServiceModule, BranchServiceSetting, ServiceChangeNotification } from '../types';
 import VerifyBillsDocsView from './VerifyBillsDocsView';
 
 interface BranchDashboardViewProps {
@@ -36,10 +36,13 @@ interface BranchDashboardViewProps {
   updateVaultItem?: (id: string, updates: any) => void;
   branchChats?: any[];
   addBranchChatMessage?: (msg: any) => void;
-  services?: any[];
+  services?: ServiceModule[];
   addService?: (srv: any) => void;
   updateService?: (id: string, updates: any) => void;
   deleteService?: (id: string) => void;
+  branchServiceSettings?: BranchServiceSetting[];
+  saveBranchServiceSetting?: (setting: BranchServiceSetting, notif?: Partial<ServiceChangeNotification>) => void;
+  deleteBranchServiceSetting?: (id: string, notif?: Partial<ServiceChangeNotification>) => void;
   notices?: any[];
 }
 
@@ -101,6 +104,9 @@ export default function BranchDashboardView({
   addService,
   updateService,
   deleteService,
+  branchServiceSettings = [],
+  saveBranchServiceSetting,
+  deleteBranchServiceSetting,
   notices = []
 }: BranchDashboardViewProps) {
   
@@ -306,6 +312,18 @@ export default function BranchDashboardView({
   const [activeChatCustomerId, setActiveChatCustomerId] = useState<string | null>(null);
   const [branchReplyText, setBranchReplyText] = useState('');
   const [isExploreChatOpen, setIsExploreChatOpen] = useState(false);
+
+  // Central Firebase Service Catalog & Branch Overrides (Requirements 8, 9, 10, 11, 12, 13, 14)
+  const [branchSvcSearch, setBranchSvcSearch] = useState('');
+  const [branchSvcTab, setBranchSvcTab] = useState<'all' | 'global' | 'branch_custom'>('all');
+  const [editingOverrideSvcId, setEditingOverrideSvcId] = useState<string | null>(null);
+  const [overridePriceValue, setOverridePriceValue] = useState<string>('');
+  const [showAddBranchSvcModal, setShowAddBranchSvcModal] = useState(false);
+  const [newBranchSvcName, setNewBranchSvcName] = useState('');
+  const [newBranchSvcPrice, setNewBranchSvcPrice] = useState<string>('');
+  const [newBranchSvcCategory, setNewBranchSvcCategory] = useState('Online Forms & Portal');
+  const [newBranchSvcDesc, setNewBranchSvcDesc] = useState('');
+  const [branchSvcFeedback, setBranchSvcFeedback] = useState<string | null>(null);
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -804,6 +822,7 @@ export default function BranchDashboardView({
         <div className="flex items-center gap-2 overflow-x-auto pt-6 border-t border-slate-500/10 mt-6 scrollbar-none">
           {[
             { id: 'overview', label: '📊 Dashboard Overview', icon: LayoutDashboard },
+            { id: 'connect_branch', label: '💬 Connect Branch / ব্রাঞ্চ কানেক্ট (CEO Live)', icon: MessageSquare, isPrimaryAction: true },
             { id: 'profile', label: '👤 Branch Profile & Dossier', icon: User },
             { id: 'calendar', label: '📅 Smart Calendar & AI Holidays', icon: Calendar },
             { id: 'services', label: '🛍️ Services & Products', icon: Layers },
@@ -822,12 +841,18 @@ export default function BranchDashboardView({
                 key={tab.id}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (tab.id === 'connect_branch' && setCurrentTab) {
+                    setCurrentTab('connect_branch');
+                    return;
+                  }
                   setActiveSubTab(tab.id as any);
                 }}
                 className={`px-4 py-2.5 rounded-2xl font-black text-[10.5px] whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold' 
-                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                  (tab as any).isPrimaryAction
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95'
+                    : isActive 
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold' 
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
                 }`}
               >
                 <Icon size={14} />
@@ -1859,15 +1884,519 @@ export default function BranchDashboardView({
             )}
           </div>
 
+          {/* CENTRAL FIREBASE SERVICE CATALOG & BRANCH OVERRIDE ENGINE (Requirements 8, 9, 10, 11, 12, 13, 14) */}
+          <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-6 shadow-2xl">
+            {/* Header with Search and Actions */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-black uppercase">
+                    Firebase Live Central Catalog
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold">Auto-Sync Active</span>
+                </div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Layers size={18} className="text-amber-400" />
+                  <span>সার্ভিস ক্যাটালগ ও ব্রাঞ্চ প্রাইস ম্যানেজমেন্ট (Service Catalog & Overrides)</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  সিইও প্যানেলের কেন্দ্রীয় সার্ভিস তালিকা লাইভ সিঙ্ক হচ্ছে। আপনার ব্রাঞ্চের জন্য নিজস্ব মূল্য নির্ধারণ বা নতুন সার্ভিস যোগ করতে পারবেন।
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowAddBranchSvcModal(!showAddBranchSvcModal)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs uppercase rounded-xl transition-all shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Plus size={14} />
+                  <span>+ নিজস্ব সার্ভিস যোগ করুন</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Tabs & Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-2xl border border-white/5">
+                {[
+                  { id: 'all', label: 'সব সার্ভিস (All)' },
+                  { id: 'global', label: '🌐 কেন্দ্রীয় সিইও সার্ভিস (Global)' },
+                  { id: 'branch_custom', label: '🏪 নিজস্ব ব্রাঞ্চ সার্ভিস ও ওভাররাইড (Branch Custom)' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setBranchSvcTab(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer ${
+                      branchSvcTab === tab.id
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="সার্ভিস খুঁজুন (Search)..."
+                  value={branchSvcSearch}
+                  onChange={(e) => setBranchSvcSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            {branchSvcFeedback && (
+              <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-xs text-emerald-300 font-bold flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                <span>{branchSvcFeedback}</span>
+              </div>
+            )}
+
+            {/* ADD NEW BRANCH-SPECIFIC SERVICE MODAL / FORM (Requirement 9) */}
+            {showAddBranchSvcModal && (
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-emerald-500/40 space-y-4 shadow-xl text-left">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 font-mono">
+                      নতুন ব্রাঞ্চ-নির্দিষ্ট সার্ভিস তৈরি করুন ({currentShop.name})
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBranchSvcModal(false)}
+                    className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">সার্ভিসের নাম *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Urgent Color Photo Print"
+                      value={newBranchSvcName}
+                      onChange={(e) => setNewBranchSvcName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">মূল্য (Price ₹) *</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 50"
+                      value={newBranchSvcPrice}
+                      onChange={(e) => setNewBranchSvcPrice(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-400 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">ক্যাটাগরি</label>
+                    <select
+                      value={newBranchSvcCategory}
+                      onChange={(e) => setNewBranchSvcCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-400"
+                    >
+                      <option value="Online Forms & Portal">Online Forms & Portal</option>
+                      <option value="Printing & Parchon">Printing & Parchon</option>
+                      <option value="Aadhaar & PAN Services">Aadhaar & PAN Services</option>
+                      <option value="Computer & Hardware Service">Computer & Hardware Service</option>
+                      <option value="Banking & AEPS">Banking & AEPS</option>
+                      <option value="Other Digital Service">Other Digital Service</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold">বিবরণ / Bengali Note</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. জরুরি কালার পাসপোর্ট ছবি প্রিন্ট"
+                      value={newBranchSvcDesc}
+                      onChange={(e) => setNewBranchSvcDesc(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBranchSvcModal(false)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    বাতিল (Cancel)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newBranchSvcName.trim() || !newBranchSvcPrice) {
+                        alert('অনুগ্রহ করে নাম এবং মূল্য প্রদান করুন।');
+                        return;
+                      }
+                      const newSvcId = `branch_svc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+                      const newSetting: BranchServiceSetting = {
+                        id: `${currentShop.id}_${newSvcId}`,
+                        branchId: currentShop.id,
+                        branchName: currentShop.name,
+                        serviceId: newSvcId,
+                        isBranchOnly: true,
+                        name: newBranchSvcName.trim(),
+                        category: newBranchSvcCategory,
+                        description: newBranchSvcDesc.trim() || newBranchSvcName.trim(),
+                        bengaliDesc: newBranchSvcDesc.trim(),
+                        price: Number(newBranchSvcPrice),
+                        overrideActive: true,
+                        disabled: false,
+                        updatedAt: new Date().toISOString()
+                      };
+
+                      if (saveBranchServiceSetting) {
+                        saveBranchServiceSetting(newSetting, {
+                          branchId: currentShop.customId || currentShop.id,
+                          branchName: currentShop.name,
+                          serviceId: newSvcId,
+                          serviceName: newBranchSvcName.trim(),
+                          changeType: 'created',
+                          previousValue: 0,
+                          newValue: Number(newBranchSvcPrice)
+                        });
+                      }
+
+                      setNewBranchSvcName('');
+                      setNewBranchSvcPrice('');
+                      setNewBranchSvcDesc('');
+                      setShowAddBranchSvcModal(false);
+                      setBranchSvcFeedback(`✓ নতুন ব্রাঞ্চ সার্ভিস সফলভাবে যোগ করা হয়েছে এবং সিইও প্যানেলে নোটিফিকেশন পাঠানো হয়েছে!`);
+                      setTimeout(() => setBranchSvcFeedback(null), 4000);
+                    }}
+                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase rounded-xl transition-all cursor-pointer shadow-lg"
+                  >
+                    সার্ভিস সেভ করুন
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SERVICES CARDS GRID */}
+            {(() => {
+              // 1. Gather all global services
+              const globalServicesList = (services || []).map(s => {
+                const setting = branchServiceSettings.find(bs => bs.branchId === currentShop.id && bs.serviceId === s.id);
+                return {
+                  ...s,
+                  isBranchOnly: false,
+                  setting: setting || null,
+                  activePrice: (setting?.overrideActive && setting?.price !== undefined) ? setting.price : (s.price || 0),
+                  isOverridden: !!(setting?.overrideActive && setting?.price !== undefined),
+                  isDisabledInBranch: !!setting?.disabled
+                };
+              });
+
+              // 2. Gather branch-only services
+              const branchOnlyList = branchServiceSettings
+                .filter(bs => bs.branchId === currentShop.id && bs.isBranchOnly)
+                .map(bs => ({
+                  id: bs.serviceId,
+                  name: bs.name || 'Branch Service',
+                  category: bs.category || 'Branch Special',
+                  description: bs.description || '',
+                  bengaliDesc: bs.bengaliDesc,
+                  price: bs.price || 0,
+                  isBranchOnly: true,
+                  setting: bs,
+                  activePrice: bs.price || 0,
+                  isOverridden: true,
+                  isDisabledInBranch: !!bs.disabled
+                }));
+
+              const allCombined = [...globalServicesList, ...branchOnlyList];
+
+              const filtered = allCombined.filter(item => {
+                // Tab filter
+                if (branchSvcTab === 'global' && item.isBranchOnly) return false;
+                if (branchSvcTab === 'branch_custom' && !item.isBranchOnly && !item.isOverridden) return false;
+                // Search filter
+                if (branchSvcSearch) {
+                  const q = branchSvcSearch.toLowerCase();
+                  return item.name.toLowerCase().includes(q) || 
+                         (item.category || '').toLowerCase().includes(q) ||
+                         (item.description || '').toLowerCase().includes(q);
+                }
+                return true;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="py-12 text-center bg-slate-950/60 rounded-3xl border border-white/5 space-y-2">
+                    <Layers size={32} className="mx-auto text-slate-600" />
+                    <p className="text-xs font-bold text-slate-300">কোনো সার্ভিস পাওয়া যায়নি</p>
+                    <p className="text-[11px] text-slate-500">ফিল্টার পরিবর্তন করুন অথবা নতুন ব্রাঞ্চ সার্ভিস যোগ করুন।</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filtered.map(item => {
+                    const isGlobal = !item.isBranchOnly;
+                    const isEditingThis = editingOverrideSvcId === item.id;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-4 rounded-2xl border transition-all text-left space-y-3 relative ${
+                          item.isDisabledInBranch
+                            ? 'bg-slate-950/40 border-rose-500/20 opacity-70'
+                            : item.isOverridden
+                              ? 'bg-slate-950/90 border-amber-500/40 shadow-lg'
+                              : 'bg-slate-950/80 border-white/5 hover:border-white/15'
+                        }`}
+                      >
+                        {/* Header Badges */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isGlobal ? (
+                                <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[8.5px] font-mono font-black uppercase">
+                                  🌐 Global CEO Service
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[8.5px] font-mono font-black uppercase">
+                                  🏪 Branch Specific
+                                </span>
+                              )}
+
+                              {item.isDisabledInBranch ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 text-[8px] font-mono font-bold">
+                                  ব্রাঞ্চে নিষ্ক্রিয় (Disabled)
+                                </span>
+                              ) : item.isOverridden ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[8px] font-mono font-bold">
+                                  কাস্টম মূল্য সক্রিয়
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 text-[8px] font-mono">
+                                  সিইও ডিফল্ট
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-xs font-black text-white pt-1">{item.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-mono">{item.category}</p>
+                          </div>
+
+                          {/* Price Tag */}
+                          <div className="text-right">
+                            <div className="text-sm font-black font-mono text-amber-400">
+                              ₹{item.activePrice}
+                            </div>
+                            {isGlobal && item.isOverridden && (
+                              <div className="text-[9px] text-slate-500 line-through font-mono">
+                                CEO: ₹{item.price}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {item.description && (
+                          <p className="text-[10.5px] text-slate-400 line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
+
+                        {/* Inline Override / Price Editor */}
+                        {isEditingThis ? (
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40 space-y-2">
+                            <label className="text-[9.5px] font-mono uppercase text-amber-300 font-bold block">
+                              ব্রাঞ্চের কাস্টম মূল্য সেট করুন (₹):
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                value={overridePriceValue}
+                                onChange={(e) => setOverridePriceValue(e.target.value)}
+                                placeholder="e.g. 120"
+                                className="flex-1 px-2.5 py-1.5 bg-slate-950 border border-white/20 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!overridePriceValue) return;
+                                  const newPrice = Number(overridePriceValue);
+                                  const prevPrice = item.activePrice;
+
+                                  const settingId = item.setting?.id || `${currentShop.id}_${item.id}`;
+                                  const updatedSetting: BranchServiceSetting = {
+                                    id: settingId,
+                                    branchId: currentShop.id,
+                                    branchName: currentShop.name,
+                                    serviceId: item.id,
+                                    isBranchOnly: item.isBranchOnly,
+                                    name: item.name,
+                                    category: item.category,
+                                    price: newPrice,
+                                    overrideActive: true,
+                                    disabled: item.isDisabledInBranch,
+                                    updatedAt: new Date().toISOString()
+                                  };
+
+                                  if (saveBranchServiceSetting) {
+                                    saveBranchServiceSetting(updatedSetting, {
+                                      branchId: currentShop.customId || currentShop.id,
+                                      branchName: currentShop.name,
+                                      serviceId: item.id,
+                                      serviceName: item.name,
+                                      changeType: 'repriced',
+                                      previousValue: prevPrice,
+                                      newValue: newPrice
+                                    });
+                                  }
+
+                                  setEditingOverrideSvcId(null);
+                                  setBranchSvcFeedback(`✓ "${item.name}" এর ব্রাঞ্চ মূল্য ₹${newPrice} সেট হয়েছে (সিইও নোটিফিকেশন প্রেরিত)`);
+                                  setTimeout(() => setBranchSvcFeedback(null), 3500);
+                                }}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase rounded-lg cursor-pointer"
+                              >
+                                সেভ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingOverrideSvcId(null)}
+                                className="p-1.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Action Buttons */
+                          <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-white/5">
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingOverrideSvcId(item.id);
+                                  setOverridePriceValue(item.activePrice.toString());
+                                }}
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg text-[10px] font-bold font-mono transition-colors cursor-pointer"
+                              >
+                                {item.isOverridden ? 'মূল্য পরিবর্তন (Edit)' : 'কাস্টম মূল্য দিন'}
+                              </button>
+
+                              {isGlobal && item.isOverridden && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const settingId = item.setting?.id || `${currentShop.id}_${item.id}`;
+                                    const updatedSetting: BranchServiceSetting = {
+                                      id: settingId,
+                                      branchId: currentShop.id,
+                                      branchName: currentShop.name,
+                                      serviceId: item.id,
+                                      overrideActive: false,
+                                      price: item.price,
+                                      disabled: item.isDisabledInBranch,
+                                      updatedAt: new Date().toISOString()
+                                    };
+
+                                    if (saveBranchServiceSetting) {
+                                      saveBranchServiceSetting(updatedSetting, {
+                                        branchId: currentShop.customId || currentShop.id,
+                                        branchName: currentShop.name,
+                                        serviceId: item.id,
+                                        serviceName: item.name,
+                                        changeType: 'edited',
+                                        previousValue: item.activePrice,
+                                        newValue: item.price
+                                      });
+                                    }
+
+                                    setBranchSvcFeedback(`✓ "${item.name}" রিসেট হয়ে কেন্দ্রীয় সিইও মূল্যে ফিরেছে`);
+                                    setTimeout(() => setBranchSvcFeedback(null), 3000);
+                                  }}
+                                  className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded-lg text-[9.5px] font-mono transition-colors cursor-pointer"
+                                  title="Reset to CEO Base Price"
+                                >
+                                  সিইও মূল্যে রিসেট
+                                </button>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDisabled = !item.isDisabledInBranch;
+                                const settingId = item.setting?.id || `${currentShop.id}_${item.id}`;
+                                const updatedSetting: BranchServiceSetting = {
+                                  id: settingId,
+                                  branchId: currentShop.id,
+                                  branchName: currentShop.name,
+                                  serviceId: item.id,
+                                  isBranchOnly: item.isBranchOnly,
+                                  name: item.name,
+                                  category: item.category,
+                                  price: item.activePrice,
+                                  overrideActive: item.isOverridden,
+                                  disabled: newDisabled,
+                                  updatedAt: new Date().toISOString()
+                                };
+
+                                if (saveBranchServiceSetting) {
+                                  saveBranchServiceSetting(updatedSetting, {
+                                    branchId: currentShop.customId || currentShop.id,
+                                    branchName: currentShop.name,
+                                    serviceId: item.id,
+                                    serviceName: item.name,
+                                    changeType: newDisabled ? 'disabled' : 'enabled',
+                                    previousValue: item.isDisabledInBranch ? 'Disabled' : 'Enabled',
+                                    newValue: newDisabled ? 'Disabled' : 'Enabled'
+                                  });
+                                }
+
+                                setBranchSvcFeedback(`✓ "${item.name}" এই ব্রাঞ্চের জন্য ${newDisabled ? 'নিষ্ক্রিয়' : 'সক্রিয়'} করা হয়েছে`);
+                                setTimeout(() => setBranchSvcFeedback(null), 3000);
+                              }}
+                              className={`p-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                                item.isDisabledInBranch
+                                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                                  : 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'
+                              }`}
+                              title={item.isDisabledInBranch ? 'Enable in this branch' : 'Disable in this branch'}
+                            >
+                              {item.isDisabledInBranch ? 'সক্রিয় করুন' : 'নিষ্ক্রিয়'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Quick Counter Retail Products & Accessories (Preserved for branch sales) */}
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 space-y-4">
-            <h3 className="text-sm font-black uppercase text-amber-400 font-mono">
-              Branch Service Catalog & Products ({products.length})
+            <h3 className="text-sm font-black uppercase text-amber-400 font-mono flex items-center justify-between">
+              <span>Branch Hardware & Counter Accessories ({products.length})</span>
+              <span className="text-[10px] text-slate-500 font-normal">Physical Stock</span>
             </h3>
 
             <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <input
                 type="text"
-                placeholder="Service / Product Name"
+                placeholder="Product Name (e.g. Lamination Pouch)"
                 value={newProdName}
                 onChange={(e) => setNewProdName(e.target.value)}
                 className="py-2.5 px-3 bg-slate-950 border border-white/10 rounded-xl text-xs text-white"
@@ -1890,7 +2419,7 @@ export default function BranchDashboardView({
                 type="submit"
                 className="py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase rounded-xl"
               >
-                + Add Service
+                + Add Product
               </button>
             </form>
 
@@ -1900,7 +2429,7 @@ export default function BranchDashboardView({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               {products.map(p => (
-                <div key={p.id} className="p-4 rounded-2xl bg-slate-950 border border-white/5 space-y-2">
+                <div key={p.id} className="p-4 rounded-2xl bg-slate-950 border border-white/5 space-y-2 text-left">
                   <div className="flex justify-between items-start">
                     <h4 className="text-xs font-black text-white">{p.name}</h4>
                     <span className="text-amber-400 font-mono font-bold">₹{p.price}</span>

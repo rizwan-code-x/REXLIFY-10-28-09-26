@@ -1134,6 +1134,13 @@ export default function CustomerPortal({
   const [rodpPaySuccessPayment, setRodpPaySuccessPayment] = useState<OnlinePayment | null>(null);
   const [statusCheckModalPayment, setStatusCheckModalPayment] = useState<OnlinePayment | null>(null);
 
+  // User Prompt: Official UPI 9593388785@upi Confirmation Dialog & Ledger Tabs
+  const [upiConfirmDialog, setUpiConfirmDialog] = useState(false);
+  const [upiTargetChoice, setUpiTargetChoice] = useState<'official' | 'custom'>('official');
+  const [customUpiInput, setCustomUpiInput] = useState('');
+  const [showUpiAppsTray, setShowUpiAppsTray] = useState(false);
+  const [ledgerTab, setLedgerTab] = useState<'invoices' | 'payments'>('invoices');
+
   // User Requested Services Tab Hub: ('overview' | 'notices' | 'all_services' | 'branch_chat')
   const [servicesSectionMode, setServicesSectionMode] = useState<'overview' | 'notices' | 'all_services' | 'branch_chat'>('overview');
   const [branchChatMessageText, setBranchChatMessageText] = useState('');

@@ -4,7 +4,7 @@ import {
   CustomerCRM, Invoice, InventoryItem, DocumentVaultItem, 
   Staff, FinanceRecord, NotificationLog, SecurityLog, UserRole,
   AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings, OnlinePayment,
-  BranchChatMessage
+  BranchChatMessage, BranchServiceSetting, ServiceChangeNotification, BranchConversation, ConversationMessage
 } from './types';
 import { 
   DEFAULT_SERVICES, MOCK_SHOPS, MOCK_CUSTOMERS, 
@@ -86,6 +86,42 @@ export function useAppState() {
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [onlinePayments, setOnlinePayments] = useState<OnlinePayment[]>([]);
   const [branchChats, setBranchChats] = useState<BranchChatMessage[]>([]);
+  const [branchServiceSettings, setBranchServiceSettings] = useState<BranchServiceSetting[]>(() => {
+    const saved = localStorage.getItem('rodp_branch_service_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [serviceNotifications, setServiceNotifications] = useState<ServiceChangeNotification[]>(() => {
+    const saved = localStorage.getItem('rodp_service_notifications');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [conversations, setConversations] = useState<BranchConversation[]>(() => {
+    const saved = localStorage.getItem('rodp_conversations');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [conversationMessages, setConversationMessages] = useState<ConversationMessage[]>(() => {
+    const saved = localStorage.getItem('rodp_conversation_messages');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({
     onlyAdminsCanPost: false,
     isGroupMuted: false
@@ -462,6 +498,93 @@ export function useAppState() {
             }
           }
         }, (err) => console.warn('RTDB vault warning:', err));
+
+        // 9. Realtime Services Live Catalogue (Requirement 7 & 8: CEO changes sync instantly across all branches)
+        const servicesRef = ref(rtdb, 'rodp_services');
+        onValue(servicesRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: ServiceModule[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              setServices(list);
+              localStorage.setItem('rodp_services', JSON.stringify(list));
+            }
+          }
+        }, (err) => console.warn('RTDB services stream warning:', err));
+
+        // 10. Realtime Branch Service Settings & Overrides (Requirement 9, 10, 11)
+        const bSvcRef = ref(rtdb, 'rodp_branch_service_settings');
+        onValue(bSvcRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setBranchServiceSettings([]);
+            localStorage.setItem('rodp_branch_service_settings', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: BranchServiceSetting[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            setBranchServiceSettings(list);
+            localStorage.setItem('rodp_branch_service_settings', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB branch service settings stream warning:', err));
+
+        // 11. Realtime Service Notifications for CEO (Requirement 12, 13, 14)
+        const svcNotifRef = ref(rtdb, 'rodp_service_notifications');
+        onValue(svcNotifRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setServiceNotifications([]);
+            localStorage.setItem('rodp_service_notifications', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: ServiceChangeNotification[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setServiceNotifications(list);
+            localStorage.setItem('rodp_service_notifications', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB service notifications stream warning:', err));
+
+        // 12. Realtime Branch & CEO Conversations (Requirement 15 - 27)
+        const convRef = ref(rtdb, 'rodp_conversations');
+        onValue(convRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setConversations([]);
+            localStorage.setItem('rodp_conversations', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: BranchConversation[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(b.updatedAt || b.lastMessageTime || 0).getTime() - new Date(a.updatedAt || a.lastMessageTime || 0).getTime());
+            setConversations(list);
+            localStorage.setItem('rodp_conversations', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB conversations stream warning:', err));
+
+        // 13. Realtime Conversation Messages (Requirement 18, 22, 25)
+        const convMsgRef = ref(rtdb, 'rodp_conversation_messages');
+        onValue(convMsgRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val === null) {
+            setConversationMessages([]);
+            localStorage.setItem('rodp_conversation_messages', JSON.stringify([]));
+          } else if (val && typeof val === 'object') {
+            const list: ConversationMessage[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            list.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+            setConversationMessages(list);
+            localStorage.setItem('rodp_conversation_messages', JSON.stringify(list));
+          }
+        }, (err) => console.warn('RTDB conversation messages stream warning:', err));
       });
     }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
 
@@ -571,6 +694,17 @@ export function useAppState() {
         console.warn(`Firebase write notice on ${colName}:`, err?.message || err);
       }
     }
+
+    if (colName === 'services') {
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_services/${record.id}`), sanitizeForFirestore(record)).catch(err => {
+            console.warn('RTDB service sync write notice:', err);
+          });
+        });
+      });
+    }
   };
 
   const updateRecord = async (colName: string, id: string, updates: any, setter: any, stateList: any[]) => {
@@ -588,6 +722,17 @@ export function useAppState() {
         console.warn(`Firebase update notice on ${colName}:`, err?.message || err);
       }
     }
+
+    if (colName === 'services') {
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, update }) => {
+          update(ref(rtdb, `rodp_services/${id}`), sanitizeForFirestore(updates)).catch(err => {
+            console.warn('RTDB service sync update notice:', err);
+          });
+        });
+      });
+    }
   };
 
   const deleteRecord = async (colName: string, id: string, setter: any, stateList: any[]) => {
@@ -603,6 +748,17 @@ export function useAppState() {
       } catch (err: any) {
         console.warn(`Firebase delete notice on ${colName}:`, err?.message || err);
       }
+    }
+
+    if (colName === 'services') {
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_services/${id}`), null).catch(err => {
+            console.warn('RTDB service sync delete notice:', err);
+          });
+        });
+      });
     }
   };
 
@@ -1147,6 +1303,355 @@ export function useAppState() {
           }).catch(err => console.warn('RTDB chat save notice:', err));
         }
       }).catch(err => console.warn('Could not load RTDB for chat', err));
+    },
+
+    // Branch Service Overrides & Branch-Specific Services (Requirements 9, 10, 11)
+    branchServiceSettings,
+    saveBranchServiceSetting: (setting: BranchServiceSetting, notif?: Partial<ServiceChangeNotification>) => {
+      setBranchServiceSettings(prev => {
+        const idx = prev.findIndex(s => s.id === setting.id);
+        const updated = idx >= 0 ? prev.map((s, i) => i === idx ? setting : s) : [...prev, setting];
+        localStorage.setItem('rodp_branch_service_settings', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_branch_service_settings/${setting.id}`), sanitizeForFirestore(setting)).catch(err => {
+            console.warn('RTDB branch service setting save warning:', err);
+          });
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          setDoc(doc(db, 'branch_service_settings', setting.id), sanitizeForFirestore(setting)).catch(console.warn);
+        } catch (e) {}
+      }
+
+      if (notif) {
+        const notifRecord: ServiceChangeNotification = {
+          id: `notif_svc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          branchId: setting.branchId,
+          branchName: setting.branchName || 'Branch',
+          serviceId: setting.serviceId,
+          serviceName: setting.name || notif.serviceName || 'Service',
+          changeType: notif.changeType || 'edited',
+          previousValue: notif.previousValue,
+          newValue: notif.newValue,
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+
+        setServiceNotifications(prev => {
+          const updated = [notifRecord, ...prev];
+          localStorage.setItem('rodp_service_notifications', JSON.stringify(updated));
+          return updated;
+        });
+
+        import('../firebase-rexlify').then(({ rtdb }) => {
+          if (!rtdb) return;
+          import('firebase/database').then(({ ref, set }) => {
+            set(ref(rtdb, `rodp_service_notifications/${notifRecord.id}`), sanitizeForFirestore(notifRecord)).catch(console.warn);
+          });
+        });
+
+        if (isFirebaseAvailable && db && auth?.currentUser) {
+          try {
+            setDoc(doc(db, 'service_notifications', notifRecord.id), sanitizeForFirestore(notifRecord)).catch(console.warn);
+          } catch (e) {}
+        }
+      }
+    },
+    deleteBranchServiceSetting: (id: string, notif?: Partial<ServiceChangeNotification>) => {
+      setBranchServiceSettings(prev => {
+        const updated = prev.filter(s => s.id !== id);
+        localStorage.setItem('rodp_branch_service_settings', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_branch_service_settings/${id}`), null).catch(console.warn);
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          deleteDoc(doc(db, 'branch_service_settings', id)).catch(console.warn);
+        } catch (e) {}
+      }
+
+      if (notif && notif.branchId && notif.serviceId) {
+        const notifRecord: ServiceChangeNotification = {
+          id: `notif_svc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          branchId: notif.branchId,
+          branchName: notif.branchName || 'Branch',
+          serviceId: notif.serviceId,
+          serviceName: notif.serviceName || 'Service',
+          changeType: 'deleted',
+          previousValue: notif.previousValue,
+          newValue: 'Deleted',
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+
+        setServiceNotifications(prev => {
+          const updated = [notifRecord, ...prev];
+          localStorage.setItem('rodp_service_notifications', JSON.stringify(updated));
+          return updated;
+        });
+
+        import('../firebase-rexlify').then(({ rtdb }) => {
+          if (!rtdb) return;
+          import('firebase/database').then(({ ref, set }) => {
+            set(ref(rtdb, `rodp_service_notifications/${notifRecord.id}`), sanitizeForFirestore(notifRecord)).catch(console.warn);
+          });
+        });
+
+        if (isFirebaseAvailable && db && auth?.currentUser) {
+          try {
+            setDoc(doc(db, 'service_notifications', notifRecord.id), sanitizeForFirestore(notifRecord)).catch(console.warn);
+          } catch (e) {}
+        }
+      }
+    },
+
+    // Service Notifications & CEO Replies (Requirements 12, 13, 14)
+    serviceNotifications,
+    addServiceNotification: (record: ServiceChangeNotification) => {
+      setServiceNotifications(prev => {
+        const updated = [record, ...prev];
+        localStorage.setItem('rodp_service_notifications', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_service_notifications/${record.id}`), sanitizeForFirestore(record)).catch(console.warn);
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          setDoc(doc(db, 'service_notifications', record.id), sanitizeForFirestore(record)).catch(console.warn);
+        } catch (e) {}
+      }
+    },
+    replyToServiceNotification: (id: string, replyText: string) => {
+      const now = new Date().toISOString();
+      setServiceNotifications(prev => {
+        const updated = prev.map(n => n.id === id ? { ...n, ceoReply: replyText, ceoRepliedAt: now, read: true } : n);
+        localStorage.setItem('rodp_service_notifications', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, update }) => {
+          update(ref(rtdb, `rodp_service_notifications/${id}`), {
+            ceoReply: replyText,
+            ceoRepliedAt: now,
+            read: true
+          }).catch(console.warn);
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          updateDoc(doc(db, 'service_notifications', id), {
+            ceoReply: replyText,
+            ceoRepliedAt: now,
+            read: true
+          }).catch(console.warn);
+        } catch (e) {}
+      }
+    },
+    markServiceNotificationRead: (id: string) => {
+      setServiceNotifications(prev => {
+        const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+        localStorage.setItem('rodp_service_notifications', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, update }) => {
+          update(ref(rtdb, `rodp_service_notifications/${id}`), { read: true }).catch(console.warn);
+        });
+      });
+    },
+
+    // Real-Time Branch Communication & Messaging (Requirements 15 - 27)
+    conversations,
+    conversationMessages,
+    sendConversationMessage: (
+      conversationId: string, 
+      text: string, 
+      senderRole: 'ceo' | 'branch', 
+      senderName: string, 
+      senderId: string, 
+      senderBranchId?: string,
+      targetBranches?: string[]
+    ) => {
+      const timestamp = new Date().toISOString();
+      const msgId = `cmsg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newMsg: ConversationMessage = {
+        id: msgId,
+        conversationId,
+        senderId,
+        senderBranchId,
+        senderName,
+        senderRole,
+        text,
+        timestamp,
+        status: 'sent',
+        readBy: [senderId],
+        isAnnouncement: conversationId.startsWith('announcement_'),
+        targetBranches
+      };
+
+      setConversationMessages(prev => {
+        const updated = [...prev, newMsg];
+        localStorage.setItem('rodp_conversation_messages', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_conversation_messages/${msgId}`), sanitizeForFirestore(newMsg)).catch(console.warn);
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          setDoc(doc(db, 'conversation_messages', msgId), sanitizeForFirestore(newMsg)).catch(console.warn);
+        } catch (e) {}
+      }
+
+      setConversations(prev => {
+        const existing = prev.find(c => c.id === conversationId);
+        const unreadCounts = { ...(existing?.unreadCounts || {}) };
+        if (existing) {
+          existing.participantIds.forEach(pId => {
+            if (pId !== senderId) {
+              unreadCounts[pId] = (unreadCounts[pId] || 0) + 1;
+            }
+          });
+        }
+
+        const convUpdates: Partial<BranchConversation> = {
+          lastMessage: text,
+          lastMessageTime: timestamp,
+          lastSenderId: senderId,
+          lastSenderName: senderName,
+          unreadCounts,
+          updatedAt: timestamp
+        };
+
+        const updated = prev.map(c => c.id === conversationId ? { ...c, ...convUpdates } : c);
+        localStorage.setItem('rodp_conversations', JSON.stringify(updated));
+
+        import('../firebase-rexlify').then(({ rtdb }) => {
+          if (!rtdb) return;
+          import('firebase/database').then(({ ref, update }) => {
+            update(ref(rtdb, `rodp_conversations/${conversationId}`), sanitizeForFirestore(convUpdates)).catch(console.warn);
+          });
+        });
+
+        if (isFirebaseAvailable && db && auth?.currentUser) {
+          try {
+            updateDoc(doc(db, 'conversations', conversationId), sanitizeForFirestore(convUpdates)).catch(console.warn);
+          } catch (e) {}
+        }
+
+        return updated;
+      });
+    },
+
+    createOrGetConversation: (
+      type: 'direct' | 'announcement',
+      participantIds: string[],
+      participantNames: { [id: string]: string } = {},
+      participantBranchIds: { [id: string]: string } = {},
+      title?: string,
+      targetBranchIds?: string[]
+    ): BranchConversation => {
+      const sortedIds = [...participantIds].sort();
+      const existing = conversations.find(c => {
+        if (type === 'announcement' && c.type === 'announcement' && title && c.title === title) return true;
+        if (c.type === type && c.participantIds.length === sortedIds.length) {
+          const cSorted = [...c.participantIds].sort();
+          return cSorted.every((id, i) => id === sortedIds[i]);
+        }
+        return false;
+      });
+
+      if (existing) return existing;
+
+      const convId = type === 'announcement' 
+        ? `announcement_${Date.now()}` 
+        : `conv_${sortedIds.join('_')}`;
+
+      const newConv: BranchConversation = {
+        id: convId,
+        type,
+        participantIds,
+        participantNames,
+        participantBranchIds,
+        title: title || (type === 'announcement' ? 'Official Announcement' : 'Direct Conversation'),
+        targetBranchIds: targetBranchIds || ['all'],
+        unreadCounts: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setConversations(prev => {
+        const updated = [newConv, ...prev];
+        localStorage.setItem('rodp_conversations', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, set }) => {
+          set(ref(rtdb, `rodp_conversations/${convId}`), sanitizeForFirestore(newConv)).catch(console.warn);
+        });
+      });
+
+      if (isFirebaseAvailable && db && auth?.currentUser) {
+        try {
+          setDoc(doc(db, 'conversations', convId), sanitizeForFirestore(newConv)).catch(console.warn);
+        } catch (e) {}
+      }
+
+      return newConv;
+    },
+
+    markConversationRead: (conversationId: string, userId: string) => {
+      setConversations(prev => {
+        const updated = prev.map(c => {
+          if (c.id === conversationId) {
+            const unreadCounts = { ...(c.unreadCounts || {}) };
+            unreadCounts[userId] = 0;
+            return { ...c, unreadCounts };
+          }
+          return c;
+        });
+        localStorage.setItem('rodp_conversations', JSON.stringify(updated));
+        return updated;
+      });
+
+      import('../firebase-rexlify').then(({ rtdb }) => {
+        if (!rtdb) return;
+        import('firebase/database').then(({ ref, update }) => {
+          update(ref(rtdb, `rodp_conversations/${conversationId}/unreadCounts`), { [userId]: 0 }).catch(console.warn);
+        });
+      });
     },
     
     loading,
