@@ -65,6 +65,7 @@ export interface Shop {
   passwordChanged?: boolean;
   holdUntil?: string; // ISO timestamp when hold expires
   holdReason?: string; // Reason set by CEO
+  suspensionReason?: string; // Reason set by CEO for branch suspension
   warningMessage?: string; // Warning sent by CEO
   warningSentAt?: string; // Timestamp when warning was issued
   warningDismissed?: boolean; // Whether branch dismissed the warning banner
@@ -378,7 +379,10 @@ export interface CompletedPriorityTask {
   screenshotUrl: string; // base64 or placeholder image
   paymentAmount: number;
   paymentMethod: string;
+  priority?: string;
   createdAt: string;
+  allExtractedIds?: string[];
+  notebookNote?: string | null;
 }
 
 export interface AIKnowledgeItem {
@@ -524,5 +528,60 @@ export interface ConversationMessage {
   readBy?: string[];
   isAnnouncement?: boolean;
   targetBranches?: string[];
+}
+
+export type ApplyFormCategory = 
+  | 'Aadhaar'
+  | 'Voter'
+  | 'PAN'
+  | 'Ration'
+  | 'Passport'
+  | 'Driving License'
+  | 'Income Tax & Finance'
+  | 'Government Schemes'
+  | 'Job & Exam'
+  | 'Banking & Payment'
+  | 'Other';
+
+export interface ApplyFormWebsite {
+  id: string;
+  name: string;
+  url: string;
+  category: ApplyFormCategory | string;
+  description?: string;
+  isOfficial?: boolean;
+  shopId?: string; // 'global' or specific branch ID
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  badge?: string;
+  iconName?: string;
+}
+
+export type ApplyFormActivityType = 
+  | 'Opened' 
+  | 'Work Started' 
+  | 'Completed' 
+  | 'Pending' 
+  | 'Cancelled';
+
+export interface ApplyFormActivity {
+  id: string;
+  shopId: string;
+  shopName: string;
+  ownerName: string;
+  userId: string;
+  userName: string;
+  websiteId?: string;
+  websiteName: string;
+  websiteUrl: string;
+  category: string;
+  activityType: ApplyFormActivityType;
+  referenceNumber?: string;
+  customerName?: string;
+  customerMobile?: string;
+  notes?: string;
+  feeCharged?: number;
+  timestamp: string;
 }
 

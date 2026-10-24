@@ -20,6 +20,7 @@ interface CompletedPriorityTask {
   screenshotUrl: string; // Base64 data or mock image url
   paymentAmount: number;
   paymentMethod: string;
+  priority?: string;
   createdAt: string;
   // AI OCR Extracted parameters
   allExtractedIds?: { label: string; value: string }[] | null;

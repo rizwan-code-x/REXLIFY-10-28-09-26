@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles, Users } from 'lucide-react';
+import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles, Users, ArrowUpRight } from 'lucide-react';
 import { RexlifyLogo, NeuraxLogo, SifraLogo } from './Logo';
 import { Language, TRANSLATIONS, SUPPORTED_LANGUAGES, LanguageOption } from '../translations';
 import { Application, Project, BlogItem, DocArticle } from '../types';

@@ -125,8 +125,7 @@ export default function BranchManagerCongratulatoryScreen({
   return (
     <div 
       data-lenis-prevent="true"
-      className="fixed inset-0 z-[9999] h-screen max-h-screen w-full bg-[#05070d] text-slate-100 flex flex-col overflow-y-auto overscroll-contain select-auto font-sans custom-scrollbar"
-      style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}
+      className="fixed inset-0 z-[9999] h-screen w-full bg-[#05070d] text-slate-100 flex flex-col overflow-hidden select-auto font-sans"
     >
       {/* Background ambience sparkles & radial glows */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.12),transparent_50%)] pointer-events-none" />
@@ -140,13 +139,13 @@ export default function BranchManagerCongratulatoryScreen({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col min-h-full w-full relative z-10"
+            className="flex-1 flex flex-col h-full min-h-0 w-full relative z-10 overflow-hidden"
           >
             {/* Top decorative gradient bar */}
             <div className="w-full h-1 bg-gradient-to-r from-amber-500 via-indigo-500 to-amber-500 shrink-0" />
             
             {/* 16:9 EXECUTIVE HEADER BAR */}
-            <header className="px-4 sm:px-8 py-4 border-b border-white/10 bg-[#080b14]/90 backdrop-blur-md sticky top-0 z-30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <header className="px-4 sm:px-8 py-3.5 border-b border-white/10 bg-[#080b14]/95 backdrop-blur-md shrink-0 z-30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Left Title & Crown */}
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-amber-400/20 to-indigo-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
@@ -245,8 +244,8 @@ export default function BranchManagerCongratulatoryScreen({
             {/* MAIN 16:9 DUAL-WINDOW CONTAINER (FULLY SCROLLABLE, ZERO CLAMPING) */}
             <main 
               data-lenis-prevent="true"
-              className="flex-1 px-4 sm:px-8 py-6 w-full max-w-[1700px] mx-auto pb-48 md:pb-56 overflow-y-visible"
-              style={{ touchAction: 'pan-y' }}
+              className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-6 w-full max-w-[1700px] mx-auto custom-scrollbar"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
                 
@@ -391,29 +390,6 @@ export default function BranchManagerCongratulatoryScreen({
                           <span>সিইও নির্দেশিত ফ্র্যাঞ্চাইজি নিরাপত্তা ও গোপনীয়তা বিধি কঠোরভাবে পালন করা।</span>
                         </li>
                       </ul>
-                    </div>
-
-                    {/* Advance Button to Window 2 */}
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (activeWindowTab === 'win1') {
-                            setActiveWindowTab('win2');
-                          } else {
-                            const win2El = document.getElementById('window-2-container');
-                            if (win2El) {
-                              win2El.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            } else {
-                              setActiveWindowTab('win2');
-                            }
-                          }
-                        }}
-                        className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer active:scale-98"
-                      >
-                        <span>পরবর্তী উইন্ডো: ফটো আপলোড ও সেভ (Next Step: Photo & Save)</span>
-                        <ArrowRight size={15} />
-                      </button>
                     </div>
                   </motion.div>
                 )}
@@ -599,38 +575,6 @@ export default function BranchManagerCongratulatoryScreen({
                         শাখা প্রধান হিসেবে দায়িত্ব গ্রহণ করছি।
                       </div>
                     </label>
-
-                    {/* Window-Level Save Button (Prominently placed inside Window 2) */}
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSubmitConfirmation()}
-                        className={`w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-2xl transition-all cursor-pointer ${
-                          isConfirmed && mgrName.trim()
-                            ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 scale-[1.01] hover:scale-[1.02] active:scale-95 shadow-[0_0_25px_rgba(245,158,11,0.45)]'
-                            : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-400'
-                        }`}
-                      >
-                        <ShieldCheck size={18} />
-                        <span>সেভ ও কমান্ড অ্যাক্টিভেট করুন (CONFIRM & ACTIVATE COMMAND)</span>
-                        <ArrowRight size={16} />
-                      </button>
-                      {!isConfirmed && (
-                        <p className="text-[10px] text-center text-amber-500/80 font-mono mt-2">
-                          * সেভ করতে উপরের চেকবক্সে টিক দিন (Check confirmation above to enable)
-                        </p>
-                      )}
-                      {activeWindowTab === 'win2' && (
-                        <button
-                          type="button"
-                          onClick={() => setActiveWindowTab('win1')}
-                          className="w-full mt-2.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98"
-                        >
-                          <ArrowLeft size={14} />
-                          <span>পূর্ববর্তী উইন্ডো: ব্যক্তিগত তথ্য (Back to Step 1: Details)</span>
-                        </button>
-                      )}
-                    </div>
                   </motion.div>
                 )}
 
@@ -640,7 +584,7 @@ export default function BranchManagerCongratulatoryScreen({
             {/* ========================================================================= */}
             {/* STICKY BOTTOM EXECUTIVE ACTION BAR (NEVER GETS CUT OFF ON ANY DISPLAY!) */}
             {/* ========================================================================= */}
-            <footer className="sticky bottom-0 z-40 bg-[#060810]/95 backdrop-blur-xl border-t border-white/10 px-4 sm:px-8 py-3.5 shadow-2xl">
+            <footer className="shrink-0 z-40 bg-[#060810]/95 backdrop-blur-xl border-t border-white/10 px-4 sm:px-8 py-3.5 shadow-2xl">
               <div className="max-w-[1700px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
                 {/* Left: Validation indicator */}
                 <div className="flex items-center gap-2.5 text-xs">

@@ -4,7 +4,7 @@ import {
   PackageOpen, FolderKey, ShieldAlert, BrainCircuit, BellRing, 
   Menu, X, Sun, Moon, Sparkles, UserCheck, BriefcaseBusiness, TrendingUp, CheckSquare,
   Store, Calendar, Gift, HelpCircle, ChevronRight, Database, Trash2, Lock, KeyRound, Building2, ShieldCheck,
-  MessageSquare
+  MessageSquare, FileText
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { RodpLogo } from '../../components/Logo';
@@ -48,6 +48,7 @@ export default function Sidebar({
   const getMenuItems = () => {
     const common = [
       { id: 'dashboard', label: 'Dashboard Control', icon: LayoutDashboard },
+      { id: 'apply_forms', label: 'Apply Forms / অনলাইন ফর্ম', icon: FileText },
       { id: 'services', label: 'Service Modules', icon: Server },
       { id: 'appointments', label: 'Appointments Hub', icon: CalendarCheck2 },
     ];
@@ -56,6 +57,7 @@ export default function Sidebar({
       return [
         { id: 'connect_all_branches', label: 'Connect All Branches / ব্রাঞ্চ কানেক্ট', icon: MessageSquare },
         { id: 'dashboard', label: 'Dashboard Control', icon: LayoutDashboard },
+        { id: 'apply_forms', label: 'Apply Forms / অনলাইন ফর্ম', icon: FileText },
         { id: 'super_admin_panel', label: 'Super Admin HQ', icon: ShieldAlert },
         { id: 'ceo_branch_vault', label: 'All Branches & Passwords / ব্রাঞ্চ পাসওয়ার্ড', icon: KeyRound },
         { id: 'shop_profile', label: 'RODP HQ Profile', icon: Store },

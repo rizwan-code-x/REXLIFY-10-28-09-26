@@ -28,13 +28,14 @@ import BranchDashboardView from './components/BranchDashboardView';
 import CeoBranchVaultView from './components/CeoBranchVaultView';
 import VerifyBillsDocsView from './components/VerifyBillsDocsView';
 import ConnectBranchesMessenger from './components/ConnectBranchesMessenger';
+import ApplyFormsView from './components/ApplyFormsView';
 import { connectGoogleDrive, disconnectGoogleDrive, syncToGoogleDrive, getCachedToken } from './lib/googleDrive';
 import { 
   Sparkles, BrainCircuit, ChevronLeft, ChevronRight, Home, 
   ShieldAlert, Users, CheckSquare, BriefcaseBusiness, BellRing, 
   LayoutDashboard, Server, CalendarCheck2, Receipt, PackageOpen, 
   FolderKey, UserCheck, TrendingUp, Menu, X, Gift, HelpCircle, Info, Bell,
-  Cloud, CloudOff, RefreshCw, AlertTriangle, CreditCard, KeyRound, Lock, ShieldCheck
+  Cloud, CloudOff, RefreshCw, AlertTriangle, CreditCard, KeyRound, Lock, ShieldCheck, FileText
 } from 'lucide-react';
 import { RodpLogo } from '../components/Logo';
 import { SecureExitModal } from '../components/SecureExitModal';
@@ -46,6 +47,7 @@ const TAB_ORDER = [
   'ceo_branch_vault',
   'shop_profile',
   'dashboard',
+  'apply_forms',
   'customer_portal',
   'services',
   'appointments',
@@ -189,8 +191,18 @@ export default function App({ onBack }: AppProps = {}) {
     conversationMessages,
     sendConversationMessage,
     createOrGetConversation,
-    markConversationRead
+    markConversationRead,
+    applyFormWebsites,
+    addApplyFormWebsite,
+    updateApplyFormWebsite,
+    deleteApplyFormWebsite,
+    applyFormActivities,
+    recordApplyFormActivity,
+    updateApplyFormActivity,
+    deleteApplyFormActivity
   } = useAppState();
+
+  const [applyFormFilter, setApplyFormFilter] = useState<{ status?: string; dateRange?: string; branchId?: string } | undefined>(undefined);
 
   const isBranchVerified = (() => {
     if (currentUser && currentUser.role === 'shop_owner') {
@@ -769,6 +781,7 @@ export default function App({ onBack }: AppProps = {}) {
 
     return [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'apply_forms', label: 'Apply Forms', icon: FileText },
       { id: 'services', label: 'Services', icon: Server },
       { id: 'appointments', label: 'Appointments', icon: CalendarCheck2 },
       { id: 'priority_tasks_vault', label: 'Proof', icon: CheckSquare },
@@ -900,6 +913,28 @@ export default function App({ onBack }: AppProps = {}) {
             currentUser={currentUser}
             shops={shops}
             updateShop={updateShop}
+            applyFormActivities={applyFormActivities}
+            onSelectApplyFormFilter={(filter) => {
+              setApplyFormFilter(filter);
+              navigateToTab('apply_forms');
+            }}
+          />
+        );
+      case 'apply_forms':
+        return (
+          <ApplyFormsView
+            theme={theme}
+            currentUser={currentUser}
+            shops={shops}
+            websites={applyFormWebsites}
+            activities={applyFormActivities}
+            onAddWebsite={addApplyFormWebsite}
+            onUpdateWebsite={updateApplyFormWebsite}
+            onDeleteWebsite={deleteApplyFormWebsite}
+            onRecordActivity={recordApplyFormActivity}
+            onUpdateActivity={updateApplyFormActivity}
+            onDeleteActivity={deleteApplyFormActivity}
+            initialFilter={applyFormFilter}
           />
         );
       case 'services':

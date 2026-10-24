@@ -49,7 +49,7 @@ import { FacultyRecruitment } from './FacultyRecruitment';
 import { ExploreSystemPage } from './ExploreSystemPage';
 import { SaraAIPage } from './SaraAIPage';
 
-const fadeInUpVariants = {
+const fadeInUpVariants: any = {
   hidden: { opacity: 0, y: 35 },
   visible: { 
     opacity: 1, 
@@ -58,7 +58,7 @@ const fadeInUpVariants = {
   }
 };
 
-const staggerContainerVariants = {
+const staggerContainerVariants: any = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -129,6 +129,7 @@ interface FrontendPagesProps {
   platformFeatures?: any[];
   apkDownloadLink?: string;
   customUiComponents?: any[];
+  socialMediaLinks?: any;
   onUpdateActiveUser: (user: UserAccount) => void;
   onUpdateProducts: (products: ProductItem[]) => void;
   onUpdateBlogPosts: (blog: BlogItem[]) => void;
@@ -654,119 +655,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
                       <h3 className="font-sora text-xl font-semibold text-white group-hover:text-amber-400 transition-colors">{feat.title}</h3>
                       <p className="text-gray-400 text-sm font-light leading-relaxed">{feat.desc}</p>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-
-          {/* Dashboard - System Applications & Architecture */}
-          <motion.section 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-120px" }}
-            variants={staggerContainerVariants}
-            className="space-y-12"
-          >
-            <motion.div 
-              variants={fadeInUpVariants}
-              className="flex flex-col sm:flex-row items-end justify-between gap-6"
-            >
-              <div className="text-left space-y-4 max-w-2xl">
-                <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-gray-300 text-[10px] font-mono tracking-widest uppercase inline-block">
-                  System Architectures
-                </span>
-                <h2 className="font-sora text-4xl md:text-5xl font-semibold text-white tracking-tight leading-tight">
-                  Dashboard
-                </h2>
-                <p className="text-gray-400 text-sm font-light">
-                  Explore current digital architectures, applications, and system capabilities.
-                </p>
-              </div>
-              <button 
-                onClick={() => setView('applications')}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:border-white/30 text-sm font-medium text-white hover:bg-white/5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
-              >
-                View Full Catalog
-                <ChevronRight size={16} />
-              </button>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {applications.filter(a => a.status === 'Active').slice(0, 3).map((app) => (
-                <motion.div 
-                  key={app.id}
-                  variants={fadeInUpVariants}
-                  className="bg-[#050505] p-6 sm:p-8 rounded-[2rem] border border-white/10 flex flex-col justify-between hover:border-emerald-500/30 hover:shadow-[0_0_40px_rgba(16,185,129,0.05)] transition-all duration-500 relative overflow-hidden group min-h-[360px]"
-                >
-                  <div className="absolute top-0 right-0 p-6 sm:p-8">
-                    {getStatusBadge(app.status)}
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                      {renderLogo(app.logo, 40)}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <h3 className="font-sora text-2xl sm:text-3xl font-semibold text-white group-hover:text-emerald-400 transition-colors">
-                        {app.name}
-                      </h3>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2.5 py-1 rounded-full bg-white/5 text-gray-300 text-[10px] font-mono uppercase tracking-widest">
-                          {app.category}
-                        </span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/5 text-gray-300 text-[10px] font-mono uppercase tracking-widest">
-                          v{app.version}
-                        </span>
-                      </div>
-                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed pt-1 line-clamp-3">
-                        {app.shortDescription}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between gap-3">
-                    <button
-                      onClick={() => {
-                        setSelectedApp(app);
-                        setView('applications');
-                      }}
-                      className="text-xs sm:text-sm font-medium tracking-wide text-white hover:text-emerald-400 transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Specifications</span>
-                      <ChevronRight size={14} />
-                    </button>
-                    {app.id === 'rexlify-ai' ? (
-                      <button
-                        onClick={() => setView('rexlify-ai')}
-                        className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-pink-500/25 active:scale-95"
-                      >
-                        <span>Open AI</span>
-                        <Sparkles size={12} />
-                      </button>
-                    ) : app.id === 'rodp' ? (
-                      <button
-                        onClick={() => {
-                          setView('rodp');
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-cyan-500/25 active:scale-95"
-                      >
-                        <span>Open App</span>
-                        <ChevronRight size={12} />
-                      </button>
-                    ) : app.id === 'sifra' ? (
-                      <button
-                        onClick={() => {
-                          window.open('https://remix-sifra-professional-ai-assistant-465420538053.asia-east1.run.app', '_blank', 'noopener,noreferrer');
-                        }}
-                        className="px-3 py-1.5 rounded-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-mono font-medium flex items-center gap-1 cursor-pointer transition-all"
-                      >
-                        <span>Live App</span>
-                        <ExternalLink size={12} />
-                      </button>
-                    ) : null}
                   </div>
                 </motion.div>
               ))}

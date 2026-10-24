@@ -3,12 +3,13 @@ import {
   Calendar, Clock, AlertCircle, Sparkles, CheckCircle2, Check, Plus,
   ArrowRight, FileText, ClipboardList, PenTool, CheckSquare, 
   UserPlus, Bell, ChevronRight, Bookmark, Shield, Zap, X, 
-  ChevronLeft, Trash2, Lock, Unlock, MessageSquare, Store, ShieldCheck
+  ChevronLeft, Trash2, Lock, Unlock, MessageSquare, Store, ShieldCheck,
+  Globe, Eye, XCircle, Building2, ExternalLink
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Appointment, CustomerCRM, Task, Invoice, InventoryItem, Shop } from '../types';
+import { Appointment, CustomerCRM, Task, Invoice, InventoryItem, Shop, ApplyFormActivity } from '../types';
 
 interface DashboardViewProps {
   theme: 'light' | 'dark';
@@ -26,6 +27,8 @@ interface DashboardViewProps {
   currentUser?: any;
   shops?: Shop[];
   updateShop?: (id: string, updates: any) => void;
+  applyFormActivities?: ApplyFormActivity[];
+  onSelectApplyFormFilter?: (filter: { status?: string; dateRange?: string; branchId?: string }) => void;
 }
 
 const MONTH_NAMES = [
@@ -55,7 +58,9 @@ export default function DashboardView({
   goToBillingWithCustomer,
   currentUser,
   shops = [],
-  updateShop
+  updateShop,
+  applyFormActivities = [],
+  onSelectApplyFormFilter
 }: DashboardViewProps) {
   const [completeMessage, setCompleteMessage] = useState<string | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
@@ -483,6 +488,35 @@ export default function DashboardView({
     return appts;
   };
 
+  // -----------------------------------------------------
+  // APPLY FORMS 7 SUMMARY METRICS CALCULATION
+  // -----------------------------------------------------
+  const isSuperAdminUser = currentUser?.role === 'super_admin';
+  const effectiveShop = shops?.find(s => s.id === currentUser?.shopId || s.customId === currentUser?.shopId) || shops?.[0];
+  const userShopId = effectiveShop?.id || 'shop_1';
+
+  const relevantApplyActivities = (applyFormActivities || []).filter(act => {
+    if (isSuperAdminUser) return true;
+    return act.shopId === userShopId || act.shopId === effectiveShop?.customId;
+  });
+
+  const nowTime = new Date();
+  const todayApplyActs = relevantApplyActivities.filter(act => {
+    const d = new Date(act.timestamp);
+    return d.getDate() === nowTime.getDate() &&
+      d.getMonth() === nowTime.getMonth() &&
+      d.getFullYear() === nowTime.getFullYear();
+  });
+
+  const totalWebsiteOpens = relevantApplyActivities.filter(a => a.activityType === 'Opened').length;
+  const workStartedCount = relevantApplyActivities.filter(a => a.activityType === 'Work Started').length;
+  const completedTasksCount = relevantApplyActivities.filter(a => a.activityType === 'Completed').length;
+  const pendingTasksCount = relevantApplyActivities.filter(a => a.activityType === 'Pending').length;
+  const cancelledTasksCount = relevantApplyActivities.filter(a => a.activityType === 'Cancelled').length;
+  const todayActivityCount = todayApplyActs.length;
+  const branchSummaryCount = isSuperAdminUser ? (shops?.length || 1) : 1;
+  const branchActivitiesCount = relevantApplyActivities.length;
+
   return (
     <div className="space-y-8 animate-fade-in text-xs font-semibold select-none">
       
@@ -697,6 +731,229 @@ export default function DashboardView({
             </div>
           </button>
 
+        </div>
+      </div>
+
+      {/* 🚀 APPLY FORMS — 7 CLICKABLE SUMMARY CARDS INTEGRATION */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-[#dfac5d]/10 border border-[#dfac5d]/30 text-[#dfac5d]">
+              <Globe size={14} />
+            </span>
+            <div>
+              <h3 className="text-xs uppercase tracking-wider text-slate-200 font-extrabold flex items-center gap-2">
+                <span>Apply Forms Portal Gateway</span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[#00f2fe] font-mono font-bold">
+                  7 Interactive KPI Cards
+                </span>
+              </h3>
+              <p className="text-[10px] text-slate-400 font-medium">
+                Click any summary card to immediately filter application records and portal activity logs.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setCurrentTab?.('apply_forms')}
+            className="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-[#dfac5d]/15 hover:bg-[#dfac5d] border border-[#dfac5d]/30 hover:border-transparent text-[#dfac5d] hover:text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_12px_rgba(223,172,93,0.15)]"
+          >
+            <span>Open Apply Forms Portal</span>
+            <ArrowRight size={12} className="stroke-[2.5]" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          {/* Card 1: Total Website Opens */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ status: 'Opened' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-cyan-500/50 hover:shadow-[0_0_18px_rgba(0,242,254,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to view all opened government portal logs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Opens</span>
+              <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-[#00f2fe] group-hover:scale-110 transition-transform">
+                <Eye size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-white font-mono tracking-tight group-hover:text-[#00f2fe] transition-colors">
+                {totalWebsiteOpens}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">ওয়েবসাইট ওপেন</div>
+            </div>
+            <div className="text-[9px] font-bold text-[#00f2fe] flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect List</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 2: Work Started */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ status: 'Work Started' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-amber-500/50 hover:shadow-[0_0_18px_rgba(245,158,11,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to inspect ongoing work in progress"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Work Started</span>
+              <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <Clock size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-amber-400 font-mono tracking-tight">
+                {workStartedCount}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">শুরু হওয়া কাজ</div>
+            </div>
+            <div className="text-[9px] font-bold text-amber-400 flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect List</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 3: Completed Tasks */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ status: 'Completed' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-emerald-500/50 hover:shadow-[0_0_18px_rgba(16,185,129,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to view all successfully finished applications"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Completed</span>
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <CheckCircle2 size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-emerald-400 font-mono tracking-tight">
+                {completedTasksCount}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">সম্পন্ন আবেদন</div>
+            </div>
+            <div className="text-[9px] font-bold text-emerald-400 flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect List</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 4: Pending Tasks */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ status: 'Pending' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-purple-500/50 hover:shadow-[0_0_18px_rgba(168,85,247,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to inspect pending and review-stage applications"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Pending</span>
+              <div className="w-6 h-6 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                <AlertCircle size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-purple-400 font-mono tracking-tight">
+                {pendingTasksCount}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">অপেক্ষমাণ কাজ</div>
+            </div>
+            <div className="text-[9px] font-bold text-purple-400 flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect List</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 5: Cancelled Tasks */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ status: 'Cancelled' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-rose-500/50 hover:shadow-[0_0_18px_rgba(244,63,94,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to view discontinued applications"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Cancelled</span>
+              <div className="w-6 h-6 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform">
+                <XCircle size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-rose-400 font-mono tracking-tight">
+                {cancelledTasksCount}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">বাতিল আবেদন</div>
+            </div>
+            <div className="text-[9px] font-bold text-rose-400 flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect List</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 6: Today's Activity */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ dateRange: 'Today' });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-cyan-400/50 hover:shadow-[0_0_18px_rgba(34,211,238,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to filter by today's portal applications"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Today's Log</span>
+              <div className="w-6 h-6 rounded-lg bg-cyan-400/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                <Calendar size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-2xl font-black text-cyan-300 font-mono tracking-tight">
+                {todayActivityCount}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">আজকের কার্যক্রম</div>
+            </div>
+            <div className="text-[9px] font-bold text-cyan-300 flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Inspect Today</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
+
+          {/* Card 7: Branch-wise Summary */}
+          <div
+            onClick={() => {
+              if (onSelectApplyFormFilter) onSelectApplyFormFilter({ branchId: isSuperAdminUser ? 'all' : userShopId });
+              else setCurrentTab?.('apply_forms');
+            }}
+            className="p-3.5 rounded-2xl liquid-glass-panel border border-slate-800/90 hover:border-[#dfac5d]/50 hover:shadow-[0_0_18px_rgba(223,172,93,0.15)] transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            title="Click to view branch-wise application log"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Branch Summary</span>
+              <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-[#dfac5d] group-hover:scale-110 transition-transform">
+                <Building2 size={12} />
+              </div>
+            </div>
+            <div className="py-2">
+              <div className="text-lg font-black text-[#dfac5d] font-mono tracking-tight truncate">
+                {isSuperAdminUser ? `${branchActivitiesCount} (${branchSummaryCount} Br)` : `${branchActivitiesCount} (This Br)`}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium truncate">
+                {isSuperAdminUser ? 'সকল ব্রাঞ্চ সারাংশ' : (effectiveShop?.name || 'নিজস্ব ব্রাঞ্চ')}
+              </div>
+            </div>
+            <div className="text-[9px] font-bold text-[#dfac5d] flex items-center gap-1 pt-1 border-t border-slate-800/60">
+              <span>Filter Branch</span>
+              <ChevronRight size={10} />
+            </div>
+          </div>
         </div>
       </div>
 

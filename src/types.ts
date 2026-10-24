@@ -10,6 +10,7 @@ export interface AppAPKInfo {
   downloadCount: number;
   qrCodeUrl?: string; // Auto-generated
   compatibility: string; // e.g., "Android 8.0+"
+  version?: string;
   changelog: { version: string; date: string; changes: string[] }[];
 }
 
@@ -33,6 +34,7 @@ export interface Application {
   upcomingMilestones?: string[];
   tags: string[];
   features: string[];
+  featured?: boolean;
   apkInfo: AppAPKInfo;
   seoTitle?: string;
   seoDescription?: string;
@@ -57,7 +59,7 @@ export interface Project {
   name: string;
   description: string;
   progress: number; // 0 to 100
-  status: ProjectStatus;
+  status: ProjectStatus | string;
   targetRelease: string;
   category: string;
   notes: string;
@@ -76,15 +78,18 @@ export interface DocArticle {
   image?: string;
 }
 
-export type MessageCategory = 'Contact' | 'Suggestions' | 'Feedback' | 'Bug Reports' | 'Feature Requests';
+export type MessageCategory = 'Contact' | 'Suggestions' | 'Feedback' | 'Bug Reports' | 'Feature Requests' | 'Inquiry';
 
 export interface UserMessage {
   id: string;
-  senderName: string;
-  senderEmail: string;
+  senderName?: string;
+  senderEmail?: string;
+  sender?: string;
+  email?: string;
   subject: string;
-  category: MessageCategory;
-  message: string;
+  category?: MessageCategory;
+  message?: string;
+  content?: string;
   date: string;
   isImportant: boolean;
   isRead: boolean;
@@ -144,6 +149,10 @@ export interface ServiceItem {
   iconName: string;
   fullDetails: string;
   features: string[];
+  name?: string;
+  category?: string;
+  icon?: string;
+  deliverables?: string[];
 }
 
 export interface Review {
@@ -151,6 +160,7 @@ export interface Review {
   author: string;
   rating: number;
   comment: string;
+  content?: string;
   date: string;
 }
 
@@ -168,6 +178,9 @@ export interface ProductItem {
   features: string[];
   githubUrl?: string;
   docsUrl?: string;
+  logo?: string;
+  version?: string;
+  fileSize?: string;
 }
 
 export interface BlogComment {
@@ -188,6 +201,7 @@ export interface BlogItem {
   date: string;
   author: string;
   readTime: string;
+  readingTime?: string;
   comments: BlogComment[];
 }
 

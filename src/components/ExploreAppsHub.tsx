@@ -23,7 +23,7 @@ interface ExploreAppsHubProps {
   onIncrementDownload?: (appId: string) => void;
 }
 
-export const SIFRA_AI_LIVE_URL = 'https://remix-sifra-professional-ai-assistant-465420538053.asia-east1.run.app';
+export const SIFRA_AI_LIVE_URL = APP_LINKS.sifra;
 
 interface CommunityRequest {
   id: string;
@@ -166,8 +166,8 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
     if (e) e.stopPropagation();
 
     if (app.id === 'sifra') {
-      setView('sifra');
-      toastSuccess('Launching Sifra AI', 'Entering secure autonomous co-pilot workspace.');
+      window.open(APP_LINKS.sifra, '_blank', 'noopener,noreferrer');
+      toastSuccess('Launching Sifra AI', 'Opening official SIFRA AI platform.');
       return;
     }
 
@@ -202,8 +202,8 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
     }
 
     if (app.id === 'rizwan-innovation' || app.id.includes('rizwan-innovation') || app.id.includes('rizwan-enovation')) {
-      setView('rizwan-innovation');
-      toastSuccess('Launching Rizwan Innovation', 'Entering deep tech R&D incubator.');
+      window.open(APP_LINKS.rizwanInnovation, '_blank', 'noopener,noreferrer');
+      toastSuccess('Launching Rizwan Innovation', 'Opening official Rizwan Innovation platform.');
       return;
     }
 
@@ -1137,16 +1137,15 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   {selectedAppModal.id === 'sifra' ? (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        setView('sifra');
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
+                    <a
+                      href={APP_LINKS.sifra}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
                     >
-                      <ArrowUpRight size={14} />
+                      <ExternalLink size={14} />
                       Launch Sifra AI
-                    </button>
+                    </a>
                   ) : selectedAppModal.id === 'neurax' ? (
                     <a
                       href={APP_LINKS.neurax}
@@ -1168,16 +1167,15 @@ export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
                       Launch NoorAX AI
                     </a>
                   ) : selectedAppModal.id.includes('rizwan-innovation') || selectedAppModal.id.includes('rizwan-enovation') ? (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        setView('rizwan-innovation');
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
+                    <a
+                      href={APP_LINKS.rizwanInnovation}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
                     >
-                      <ArrowUpRight size={14} />
-                      Launch Innovation Lab
-                    </button>
+                      <ExternalLink size={14} />
+                      Launch Rizwan Innovation
+                    </a>
                   ) : selectedAppModal.id === 'rodp' ? (
                     <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                       <button

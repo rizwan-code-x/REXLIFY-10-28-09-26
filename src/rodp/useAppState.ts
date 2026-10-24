@@ -4,14 +4,16 @@ import {
   CustomerCRM, Invoice, InventoryItem, DocumentVaultItem, 
   Staff, FinanceRecord, NotificationLog, SecurityLog, UserRole,
   AIKnowledgeItem, SessionLog, Notice, Inquiry, GroupMessage, GroupSettings, OnlinePayment,
-  BranchChatMessage, BranchServiceSetting, ServiceChangeNotification, BranchConversation, ConversationMessage
+  BranchChatMessage, BranchServiceSetting, ServiceChangeNotification, BranchConversation, ConversationMessage,
+  ApplyFormWebsite, ApplyFormActivity
 } from './types';
 import { 
   DEFAULT_SERVICES, MOCK_SHOPS, MOCK_CUSTOMERS, 
   MOCK_APPOINTMENTS, MOCK_TASKS, MOCK_INVENTORIES, 
   MOCK_STAFF, MOCK_INVOICES, MOCK_FINANCE, 
   MOCK_DOCUMENTS, MOCK_NOTIFICATIONS, MOCK_SECURITY_LOGS,
-  MOCK_NOTICES, MOCK_INQUIRIES, MOCK_ONLINE_PAYMENTS
+  MOCK_NOTICES, MOCK_INQUIRIES, MOCK_ONLINE_PAYMENTS,
+  DEFAULT_APPLY_FORM_WEBSITES, MOCK_APPLY_FORM_ACTIVITIES
 } from './mockData';
 import { db, auth, isFirebaseAvailable } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -125,6 +127,24 @@ export function useAppState() {
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({
     onlyAdminsCanPost: false,
     isGroupMuted: false
+  });
+  const [applyFormWebsites, setApplyFormWebsites] = useState<ApplyFormWebsite[]>(() => {
+    const saved = localStorage.getItem('rodp_applyFormWebsites');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return DEFAULT_APPLY_FORM_WEBSITES;
+  });
+  const [applyFormActivities, setApplyFormActivities] = useState<ApplyFormActivity[]>(() => {
+    const saved = localStorage.getItem('rodp_applyFormActivities');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return MOCK_APPLY_FORM_ACTIVITIES;
   });
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -314,6 +334,8 @@ export function useAppState() {
             setGroupSettings(data);
           }
         }, [{ id: 'settings', onlyAdminsCanPost: false, isGroupMuted: false }]);
+        setupSync('applyFormWebsites', setApplyFormWebsites, DEFAULT_APPLY_FORM_WEBSITES);
+        setupSync('applyFormActivities', setApplyFormActivities, MOCK_APPLY_FORM_ACTIVITIES);
 
         setLoading(false);
       } catch (err: any) {
@@ -585,6 +607,45 @@ export function useAppState() {
             localStorage.setItem('rodp_conversation_messages', JSON.stringify(list));
           }
         }, (err) => console.warn('RTDB conversation messages stream warning:', err));
+
+        // 14. Realtime Apply Form Websites Listener
+        const applyWebsitesRef = ref(rtdb, 'rodp_apply_form_websites');
+        onValue(applyWebsitesRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: ApplyFormWebsite[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              setApplyFormWebsites(prev => {
+                const map = new Map<string, ApplyFormWebsite>();
+                prev.forEach(item => map.set(item.id, item));
+                list.forEach(item => map.set(item.id, { ...map.get(item.id), ...item }));
+                const merged = Array.from(map.values());
+                localStorage.setItem('rodp_applyFormWebsites', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        }, (err) => console.warn('RTDB apply form websites warning:', err));
+
+        // 15. Realtime Apply Form Activities Listener
+        const applyActivitiesRef = ref(rtdb, 'rodp_apply_form_activities');
+        onValue(applyActivitiesRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: ApplyFormActivity[] = Object.keys(val).map(k => ({
+              ...val[k],
+              id: val[k].id || k
+            }));
+            if (list.length > 0) {
+              list.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+              setApplyFormActivities(list);
+              localStorage.setItem('rodp_applyFormActivities', JSON.stringify(list));
+            }
+          }
+        }, (err) => console.warn('RTDB apply form activities warning:', err));
       });
     }).catch(err => console.warn('Could not initialize universal RTDB listeners:', err));
 
@@ -670,6 +731,8 @@ export function useAppState() {
       }
     ]));
     setGroupSettings(getOrSet('groupSettings', { onlyAdminsCanPost: false, isGroupMuted: false }));
+    setApplyFormWebsites(getOrSet('applyFormWebsites', DEFAULT_APPLY_FORM_WEBSITES));
+    setApplyFormActivities(getOrSet('applyFormActivities', MOCK_APPLY_FORM_ACTIVITIES));
     setLoading(false);
   };
 
@@ -1739,6 +1802,65 @@ export function useAppState() {
           update(ref(rtdb, `rodp_conversations/${conversationId}/unreadCounts`), { [userId]: 0 }).catch(console.warn);
         });
       });
+    },
+
+    // Apply Forms Management & Realtime Activity Tracking
+    applyFormWebsites,
+    addApplyFormWebsite: (website: ApplyFormWebsite) => {
+      addRecord('applyFormWebsites', website, setApplyFormWebsites, applyFormWebsites);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_apply_form_websites/' + website.id), { ...website, updatedAt: Date.now() }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    },
+    updateApplyFormWebsite: (website: ApplyFormWebsite) => {
+      updateRecord('applyFormWebsites', website.id, website, setApplyFormWebsites, applyFormWebsites);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_apply_form_websites/' + website.id), { ...website, updatedAt: Date.now() }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    },
+    deleteApplyFormWebsite: (id: string) => {
+      deleteRecord('applyFormWebsites', id, setApplyFormWebsites, applyFormWebsites);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_apply_form_websites/' + id)).catch(console.warn);
+        }
+      }).catch(console.warn);
+    },
+
+    applyFormActivities,
+    recordApplyFormActivity: (activity: ApplyFormActivity) => {
+      addRecord('applyFormActivities', activity, setApplyFormActivities, applyFormActivities);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { set, ref } = await import('firebase/database');
+          set(ref(rtdb, 'rodp_apply_form_activities/' + activity.id), { ...activity, updatedAt: Date.now() }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    },
+    updateApplyFormActivity: (activity: ApplyFormActivity) => {
+      updateRecord('applyFormActivities', activity.id, activity, setApplyFormActivities, applyFormActivities);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { update, ref } = await import('firebase/database');
+          update(ref(rtdb, 'rodp_apply_form_activities/' + activity.id), { ...activity, updatedAt: Date.now() }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    },
+    deleteApplyFormActivity: (id: string) => {
+      deleteRecord('applyFormActivities', id, setApplyFormActivities, applyFormActivities);
+      import('../firebase-rexlify').then(async ({ rtdb }) => {
+        if (rtdb) {
+          const { remove, ref } = await import('firebase/database');
+          remove(ref(rtdb, 'rodp_apply_form_activities/' + id)).catch(console.warn);
+        }
+      }).catch(console.warn);
     },
     
     loading,

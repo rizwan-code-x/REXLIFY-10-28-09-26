@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { ArrowRight, Cpu, Sparkles, Send, HardDrive, Layers, Compass, Search, GraduationCap, Briefcase, BookOpen, MonitorPlay } from 'lucide-react';
+import { ArrowRight, Cpu, Sparkles, Send, HardDrive, Layers, Compass, Search, GraduationCap, Briefcase, MonitorPlay } from 'lucide-react';
 import { ActiveView } from './Navbar';
 import { motion } from 'motion/react';
 import { NeuraxLogo, SifraLogo, NooraxLogo } from './Logo';
@@ -259,20 +259,23 @@ export const Hero: React.FC<HeroProps> = ({
           >
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-[#060614]/80 border border-white/10 p-4 rounded-3xl backdrop-blur-2xl shadow-2xl">
               
-              {/* Card 1: Shipra AI / Sifra AI - Links to Live Page */}
-              <div 
-                onClick={() => {
-                  window.open('https://remix-sifra-professional-ai-assistant-465420538053.asia-east1.run.app', '_blank', 'noopener,noreferrer');
-                }}
-                className="flex items-center gap-2.5 p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/20 transition-all duration-300 cursor-pointer group" 
-                title="Shipra AI / Sifra AI - Open Live Assistant"
+              {/* Card 1: SIFRA AI - Official Application Link */}
+              <a 
+                href={APP_LINKS.sifra}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/20 transition-all duration-300 cursor-pointer group shadow-lg shadow-purple-950/20 active:scale-95" 
+                title="SIFRA AI - Launch Official Assistant Platform"
               >
                 <SifraLogo size={32} />
                 <div className="text-left font-mono truncate">
-                  <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">Shipra AI</div>
-                  <div className="text-[9px] text-purple-400 font-semibold">Live Co-Pilot &rarr;</div>
+                  <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">Sifra AI</div>
+                  <div className="text-[9px] text-purple-400 font-semibold flex items-center gap-1">
+                    <span>Open</span>
+                    <span>&rarr;</span>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               {/* Card 2: NeuraX AI - Live Official Web App */}
               <a 
@@ -349,25 +352,25 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               </div>
 
-              {/* Card 6: Rizwan Innovation (Rizwan Enovation) - Clicking does nothing (no-op) */}
-              <div 
-                onClick={(e) => {
-                  e.preventDefault();
-                  // No-op as requested by the user: "ওপেন এ ক্লিক করলে কিছু হবে না"
-                }}
-                className="flex items-center gap-2.5 p-3 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-all duration-300 cursor-default group" 
-                title="Rizwan Innovation"
+              {/* Card 6: Rizwan Innovation - Official Application Link */}
+              <a 
+                href={APP_LINKS.rizwanInnovation}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-gradient-to-br from-purple-900/30 to-indigo-950/40 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/20 transition-all duration-300 cursor-pointer group shadow-lg shadow-purple-950/30 active:scale-95" 
+                title="Rizwan Innovation - Launch Official Platform"
               >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-800 to-indigo-950 border border-purple-500/30 flex items-center justify-center text-purple-300 font-sora font-extrabold text-[10px] shrink-0 shadow-md">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 border border-purple-400/40 flex items-center justify-center text-white font-sora font-extrabold text-[10px] shrink-0 shadow-md">
                   RI
                 </div>
                 <div className="text-left font-mono truncate">
-                  <div className="text-xs font-bold text-gray-200 truncate">Rizwan Innovation</div>
-                  <div className="text-[9px] text-gray-400 font-semibold flex items-center gap-1">
-                    <span>Innovation Lab</span>
+                  <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">Rizwan Innovation</div>
+                  <div className="text-[9px] text-purple-400 font-semibold flex items-center gap-1">
+                    <span>Open</span>
+                    <span>&rarr;</span>
                   </div>
                 </div>
-              </div>
+              </a>
 
             </div>
           </Interactive3DTiltCard>
@@ -423,90 +426,8 @@ export const Hero: React.FC<HeroProps> = ({
           </Interactive3DTiltCard>
         </motion.div>
 
-        {/* New Quick Access Section Row right below Published Apps */}
+        {/* Quick Access Section Row right below Published Apps */}
         <QuickAccessSection setView={setView} />
-
-        {/* Rexlify Institute & Faculty Recruitment Side-by-Side Flex Layout */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.55, ease: "easeOut" }}
-          className="w-full max-w-5xl mt-6 flex flex-col lg:flex-row gap-5 items-stretch"
-        >
-          {/* Left: Rexlify Institute Overview (50% desktop) */}
-          <div className="w-full lg:w-1/2 relative rounded-3xl p-6 sm:p-7 border border-cyan-500/30 bg-gradient-to-br from-[#07051a] via-[#0b0826] to-[#061021] shadow-2xl overflow-hidden group flex flex-col justify-between">
-            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-              <GraduationCap size={130} className="text-cyan-400" />
-            </div>
-
-            <div className="relative z-10 space-y-3 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-mono text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
-                <span>MASTER PRACTICAL TECH SKILLS</span>
-              </div>
-              <h3 className="font-sora text-2xl sm:text-3xl font-extrabold text-white">
-                Rexlify Institute
-              </h3>
-              <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
-                Join our comprehensive, flexible certificate programs. Gain hands-on experience and real-world expertise through our 1-Month Hybrid Development &amp; AI Assistant tracks.
-              </p>
-            </div>
-
-            <div className="relative z-10 flex flex-wrap items-center gap-3 pt-5 mt-auto">
-              <button
-                onClick={() => setView('institute')}
-                className="flex-1 min-w-[130px] px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-sora font-extrabold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <BookOpen size={15} />
-                <span>LEARN MORE</span>
-              </button>
-              <button
-                onClick={() => {
-                  setView('institute');
-                  setTimeout(() => {
-                    const el = document.getElementById('core-programs');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }, 200);
-                }}
-                className="flex-1 min-w-[130px] px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>VIEW COURSES</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Right: Empower Next Generation / Apply as Instructor (50% desktop) */}
-          <div className="w-full lg:w-1/2 relative rounded-3xl p-6 sm:p-7 border border-amber-500/30 bg-gradient-to-br from-[#180e05] via-[#0e0a1b] to-[#120a1c] shadow-2xl overflow-hidden group flex flex-col justify-between">
-            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-              <Briefcase size={130} className="text-amber-400" />
-            </div>
-
-            <div className="relative z-10 space-y-3 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
-                <span>FACULTY RECRUITMENT</span>
-                <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ml-1 animate-pulse">
-                  HIRING ACTIVE
-                </span>
-              </div>
-              <h3 className="font-sora text-xl sm:text-2xl font-extrabold text-white leading-tight">
-                Empower the Next Generation of Tech Leaders
-              </h3>
-              <p className="text-gray-300 text-xs sm:text-sm font-light leading-relaxed">
-                Join the Rexlify Faculty Team. We are seeking passionate mentors &amp; instructors for our 1-Month Hybrid Development Programs to shape tomorrow&apos;s digital pioneers.
-              </p>
-            </div>
-
-            <div className="relative z-10 pt-5 mt-auto">
-              <button
-                onClick={() => setView('faculty')}
-                className="w-full px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black font-sora font-extrabold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>APPLY AS INSTRUCTOR</span>
-                <ArrowRight size={15} />
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
       </div>
 
       {/* Render Coming Soon Pop-up modal when active */}

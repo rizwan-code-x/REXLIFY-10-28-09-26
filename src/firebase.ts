@@ -1,15 +1,33 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { initializeFirestore, getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  getFirestore, 
+  doc, 
+  getDocFromServer,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  setLogLevel
+} from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+
+// Suppress offline connection timeout warning when backend is unreachable
+setLogLevel('error');
 
 // Initialize the Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with experimentalForceLongPolling for reliable iframe and proxy connectivity
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
+// Initialize Firestore with persistentLocalCache & experimentalForceLongPolling for seamless offline/online operation
+export const db = initializeFirestore(
+  app,
+  {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+    experimentalForceLongPolling: true,
+  },
+  (firebaseConfig as any).firestoreDatabaseId || '(default)'
+);
 
 // Export Auth service
 export const auth = getAuth(app);

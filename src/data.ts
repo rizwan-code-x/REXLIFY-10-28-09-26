@@ -39,8 +39,8 @@ export const INITIAL_APPLICATIONS: Application[] = [
     status: 'Active',
     releaseDate: '2026-05-20',
     developerNotes: 'Sifra is live and accessible online! Connected to our enterprise cloud runtime with sub-second latency and intelligent memory retention.',
-    downloadUrl: 'https://remix-sifra-professional-ai-assistant-465420538053.asia-east1.run.app',
-    liveUrl: 'https://remix-sifra-professional-ai-assistant-465420538053.asia-east1.run.app',
+    downloadUrl: 'https://sifrar.ai.studio',
+    liveUrl: 'https://sifrar.ai.studio',
     progress: 100,
     completedMilestones: [
       'Conversational Agentic Pipeline (100%)',
@@ -257,8 +257,8 @@ export const INITIAL_APPLICATIONS: Application[] = [
     status: 'Active',
     releaseDate: '2026-06-25',
     developerNotes: 'Experimental research initiative and digital innovation think-tank.',
-    downloadUrl: '#',
-    liveUrl: '#',
+    downloadUrl: 'https://rizwanr.ai.studio',
+    liveUrl: 'https://rizwanr.ai.studio',
     progress: 100,
     completedMilestones: [
       'Innovation Directive Formulated (100%)',

@@ -850,12 +850,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       name: m.name || `Phase ${i+1}: Milestone`,
       description: m.description || '',
       progress: m.progress || 10,
-      status: m.progress >= 100 ? 'Released' : m.progress > 0 ? 'Development' : 'Planning',
+      status: (m.progress >= 100 ? 'Released' : m.progress > 0 ? 'Development' : 'Planning') as any,
       targetRelease: m.targetRelease || 'Q4 2026',
       category: m.category || 'General',
       notes: m.notes || ''
     }));
-    onUpdateProjects([...projects, ...newProjects]);
+    onUpdateProjects([...projects, ...newProjects as any]);
     setVisualRoadmapData(null);
     triggerToast('Visual roadmap milestones successfully deployed!');
   };
@@ -1478,7 +1478,7 @@ We have completed our latest cycle on: ${topic}.`
     setIsAddingFaq(true);
     setFaqFormQuestion(f.question);
     setFaqFormAnswer(f.answer);
-    setFaqFormCategory(f.category);
+    setFaqFormCategory(f.category as any);
     setFaqFormOrder(f.order || 1);
   };
 

@@ -5,7 +5,7 @@ import {
   MapPin, UserCheck, TrendingUp, DollarSign, Calendar, Edit3, Trash2,
   ExternalLink, Lock, CheckCircle2, AlertTriangle, Shield, RefreshCw,
   FileText, Users, ChevronRight, X, Sparkles, Camera, Upload, Image as ImageIcon,
-  Ban, Pause, Play, RotateCcw, AlertOctagon, Send, Clock, Sliders
+  Ban, Pause, Play, RotateCcw, AlertOctagon, Send, Clock, Sliders, Globe
 } from 'lucide-react';
 import { Shop, Staff, Invoice, Appointment, Task, User } from '../types';
 import BranchMapVisualizer from './BranchMapVisualizer';
@@ -463,6 +463,15 @@ export default function CeoBranchVaultView({
           >
             <Printer size={14} />
             <span>Print Vault PDF</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentTab('apply_forms')}
+            className="px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-[#00f2fe] font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+            title="Open Apply Forms Management & Analytics"
+          >
+            <Globe size={14} />
+            <span>Apply Forms Hub</span>
           </button>
 
           <button
