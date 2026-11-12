@@ -14,7 +14,7 @@ import {
   Trash2, Edit, Plus, Check, AlertCircle, RefreshCw, X, Eye, EyeOff, 
   Sliders, Link, Calendar, ArrowUpRight, Copy, AppWindow, FileSpreadsheet, Lock, Sparkles, AlertTriangle,
   Send, Briefcase, ShoppingBag, PenTool, PlayCircle, Maximize2, Minimize2, HelpCircle
-, Users } from 'lucide-react';
+, Users, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { 
   subscribeRODPApplications, 
   updateRODPApplicationStatus, 
@@ -22,6 +22,13 @@ import {
   submitRODPApplication, 
   RODPApplication 
 } from '../services/rodpService';
+import { 
+  subscribeRegisteredUsers, 
+  RegisteredUser, 
+  UserFeatureLog, 
+  registerUser,
+  trackFeatureUsage 
+} from '../services/userService';
 import { 
   Application, Update, Project, DocArticle, UserMessage, SEOSettings, WebsiteContent, AppStatus, ProjectStatus, UpdateCategory, DocCategory,
   ServiceItem, ProductItem, BlogItem, VideoCenterItem, AdvertisementItem, SocialMediaLink, FAQItem
@@ -199,6 +206,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Form modals state
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [isAddingApp, setIsAddingApp] = useState(false);
+  const [formAccentColor, setFormAccentColor] = useState<string>('#F5A623');
 
   const [editingUpdate, setEditingUpdate] = useState<Update | null>(null);
   const [isAddingUpdate, setIsAddingUpdate] = useState(false);
@@ -1148,19 +1156,32 @@ We have completed our latest cycle on: ${topic}.`
     const featuresRaw = formData.get('features') as string;
     const featuresList = featuresRaw ? featuresRaw.split('\n').filter(Boolean) : [];
 
+    const url = (formData.get('url') as string)?.trim() || '#';
+    const logoUrl = (formData.get('logoUrl') as string)?.trim() || editingApp?.logoUrl || '';
+    const accentColor = (formData.get('accentColor') as string)?.trim() || formAccentColor || editingApp?.accentColor || '#F5A623';
+    const rawOrder = formData.get('displayOrder') as string;
+    const displayOrder = rawOrder ? parseInt(rawOrder, 10) : (editingApp?.displayOrder ?? (applications.length + 1));
+    const isPublished = formData.get('isPublished') === 'true' || formData.get('isPublished') === 'on';
+    const openInNewTab = formData.get('openInNewTab') === 'true' || formData.get('openInNewTab') === 'on';
 
     const appData: Application = {
       id,
       name: formData.get('name') as string,
       logo: formData.get('logo') as string,
+      logoUrl: logoUrl || undefined,
+      url,
+      accentColor,
+      displayOrder,
+      isPublished,
+      openInNewTab,
       shortDescription: formData.get('shortDescription') as string,
       fullDescription: formData.get('fullDescription') as string,
       version: formData.get('version') as string,
       category: formData.get('category') as string,
-      status: formData.get('status') as AppStatus,
+      status: (formData.get('status') as AppStatus) || (isPublished ? 'Active' : 'Archived'),
       releaseDate: formData.get('releaseDate') as string,
       developerNotes: formData.get('developerNotes') as string,
-      downloadUrl: formData.get('downloadUrl') as string || '#',
+      downloadUrl: (formData.get('downloadUrl') as string) || url,
       tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean),
       features: featuresList,
       screenshots: editingApp ? editingApp.screenshots : [
@@ -1170,11 +1191,13 @@ We have completed our latest cycle on: ${topic}.`
       apkInfo: {
         size: formData.get('apkSize') as string || '20 MB',
         downloadCount: editingApp ? editingApp.apkInfo.downloadCount : 0,
-        compatibility: formData.get('compatibility') as string || 'Android 9.0+',
+        compatibility: formData.get('compatibility') as string || 'Android 9.0+ / Web',
         changelog: editingApp ? editingApp.apkInfo.changelog : [
           { version: formData.get('version') as string, date: formData.get('releaseDate') as string, changes: ['Initial release compiler calibration complete.'] }
         ]
-      }
+      },
+      createdAt: editingApp?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     if (editingApp) {
@@ -1182,7 +1205,7 @@ We have completed our latest cycle on: ${topic}.`
       triggerToast(`Application '${appData.name}' updated successfully.`);
     } else {
       onUpdateApps([...applications, appData]);
-      triggerToast(`Application '${appData.name}' created successfully.`);
+      triggerToast(`Application '${appData.name}' registered successfully.`);
     }
 
     setEditingApp(null);
@@ -1192,18 +1215,41 @@ We have completed our latest cycle on: ${topic}.`
   const handleTogglePublishApp = (id: string) => {
     onUpdateApps(applications.map(a => {
       if (a.id === id) {
-        const nextStatus: AppStatus = a.status === 'Active' ? 'Archived' : 'Active';
-        triggerToast(`Status toggled for '${a.name}' to ${nextStatus}.`);
-        return { ...a, status: nextStatus };
+        const currentlyPublished = a.isPublished !== undefined ? a.isPublished : a.status === 'Active';
+        const nextPublished = !currentlyPublished;
+        const nextStatus: AppStatus = nextPublished ? 'Active' : 'Archived';
+        triggerToast(`Status for '${a.name}' set to ${nextPublished ? 'Published' : 'Draft/Unpublished'}.`);
+        return { ...a, isPublished: nextPublished, status: nextStatus, updatedAt: new Date().toISOString() };
       }
       return a;
     }));
   };
 
+  const handleMoveAppOrder = (id: string, direction: 'up' | 'down') => {
+    const sorted = [...applications].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    const idx = sorted.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+
+    const currentApp = sorted[idx];
+    const targetApp = sorted[targetIdx];
+    const currentOrder = currentApp.displayOrder ?? (idx + 1);
+    const targetOrder = targetApp.displayOrder ?? (targetIdx + 1);
+
+    const updated = applications.map(a => {
+      if (a.id === currentApp.id) return { ...a, displayOrder: targetOrder, updatedAt: new Date().toISOString() };
+      if (a.id === targetApp.id) return { ...a, displayOrder: currentOrder, updatedAt: new Date().toISOString() };
+      return a;
+    });
+    onUpdateApps(updated);
+    triggerToast(`Moved "${currentApp.name}" ${direction}.`);
+  };
+
   const handleDeleteApp = (id: string) => {
-    if (confirm('Are you absolutely sure you want to remove this application file?')) {
+    if (confirm('Are you absolutely sure you want to remove this application?')) {
       onUpdateApps(applications.filter(a => a.id !== id));
-      triggerToast('Application record purged successfully.');
+      triggerToast('Application removed successfully.');
     }
   };
 
@@ -1379,7 +1425,8 @@ We have completed our latest cycle on: ${topic}.`
     { id: 'dashboard', label: 'Dashboard', icon: <Sliders size={15} /> },
     { id: 'rodp-portal', label: 'RODP Portal Access', icon: <ShieldAlert size={15} className="text-amber-400" /> },
     { id: 'sifra-ai', label: 'Sifra AI Studio', icon: <Sparkles size={15} className="text-amber-400 animate-pulse" /> },
-    { id: 'applications', label: 'App Manager', icon: <Cpu size={15} /> },
+    { id: 'applications', label: 'Manage Applications', icon: <Cpu size={15} /> },
+    { id: 'registered-users', label: 'Registered Users', icon: <Users size={15} className="text-pink-400" /> },
     { id: 'architecture', label: 'Architecture & Features', icon: <Layers size={15} /> },
     { id: 'services', label: 'Services Manager', icon: <Briefcase size={15} /> },
     { id: 'products', label: 'Products Manager', icon: <ShoppingBag size={15} /> },
@@ -1405,6 +1452,22 @@ We have completed our latest cycle on: ${topic}.`
   useEffect(() => {
     const unsubscribe = subscribeRODPApplications((apps) => {
       setRodpApps(apps);
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
+  // Registered Users Live Stream State (Real-time Name Portal & Telemetry)
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [selectedUserForProfile, setSelectedUserForProfile] = useState<RegisteredUser | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'left'>('all');
+  const [isSimulatingUser, setIsSimulatingUser] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeRegisteredUsers((users) => {
+      setRegisteredUsers(users);
     });
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
@@ -2621,170 +2684,835 @@ We have completed our latest cycle on: ${topic}.`
         {/* ----------------- APPLICATION MANAGER PANEL ----------------- */}
         {activeTab === 'applications' && (
           <div className="space-y-8 animate-fadeIn">
-            <div className="flex justify-between items-center border-b border-pink-500/20 pb-6">
-              <div className="text-left space-y-2">
-                <h1 className="font-sora text-3xl font-semibold text-white tracking-tight">Application Compiler</h1>
-                <p className="text-pink-200/70 text-sm font-light">Formulate, authorize, or unpublish active mobile digital builds.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-pink-500/20 pb-6">
+              <div className="text-left space-y-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-sora text-2xl md:text-3xl font-semibold text-white tracking-tight">Manage Applications</h1>
+                  <span className="px-2.5 py-0.5 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-300 font-mono text-[10px] font-bold">
+                    {applications.length} APPS
+                  </span>
+                </div>
+                <p className="text-pink-200/70 text-xs md:text-sm font-light">
+                  Add, edit, reorder, and publish live cards on Rexlify's All Applications page.
+                </p>
               </div>
               <button
-                onClick={() => { setIsAddingApp(true); setEditingApp(null); }}
+                onClick={() => {
+                  setEditingApp(null);
+                  setFormAccentColor('#F5A623');
+                  setIsAddingApp(true);
+                }}
                 id="add-app-trigger-btn"
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-pink-500 hover:bg-emerald-400 text-black font-mono text-xs font-bold tracking-widest uppercase hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
               >
                 <Plus size={16} />
-                Register App
+                Register Application
               </button>
             </div>
 
             {/* APP MODAL CRITICAL ADDING/EDITING */}
             {(isAddingApp || editingApp) && (
-              <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] space-y-8 border border-pink-400/30 shadow-lg shadow-emerald-500/5 relative overflow-hidden">
+              <div className="bg-white/5 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] space-y-6 border border-pink-400/30 shadow-lg shadow-emerald-500/5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 blur-[40px] rounded-full pointer-events-none" />
                 
                 <div className="flex justify-between items-center border-b border-pink-500/20 pb-4 relative z-10">
-                  <h3 className="font-sora text-sm font-semibold text-white uppercase tracking-widest">
-                    {editingApp ? `Edit App Profile: ${editingApp.name}` : 'Register New Application APK'}
-                  </h3>
-                  <button onClick={() => { setIsAddingApp(false); setEditingApp(null); }} className="text-pink-200/70 hover:text-white transition-colors bg-white/5 backdrop-blur-2xl p-2 rounded-full border border-pink-500/10 hover:border-white/20">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-4 h-4 rounded-full shadow-sm"
+                      style={{ backgroundColor: formAccentColor || editingApp?.accentColor || '#F5A623' }}
+                    />
+                    <h3 className="font-sora text-sm md:text-base font-semibold text-white uppercase tracking-widest">
+                      {editingApp ? `Edit Application: ${editingApp.name}` : 'Register New Application'}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => { setIsAddingApp(false); setEditingApp(null); }}
+                    className="text-pink-200/70 hover:text-white transition-colors bg-white/5 backdrop-blur-2xl p-2 rounded-full border border-pink-500/10 hover:border-white/20 cursor-pointer"
+                  >
                     <X size={18} />
                   </button>
                 </div>
 
                 <form onSubmit={handleSaveApp} className="space-y-6 text-left relative z-10">
+                  {/* Primary Info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">App Name</label>
-                      <input type="text" name="name" required defaultValue={editingApp?.name || ''} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">App Name *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        defaultValue={editingApp?.name || ''}
+                        placeholder="e.g. Sifra AI, NeuraX"
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Logo Identification Code</label>
-                      <select name="logo" defaultValue={editingApp?.logo || 'neurax'} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Target Launch URL / Route *</label>
+                      <input
+                        type="text"
+                        name="url"
+                        required
+                        defaultValue={editingApp?.url || ''}
+                        placeholder="https://... or #hash (e.g. #rodp)"
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 font-mono shadow-inner transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Display Order</label>
+                      <input
+                        type="number"
+                        name="displayOrder"
+                        min={1}
+                        defaultValue={editingApp?.displayOrder ?? (applications.length + 1)}
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 font-mono shadow-inner transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick URL presets helper */}
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-gray-400">
+                    <span className="text-pink-300 font-bold uppercase">Quick presets:</span>
+                    {[
+                      { name: 'Sifra AI', url: 'https://sifrar.ai.studio' },
+                      { name: 'NeuraX', url: 'https://neurax.ai.studio' },
+                      { name: 'RODP', url: '#rodp' },
+                      { name: 'Rizwan R.R.', url: '#rizwan-innovation' },
+                      { name: 'NooraX', url: 'https://noorax.ai.studio' },
+                      { name: 'Maya Connect', url: 'https://maya.rexlify.com' }
+                    ].map(p => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={(e) => {
+                          const form = e.currentTarget.closest('form');
+                          if (form) {
+                            const urlInput = form.querySelector('input[name="url"]') as HTMLInputElement;
+                            if (urlInput) urlInput.value = p.url;
+                          }
+                        }}
+                        className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-400/40 text-pink-200/80 transition-all cursor-pointer"
+                      >
+                        {p.name} ({p.url})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Accent Color Picker & Presets */}
+                  <div className="space-y-3 p-4 rounded-2xl bg-white/5 border border-pink-500/10">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">
+                        Card Accent Color (Right vertical strip)
+                      </label>
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <span className="text-gray-400">Selected:</span>
+                        <span className="font-bold text-white">{formAccentColor}</span>
+                        <span
+                          className="w-4 h-4 rounded-full border border-white/30 inline-block"
+                          style={{ backgroundColor: formAccentColor }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {[
+                        { name: 'Amber Gold (Sifra)', hex: '#F5A623' },
+                        { name: 'Coral Flame (NeuraX)', hex: '#F06449' },
+                        { name: 'Warm Bronze (RODP)', hex: '#8A7D71' },
+                        { name: 'Emerald Leaf (Rizwan)', hex: '#48A860' },
+                        { name: 'Turquoise Teal (NooraX)', hex: '#3CA0B6' },
+                        { name: 'Sapphire Blue (Maya)', hex: '#2E72BC' },
+                        { name: 'Electric Violet', hex: '#8B5CF6' },
+                        { name: 'Hot Pink', hex: '#EC4899' }
+                      ].map(c => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => setFormAccentColor(c.hex)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+                            formAccentColor.toLowerCase() === c.hex.toLowerCase()
+                              ? 'border-white bg-white/20 text-white shadow-md'
+                              : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/30'
+                          }`}
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full inline-block" style={{ backgroundColor: c.hex }} />
+                          <span>{c.name}</span>
+                        </button>
+                      ))}
+
+                      <div className="flex items-center gap-2 pl-2">
+                        <span className="text-gray-400 font-mono text-[10px]">Custom:</span>
+                        <input
+                          type="color"
+                          value={formAccentColor}
+                          onChange={(e) => setFormAccentColor(e.target.value)}
+                          className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Pick custom color"
+                        />
+                        <input
+                          type="text"
+                          name="accentColor"
+                          value={formAccentColor}
+                          onChange={(e) => setFormAccentColor(e.target.value)}
+                          className="w-24 px-2 py-1 text-xs font-mono rounded-lg border border-pink-500/20 bg-black/40 text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logo & Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Logo Preset</label>
+                      <select
+                        name="logo"
+                        defaultValue={editingApp?.logo || 'neurax'}
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      >
                         <option value="neurax">NeuraX (White Brain / Blue Square)</option>
                         <option value="sifra">Sifra AI Logo (S / Pink Gradient)</option>
-                        <option value="generic">Core Custom Identifier</option>
+                        <option value="generic">Core Custom / Auto Icon</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Build Version No</label>
-                      <input type="text" name="version" required defaultValue={editingApp?.version || '1.0.0'} placeholder="e.g. 2.4.0" className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Custom Logo Image URL</label>
+                      <input
+                        type="text"
+                        name="logoUrl"
+                        defaultValue={editingApp?.logoUrl || ''}
+                        placeholder="https://... (Optional custom image)"
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="space-y-2">
                       <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Category</label>
-                      <input type="text" name="category" required defaultValue={editingApp?.category || 'Artificial Intelligence'} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Platform Status</label>
-                      <select name="status" defaultValue={editingApp?.status || 'Active'} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors">
-                        <option value="Active">Active</option>
-                        <option value="Beta">Beta (Testing)</option>
-                        <option value="Coming Soon">Coming Soon (Reservations)</option>
-                        <option value="Archived">Archived</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">APK File Size</label>
-                      <input type="text" name="apkSize" defaultValue={editingApp?.apkInfo.size || '20.0 MB'} placeholder="e.g. 18.2 MB" className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Compatible Base</label>
-                      <input type="text" name="compatibility" defaultValue={editingApp?.apkInfo.compatibility || 'Android 9.0+'} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                      <input
+                        type="text"
+                        name="category"
+                        required
+                        defaultValue={editingApp?.category || 'Artificial Intelligence'}
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
                     </div>
                   </div>
 
+                  {/* Publication & Behavior Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-white/5 border border-pink-500/10">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="isPublished"
+                        value="true"
+                        defaultChecked={editingApp?.isPublished ?? (editingApp ? editingApp.status === 'Active' : true)}
+                        className="w-4 h-4 rounded text-pink-500 focus:ring-0 cursor-pointer"
+                      />
+                      <div>
+                        <span className="font-mono text-xs text-white font-bold block">Published on Live Hub</span>
+                        <span className="text-[10px] text-gray-400 block">Show this card on Rexlify's All Applications</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="openInNewTab"
+                        value="true"
+                        defaultChecked={editingApp?.openInNewTab ?? true}
+                        className="w-4 h-4 rounded text-pink-500 focus:ring-0 cursor-pointer"
+                      />
+                      <div>
+                        <span className="font-mono text-xs text-white font-bold block">Open External URLs in New Tab</span>
+                        <span className="text-[10px] text-gray-400 block">External links open safely with new tab</span>
+                      </div>
+                    </label>
+
+                    <div className="space-y-1">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Platform Status</label>
+                      <select
+                        name="status"
+                        defaultValue={editingApp?.status || 'Active'}
+                        className="w-full text-xs px-3 py-2 rounded-xl border border-pink-500/20 bg-black/40 text-white focus:outline-none"
+                      >
+                        <option value="Active">Active / Live</option>
+                        <option value="Beta">Beta (Testing)</option>
+                        <option value="Coming Soon">Coming Soon</option>
+                        <option value="Archived">Archived / Hidden</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Descriptions */}
                   <div className="space-y-2">
-                    <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Short Description Headline</label>
-                    <input type="text" name="shortDescription" required defaultValue={editingApp?.shortDescription || ''} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                    <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Short Description Headline *</label>
+                    <input
+                      type="text"
+                      name="shortDescription"
+                      required
+                      defaultValue={editingApp?.shortDescription || ''}
+                      placeholder="Concise overview of application features and mission"
+                      className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Full Explanative Description</label>
-                    <textarea name="fullDescription" required rows={4} defaultValue={editingApp?.fullDescription || ''} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 resize-none shadow-inner transition-colors" />
+                    <textarea
+                      name="fullDescription"
+                      rows={3}
+                      defaultValue={editingApp?.fullDescription || editingApp?.shortDescription || ''}
+                      placeholder="Detailed operational context and capabilities"
+                      className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 resize-none shadow-inner transition-colors"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Core Capabilities (one per line)</label>
-                      <textarea name="features" required rows={4} defaultValue={editingApp?.features.join('\n') || ''} placeholder="Capacity alpha: details..." className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 resize-none shadow-inner transition-colors" />
-
-                    </div>
-                    <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Developer Operational Notes</label>
-                      <textarea name="developerNotes" rows={4} defaultValue={editingApp?.developerNotes || ''} placeholder="Engine details..." className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 resize-none shadow-inner transition-colors" />
-                    </div>
-                  </div>
-
+                  {/* Technical & Build info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Download Binary Path url</label>
-                      <input type="text" name="downloadUrl" defaultValue={editingApp?.downloadUrl || '#'} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                    <div className="space-y-2">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Build Version</label>
+                      <input
+                        type="text"
+                        name="version"
+                        required
+                        defaultValue={editingApp?.version || '1.0.0'}
+                        placeholder="e.g. 2.4.0"
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Release Date Calender</label>
-                      <input type="date" name="releaseDate" defaultValue={editingApp?.releaseDate || new Date().toISOString().split('T')[0]} className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors" />
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Binary Download / Alternative URL</label>
+                      <input
+                        type="text"
+                        name="downloadUrl"
+                        defaultValue={editingApp?.downloadUrl || editingApp?.url || '#'}
+                        placeholder="e.g. APK download or live link"
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="font-mono text-[10px] text-pink-200/70 uppercase tracking-widest font-bold">Release Date</label>
+                      <input
+                        type="date"
+                        name="releaseDate"
+                        defaultValue={editingApp?.releaseDate || new Date().toISOString().split('T')[0]}
+                        className="w-full text-sm px-4 py-3 rounded-xl border border-pink-500/20 bg-white/5 backdrop-blur-2xl text-white focus:outline-none focus:border-pink-400 shadow-inner transition-colors"
+                      />
                     </div>
                   </div>
 
-                  <input type="hidden" name="tags" value="AI, System, Productive" />
+                  <input type="hidden" name="features" value={editingApp?.features?.join('\n') || 'Autonomous Multi-Agent AI Core\nHigh-Performance Neural Inference Engine\nReal-Time Telemetry & Synchronization'} />
+                  <input type="hidden" name="tags" value="AI, System, Productive, Rexlify" />
 
-                  <button type="submit" className="w-full py-4 px-6 rounded-xl bg-pink-500 hover:bg-emerald-400 text-black font-mono uppercase tracking-widest text-sm font-bold transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95">
-                    Compile App State
-                  </button>
+                  <div className="flex gap-4 pt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-4 px-6 rounded-xl bg-pink-500 hover:bg-emerald-400 text-black font-mono uppercase tracking-widest text-sm font-bold transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95"
+                    >
+                      {editingApp ? 'Save Application Changes' : 'Publish Application'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIsAddingApp(false); setEditingApp(null); }}
+                      className="px-6 py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono uppercase tracking-widest text-sm font-bold transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </form>
               </div>
             )}
 
             {/* REGISTERED APPS TABLE LIST */}
-            <div className="bg-white/5 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-pink-500/20">
+            <div className="bg-white/5 backdrop-blur-xl p-6 md:p-10 rounded-[2.5rem] border border-pink-500/20">
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead className="text-pink-300/50 font-mono text-[10px] uppercase tracking-widest border-b border-pink-500/20">
                     <tr>
-                      <th className="pb-4 font-bold select-none">Application name</th>
-                      <th className="pb-4 font-bold select-none">Category</th>
+                      <th className="pb-4 font-bold select-none text-center w-16">Order</th>
+                      <th className="pb-4 font-bold select-none pl-4">Application Details</th>
+                      <th className="pb-4 font-bold select-none">Target URL</th>
                       <th className="pb-4 font-bold select-none">Version</th>
-                      <th className="pb-4 font-bold select-none">Binary Stats</th>
-                      <th className="pb-4 font-bold select-none">Status State</th>
-                      <th className="pb-4 text-right font-bold select-none">Console Operations</th>
+                      <th className="pb-4 font-bold select-none">Visibility</th>
+                      <th className="pb-4 text-right font-bold select-none pr-4">Operations</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-white/5 transition-colors group">
-                        <td className="py-4 font-sora font-semibold text-white pl-4 rounded-l-xl">{app.name}</td>
-                        <td className="py-4 text-pink-200/70 font-medium">{app.category}</td>
-                        <td className="py-4 font-mono font-bold text-pink-300">v{app.version}</td>
-                        <td className="py-4 font-mono text-pink-200/70 text-xs">{app.apkInfo.size} &bull; <span className="text-pink-300">{app.apkInfo.downloadCount} dl</span></td>
-                        <td className="py-4">
-                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-widest uppercase font-bold border ${
-                            app.status === 'Active' ? 'bg-pink-500/10 text-pink-300 border-pink-400/20' :
-                            app.status === 'Beta' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                            'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-                          }`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right pr-4 rounded-r-xl">
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => handleTogglePublishApp(app.id)} className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-pink-400/30 hover:bg-pink-500/10 text-pink-200/70 hover:text-pink-300 transition-all cursor-pointer shadow-inner" title="Toggle Publish state">
-                              <RefreshCw size={14} />
-                            </button>
-                            <button onClick={() => { setEditingApp(app); setIsAddingApp(false); }} className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-amber-500/30 hover:bg-amber-500/10 text-pink-200/70 hover:text-amber-400 transition-all cursor-pointer shadow-inner">
-                              <Edit size={14} />
-                            </button>
-                            <button onClick={() => handleDeleteApp(app.id)} className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-red-500/30 hover:bg-red-500/10 text-pink-200/70 hover:text-red-400 transition-all cursor-pointer shadow-inner">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {[...applications]
+                      .sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999))
+                      .map((app, index) => {
+                        const isPub = app.isPublished !== undefined ? app.isPublished : app.status === 'Active';
+                        const accent = app.accentColor || '#F5A623';
+                        return (
+                          <tr key={app.id} className="hover:bg-white/5 transition-colors group">
+                            {/* Order column with Up/Down buttons */}
+                            <td className="py-4 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="font-mono text-xs font-bold text-gray-400 w-5">
+                                  {app.displayOrder ?? (index + 1)}
+                                </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    onClick={() => handleMoveAppOrder(app.id, 'up')}
+                                    disabled={index === 0}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                    title="Move up"
+                                  >
+                                    <ArrowUp size={11} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveAppOrder(app.id, 'down')}
+                                    disabled={index === applications.length - 1}
+                                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                    title="Move down"
+                                  >
+                                    <ArrowDown size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* App Details with color badge */}
+                            <td className="py-4 pl-4 rounded-l-xl">
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="w-3.5 h-10 rounded-full shrink-0 shadow-sm"
+                                  style={{ backgroundColor: accent }}
+                                  title={`Accent: ${accent}`}
+                                />
+                                <div>
+                                  <span className="font-sora font-semibold text-white block text-sm">
+                                    {app.name}
+                                  </span>
+                                  <span className="text-[11px] text-pink-200/70 block line-clamp-1 max-w-xs">
+                                    {app.shortDescription}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-gray-400">
+                                    {app.category}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* URL */}
+                            <td className="py-4 font-mono text-xs text-pink-300">
+                              <a
+                                href={app.url || '#'}
+                                target={app.url?.startsWith('http') ? '_blank' : '_self'}
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 hover:underline text-pink-300/90 hover:text-white max-w-[200px] truncate"
+                              >
+                                <span>{app.url || '#'}</span>
+                                {app.url?.startsWith('http') && <ExternalLink size={10} />}
+                              </a>
+                            </td>
+
+                            {/* Version */}
+                            <td className="py-4 font-mono font-bold text-pink-300 text-xs">
+                              v{app.version}
+                            </td>
+
+                            {/* Visibility Badge */}
+                            <td className="py-4">
+                              <button
+                                onClick={() => handleTogglePublishApp(app.id)}
+                                className={`px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase font-bold border cursor-pointer transition-all ${
+                                  isPub
+                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                                }`}
+                                title="Click to toggle publish status"
+                              >
+                                {isPub ? '● Published' : '○ Draft'}
+                              </button>
+                            </td>
+
+                            {/* Console Operations */}
+                            <td className="py-4 text-right pr-4 rounded-r-xl">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => handleTogglePublishApp(app.id)}
+                                  className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-pink-400/30 hover:bg-pink-500/10 text-pink-200/70 hover:text-pink-300 transition-all cursor-pointer shadow-inner"
+                                  title={isPub ? 'Unpublish card' : 'Publish card'}
+                                >
+                                  <RefreshCw size={14} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingApp(app);
+                                    setFormAccentColor(app.accentColor || '#F5A623');
+                                    setIsAddingApp(false);
+                                  }}
+                                  className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-amber-500/30 hover:bg-amber-500/10 text-pink-200/70 hover:text-amber-400 transition-all cursor-pointer shadow-inner"
+                                  title="Edit application"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteApp(app.id)}
+                                  className="p-2 rounded-xl border border-pink-500/10 bg-white/5 backdrop-blur-2xl hover:border-red-500/30 hover:bg-red-500/10 text-pink-200/70 hover:text-red-400 transition-all cursor-pointer shadow-inner"
+                                  title="Delete application"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ----------------- REGISTERED USERS & TELEMETRY MONITOR ----------------- */}
+        {activeTab === 'registered-users' && (
+          <div className="space-y-8 animate-fadeIn text-left">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b border-pink-500/20 pb-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 rounded-full bg-pink-500/20 border border-pink-400/40 text-[10px] font-mono font-bold text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users size={12} className="text-pink-400" />
+                    USER ACCESS & TELEMETRY
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    Realtime Firebase RTDB Stream Active
+                  </span>
+                </div>
+                <h1 className="font-sora text-3xl md:text-4xl font-black text-white tracking-tight">
+                  Registered Users & Activity Telemetry
+                </h1>
+                <p className="text-pink-200/70 text-sm font-light max-w-2xl leading-relaxed">
+                  Real-time monitoring of users who registered via the minimal Name entry portal. Track exact entry timestamps, departure times, feature usage history, and computed purposes.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={isSimulatingUser}
+                  onClick={async () => {
+                    setIsSimulatingUser(true);
+                    const sampleNames = ['Aarav Sharma', 'Farhana Yasmin', 'Tanmoy Mondal', 'Priya Roy', 'Rahim Ahmed'];
+                    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+                    try {
+                      const user = await registerUser(randomName);
+                      // Also simulate a feature interaction
+                      const sampleFeatures = ['Sifra AI', 'NeuraX', 'RODP Platform', 'NooraX'];
+                      const randomFeat = sampleFeatures[Math.floor(Math.random() * sampleFeatures.length)];
+                      await trackFeatureUsage(randomFeat, '#applications');
+                      triggerToast(`⚡ Real-time simulated user "${randomName}" registered!`);
+                    } catch (err) {
+                      triggerToast('Could not register simulated user.');
+                    } finally {
+                      setIsSimulatingUser(false);
+                    }
+                  }}
+                  className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 hover:border-pink-400/50"
+                  title="Simulate a real user entering name to verify real-time database sync"
+                >
+                  <Sparkles size={14} className={isSimulatingUser ? "animate-spin text-pink-400" : "text-pink-400"} />
+                  <span>{isSimulatingUser ? "Registering..." : "+ Simulate Registration"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-white/10 text-left">
+                <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block font-bold">Total Registered Users</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-white">{registeredUsers.length}</span>
+                  <span className="text-xs font-mono text-pink-400">Live RTDB</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-emerald-500/20 text-left">
+                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest block font-bold">Active Online Sessions</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-emerald-400">
+                    {registeredUsers.filter(u => u.status === 'active').length}
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Browsing Now
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-gray-500/20 text-left">
+                <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block font-bold">Concluded / Left Sessions</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-gray-300">
+                    {registeredUsers.filter(u => u.status === 'left').length}
+                  </span>
+                  <span className="text-xs font-mono text-gray-400">Departure Recorded</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-2xl p-6 rounded-2xl border border-purple-500/20 text-left">
+                <span className="text-[10px] font-mono text-purple-400 uppercase tracking-widest block font-bold">Multi-Feature Explorers</span>
+                <div className="flex items-baseline justify-between mt-2">
+                  <span className="font-sora text-3xl font-extrabold text-purple-300">
+                    {registeredUsers.filter(u => (u.purpose || '').toLowerCase().includes('multi')).length}
+                  </span>
+                  <span className="text-xs font-mono text-purple-400">High Engagement</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-pink-500/20 flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full sm:w-80">
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Filter users by name or purpose..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-pink-500/20 text-white placeholder-gray-500 text-xs font-mono focus:outline-none focus:border-pink-400"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {(['all', 'active', 'left'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setUserStatusFilter(mode)}
+                    className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
+                      userStatusFilter === mode
+                        ? 'bg-pink-500/20 border border-pink-400 text-pink-300'
+                        : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {mode === 'all' ? 'All Users' : mode === 'active' ? '🟢 Online' : '⚪ Left'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Registered Users Table */}
+            <div className="bg-white/5 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] border border-pink-500/20">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead className="text-pink-300/50 font-mono text-[10px] uppercase tracking-widest border-b border-pink-500/20">
+                    <tr>
+                      <th className="pb-4 font-bold select-none pl-4">User Name</th>
+                      <th className="pb-4 font-bold select-none">Registration Date & Time</th>
+                      <th className="pb-4 font-bold select-none">Status State</th>
+                      <th className="pb-4 font-bold select-none">Calculated Purpose</th>
+                      <th className="pb-4 font-bold select-none">Features Used</th>
+                      <th className="pb-4 text-right font-bold select-none pr-4">User Profile</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {registeredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-gray-400 font-mono text-xs">
+                          Zero registered users yet. Click &quot;+ Simulate Registration&quot; or register via the All Applications page to test real-time stream.
+                        </td>
+                      </tr>
+                    ) : (
+                      registeredUsers
+                        .filter(u => {
+                          if (userStatusFilter === 'active' && u.status !== 'active') return false;
+                          if (userStatusFilter === 'left' && u.status !== 'left') return false;
+                          if (userSearchQuery.trim()) {
+                            const q = userSearchQuery.toLowerCase();
+                            const matchName = u.name.toLowerCase().includes(q);
+                            const matchPurpose = (u.purpose || '').toLowerCase().includes(q);
+                            return matchName || matchPurpose;
+                          }
+                          return true;
+                        })
+                        .map((user) => {
+                          const isOnline = user.status === 'active';
+                          const featuresCount = user.featuresUsed ? user.featuresUsed.length : 0;
+                          return (
+                            <tr key={user.id} className="hover:bg-white/5 transition-colors group">
+                              {/* Name with Avatar */}
+                              <td className="py-4 pl-4 rounded-l-xl">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500/30 to-purple-500/30 border border-pink-400/40 flex items-center justify-center font-sora font-bold text-white text-xs shadow-inner">
+                                    {user.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <span className="font-sora font-semibold text-white block text-sm">
+                                      {user.name}
+                                    </span>
+                                    <span className="font-mono text-[10px] text-gray-400 block">
+                                      ID: {user.id.slice(0, 14)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Registration Timestamp */}
+                              <td className="py-4 font-mono text-xs text-pink-200/90">
+                                <div>
+                                  <span className="block font-medium">{user.registeredAt}</span>
+                                  <span className="text-[10px] text-gray-400">Entry confirmed</span>
+                                </div>
+                              </td>
+
+                              {/* Status State */}
+                              <td className="py-4">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono tracking-wider uppercase font-bold border ${
+                                  isOnline
+                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                    : 'bg-white/5 text-gray-400 border-white/10'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-ping' : 'bg-gray-400'}`} />
+                                  <span>{isOnline ? 'Active Online' : 'Left Site'}</span>
+                                </span>
+                              </td>
+
+                              {/* Purpose */}
+                              <td className="py-4 font-mono text-xs">
+                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border inline-block max-w-[240px] truncate ${
+                                  (user.purpose || '').includes('Multi')
+                                    ? 'bg-purple-500/15 text-purple-300 border-purple-400/30'
+                                    : (user.purpose || '').includes('Used')
+                                    ? 'bg-blue-500/15 text-blue-300 border-blue-400/30'
+                                    : 'bg-white/5 text-gray-300 border-white/10'
+                                }`}>
+                                  {user.purpose || 'General Browsing'}
+                                </span>
+                              </td>
+
+                              {/* Features Used Count */}
+                              <td className="py-4 font-mono text-xs text-pink-300">
+                                <span className="font-bold">{featuresCount}</span>
+                                <span className="text-gray-400 text-[10px] ml-1">features</span>
+                              </td>
+
+                              {/* Profile Action */}
+                              <td className="py-4 text-right pr-4 rounded-r-xl">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedUserForProfile(user)}
+                                  className="px-3 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/30 text-pink-300 font-mono text-xs font-bold transition-all cursor-pointer hover:scale-105"
+                                >
+                                  View Profile &rarr;
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* USER PROFILE MODAL / TIMELINE DRAWER */}
+            {selectedUserForProfile && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+              >
+                <div className="w-full max-w-2xl bg-[#0e0e18] rounded-[2.5rem] border border-pink-500/30 p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-pink-500/20 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-sora font-black text-white text-base shadow-lg">
+                        {selectedUserForProfile.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-sora text-xl font-bold text-white">
+                          {selectedUserForProfile.name}
+                        </h3>
+                        <span className="font-mono text-xs text-pink-300">
+                          Session ID: {selectedUserForProfile.id}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedUserForProfile(null)}
+                      className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Profile Key Attributes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                      <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">Registration Timestamp</span>
+                      <span className="font-mono text-sm text-white font-medium block">{selectedUserForProfile.registeredAt}</span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                      <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">Departure / Last Active</span>
+                      <span className="font-mono text-sm text-white font-medium block">
+                        {selectedUserForProfile.leftAt ? selectedUserForProfile.leftAt : (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            Currently on Site (Active)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1 sm:col-span-2">
+                      <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">Stated & Computed Purpose</span>
+                      <span className="font-mono text-sm text-purple-300 font-medium block">
+                        {selectedUserForProfile.purpose || 'General Browsing / Website Visit'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Feature Usage Timeline */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-sora text-xs uppercase tracking-widest font-bold text-white flex items-center gap-2">
+                        <Sparkles size={14} className="text-pink-400" />
+                        Feature Interactions Timeline ({selectedUserForProfile.featuresUsed?.length || 0})
+                      </h4>
+                      <span className="text-[10px] font-mono text-gray-400">Chronological activity</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                      {(!selectedUserForProfile.featuresUsed || selectedUserForProfile.featuresUsed.length === 0) ? (
+                        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center text-gray-400 font-mono text-xs">
+                          User browsed public pages only (No internal features or application cards launched yet).
+                        </div>
+                      ) : (
+                        selectedUserForProfile.featuresUsed.map((feat, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs font-mono"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-2 h-2 rounded-full bg-pink-400 shrink-0" />
+                              <div>
+                                <span className="font-bold text-white block">{feat.featureName}</span>
+                                {feat.route && (
+                                  <span className="text-[10px] text-gray-400 block">{feat.route}</span>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-pink-300/80 text-[11px] shrink-0">{feat.usedAt}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUserForProfile(null)}
+                      className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase transition-all cursor-pointer"
+                    >
+                      Close Profile
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

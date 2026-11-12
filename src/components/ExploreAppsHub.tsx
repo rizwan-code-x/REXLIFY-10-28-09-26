@@ -3,18 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Search, X, ExternalLink, Sparkles, Cpu, Layers, ShieldCheck, 
-  ArrowUpRight, CheckCircle2, Clock, Terminal, ChevronRight, 
-  Send, ThumbsUp, MessageSquare, Filter, Zap, Globe, Smartphone,
-  Lock, Check, AlertCircle, Bookmark, Compass, RefreshCw, BarChart2, Star
+  Search, X, ExternalLink, ArrowUpRight, Sparkles, 
+  BrainCircuit, LayoutDashboard, UserCheck, Moon, Share2, 
+  Globe, Shield, Cpu, Sliders, Layers, RefreshCw
 } from 'lucide-react';
 import { Application } from '../types';
-import { NeuraxLogo, SifraLogo, NooraxLogo, RexlifyLogo, RodpLogo } from './Logo';
-import { useToast } from '../context/ToastContext';
+import { NeuraxLogo, SifraLogo, NooraxLogo, RodpLogo } from './Logo';
 import { APP_LINKS } from '../config/appLinks';
+import { RexlifyAuthModal } from './RexlifyAuthModal';
+import { getCurrentUser, trackFeatureUsage, logoutUser, RegisteredUser } from '../services/userService';
+
+export const SIFRA_AI_LIVE_URL = APP_LINKS.sifra;
 
 interface ExploreAppsHubProps {
   applications: Application[];
@@ -23,1222 +25,596 @@ interface ExploreAppsHubProps {
   onIncrementDownload?: (appId: string) => void;
 }
 
-export const SIFRA_AI_LIVE_URL = APP_LINKS.sifra;
+// Preset color shade pairings for the two-tone right vertical accent strip
+// Top block (number) is a deeper, richer shade; lower block is the vibrant accent tone
+const COLOR_SHADE_MAP: Record<string, { base: string; dark: string }> = {
+  // Application 01: Sifra AI (Golden yellow / amber)
+  '#F5A623': { base: '#f5a623', dark: '#d98218' },
+  'amber': { base: '#f5a623', dark: '#d98218' },
+  'yellow': { base: '#f5a623', dark: '#d98218' },
 
-interface CommunityRequest {
-  id: string;
-  name: string;
-  email: string;
-  targetApp: string;
-  category: string;
-  proposal: string;
-  votes: number;
-  date: string;
-  status: 'Under Review' | 'Architecting' | 'Scheduled';
+  // Application 02: NeuraX (Coral orange / red-orange)
+  '#F06449': { base: '#f06449', dark: '#cf4b32' },
+  'orange': { base: '#f06449', dark: '#cf4b32' },
+  'coral': { base: '#f06449', dark: '#cf4b32' },
+
+  // Application 03: RODP (Warm grey / bronze)
+  '#8A7D71': { base: '#8a7d71', dark: '#655b51' },
+  'bronze': { base: '#8a7d71', dark: '#655b51' },
+  'grey': { base: '#8a7d71', dark: '#655b51' },
+
+  // Application 04: Rizwan R.R. (Emerald green)
+  '#48A860': { base: '#48a860', dark: '#327c44' },
+  'emerald': { base: '#48a860', dark: '#327c44' },
+  'green': { base: '#48a860', dark: '#327c44' },
+
+  // Application 05: NooraX (Teal / turquoise)
+  '#3CA0B6': { base: '#3ca0b6', dark: '#2c7b8c' },
+  'teal': { base: '#3ca0b6', dark: '#2c7b8c' },
+  'turquoise': { base: '#3ca0b6', dark: '#2c7b8c' },
+
+  // Application 06: Maya Connect (Premium blue)
+  '#2E72BC': { base: '#2e72bc', dark: '#1e528a' },
+  'blue': { base: '#2e72bc', dark: '#1e528a' },
+
+  // Fallbacks
+  'violet': { base: '#8b5cf6', dark: '#6d28d9' },
+  'purple': { base: '#8b5cf6', dark: '#6d28d9' },
+  'pink': { base: '#ec4899', dark: '#be185d' },
+};
+
+function getStripShades(accentColor?: string, index: number = 0): { base: string; dark: string } {
+  if (accentColor && COLOR_SHADE_MAP[accentColor]) {
+    return COLOR_SHADE_MAP[accentColor];
+  }
+  if (accentColor && accentColor.startsWith('#')) {
+    // Generate a slightly darker variant for the top block
+    return {
+      base: accentColor,
+      dark: adjustBrightness(accentColor, -25)
+    };
+  }
+  // Default cycling fallback matching the reference 6 colors
+  const defaultPairs = [
+    { base: '#f5a623', dark: '#d98218' }, // 1 Amber
+    { base: '#f06449', dark: '#cf4b32' }, // 2 Orange
+    { base: '#8a7d71', dark: '#655b51' }, // 3 Bronze
+    { base: '#48a860', dark: '#327c44' }, // 4 Green
+    { base: '#3ca0b6', dark: '#2c7b8c' }, // 5 Teal
+    { base: '#2e72bc', dark: '#1e528a' }, // 6 Blue
+  ];
+  return defaultPairs[index % defaultPairs.length];
 }
 
-const INITIAL_COMMUNITY_REQUESTS: CommunityRequest[] = [
-  {
-    id: 'req-1',
-    name: 'Tariq Al-Mansoor',
-    email: 'tariq.m@example.com',
-    targetApp: 'Noorax Vision',
-    category: 'Ethical Knowledge',
-    proposal: 'Add offline audio Quranic recitation alignment alongside semantic tafsir cross-references.',
-    votes: 48,
-    date: '2026-06-18',
-    status: 'Architecting'
-  },
-  {
-    id: 'req-2',
-    name: 'Elena Rostova',
-    email: 'elena.r@example.com',
-    targetApp: 'NeuraX',
-    category: 'AI Reasoning / Logic',
-    proposal: 'Support zero-latency continuous voice streaming on low-RAM edge Android devices without cloud pinging.',
-    votes: 73,
-    date: '2026-06-15',
-    status: 'Scheduled'
-  },
-  {
-    id: 'req-3',
-    name: 'Zaid Hossain',
-    email: 'zaid.h@example.com',
-    targetApp: 'Sifra AI',
-    category: 'UI/UX Experience',
-    proposal: 'Interactive canvas widgets for visual milestone plotting inside personal scheduling queues.',
-    votes: 39,
-    date: '2026-06-12',
-    status: 'Under Review'
-  }
-];
+// Utility to darken hex color for the upper number block
+function adjustBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, Math.min(255, (num >> 16) + percent));
+  const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + percent));
+  const b = Math.max(0, Math.min(255, (num & 0x0000ff) + percent));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 export const ExploreAppsHub: React.FC<ExploreAppsHubProps> = ({
   applications,
   setView,
-  onSimulateDownload,
   onIncrementDownload
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'live' | 'upcoming' | 'ai' | 'infra' | 'islamic'>('all');
-  const [selectedAppModal, setSelectedAppModal] = useState<Application | null>(null);
-  const [activeTabInModal, setActiveTabInModal] = useState<'overview' | 'roadmap' | 'specs' | 'changelog'>('overview');
-  
-  // Community Feature Proposal Form
-  const [proposerName, setProposerName] = useState('');
-  const [proposerEmail, setProposerEmail] = useState('');
-  const [targetApp, setTargetApp] = useState('NeuraX');
-  const [proposalCategory, setProposalCategory] = useState('AI Reasoning / Logic');
-  const [proposalText, setProposalText] = useState('');
-  const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
-  const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>(INITIAL_COMMUNITY_REQUESTS);
-  const [votedIds, setVotedIds] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  const { success: toastSuccess, error: toastError } = useToast();
+  // Registration & Login Modal State
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingAppToLaunch, setPendingAppToLaunch] = useState<Application | null>(null);
+  const [currentUser, setCurrentUser] = useState<RegisteredUser | null>(() => getCurrentUser());
 
-  // Logo resolver
-  const renderAppLogo = (app: Application, size = 48) => {
-    const key = app.id.toLowerCase();
-    if (key.includes('neurax')) return <NeuraxLogo size={size} />;
-    if (key.includes('sifra')) return <SifraLogo size={size} />;
-    if (key.includes('noorax')) return <NooraxLogo size={size} />;
-    if (key.includes('rexlify-ai')) {
-      return (
-        <div 
-          className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 text-white font-sora font-extrabold shadow-md shadow-pink-500/30"
-          style={{ width: size, height: size }}
-        >
-          <Sparkles size={size * 0.42} className="text-white" />
-          <span className="text-[9px] font-mono tracking-tighter uppercase font-bold">AI</span>
-        </div>
-      );
-    }
-    if (key.includes('rexlify')) return <RexlifyLogo size={size} showText={false} />;
-    if (key.includes('rodp')) {
-      return <RodpLogo size={size} showText={false} />;
-    }
-    if (key.includes('rizwan-innovation') || key.includes('rizwan-enovation')) {
-      return (
-        <div 
-          className="flex items-center justify-center rounded-2xl bg-gradient-to-br from-purple-800 to-indigo-950 text-purple-200 font-sora font-extrabold text-xs shadow-md border border-purple-500/30"
-          style={{ width: size, height: size }}
-        >
-          RI
-        </div>
-      );
-    }
-    
-    return (
-      <div 
-        className="flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-rose-600 text-white font-sora font-extrabold uppercase shadow-md"
-        style={{ width: size, height: size }}
-      >
-        {app.name.slice(0, 2)}
-      </div>
-    );
+  // Mouse move handler for gentle 3D parallax on abstract background shapes
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
+    setMousePos({ x, y });
   };
 
-  // Filter application cards
-  const filteredApps = useMemo(() => {
-    return applications.filter(app => {
-      // Category filter
-      if (selectedFilter === 'live' && app.status !== 'Active') return false;
-      if (selectedFilter === 'upcoming' && app.status === 'Active') return false;
-      if (selectedFilter === 'ai' && !app.category.toLowerCase().includes('ai') && !app.category.toLowerCase().includes('neural') && !app.category.toLowerCase().includes('intelligence')) return false;
-      if (selectedFilter === 'infra' && !app.category.toLowerCase().includes('infra') && !app.category.toLowerCase().includes('portal') && !app.category.toLowerCase().includes('cloud')) return false;
-      if (selectedFilter === 'islamic' && !app.category.toLowerCase().includes('islamic')) return false;
+  // Filter & sort applications
+  const visibleApplications = useMemo(() => {
+    // Only published applications
+    const published = applications.filter(app => app.isPublished !== false);
+    
+    // Sort by displayOrder
+    const sorted = [...published].sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
 
-      // Search query filter
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        app.name.toLowerCase().includes(q) ||
-        app.category.toLowerCase().includes(q) ||
-        app.shortDescription.toLowerCase().includes(q) ||
-        app.fullDescription.toLowerCase().includes(q) ||
-        app.tags?.some(t => t.toLowerCase().includes(q))
-      );
+    if (!searchQuery.trim()) {
+      return sorted;
+    }
+
+    const q = searchQuery.toLowerCase().trim();
+    return sorted.filter(app => {
+      const nameMatch = app.name.toLowerCase().includes(q);
+      const descMatch = (app.shortDescription || app.fullDescription || '').toLowerCase().includes(q);
+      const catMatch = (app.category || '').toLowerCase().includes(q);
+      const tagMatch = app.tags && app.tags.some(t => t.toLowerCase().includes(q));
+      return nameMatch || descMatch || catMatch || tagMatch;
     });
-  }, [applications, selectedFilter, searchQuery]);
+  }, [applications, searchQuery]);
 
-  // Handle open live app or modal
-  const handleAppPrimaryAction = (app: Application, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  // Execute application launch after authentication verification
+  const executeLaunch = (app: Application) => {
+    // Track feature usage in real-time
+    trackFeatureUsage(app.name, app.url);
 
-    if (app.id === 'sifra') {
-      window.open(APP_LINKS.sifra, '_blank', 'noopener,noreferrer');
-      toastSuccess('Launching Sifra AI', 'Opening official SIFRA AI platform.');
-      return;
+    if (onIncrementDownload) {
+      onIncrementDownload(app.id);
     }
 
-    if (app.id === 'neurax' || app.id.toLowerCase().includes('neurax')) {
-      window.open(APP_LINKS.neurax, '_blank', 'noopener,noreferrer');
-      toastSuccess('Launching NeuraX', 'Opening official live NeuraX engine.');
-      return;
-    }
-
-    if (app.id === 'noorax' || app.id.toLowerCase().includes('noorax')) {
-      window.open(APP_LINKS.noorax, '_blank', 'noopener,noreferrer');
-      toastSuccess('Launching NoorAX', 'Opening official live NoorAX Islamic AI platform.');
-      return;
-    }
-
-    if (app.id === 'rexlify-ai') {
-      setView('rexlify-ai');
-      toastSuccess('Launching REXLIFY AI SOFTWARE', 'Opening intelligent multimodal workspace.');
-      return;
-    }
-
-    if (app.id === 'rexlify') {
-      setView('home');
+    // Direct routing for internal views
+    if (app.id === 'rodp' || app.url === '#rodp') {
+      setView('rodp');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    if (app.id === 'rodp') {
-      setView('rodp');
-      toastSuccess('Launching ROD Platform', 'Opening Rizwan Online Dreams Platform application.');
+    if (app.id === 'rizwan-rr' || app.url === '#rizwan-innovation') {
+      setView('rizwan-innovation');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    if (app.id === 'rizwan-innovation' || app.id.includes('rizwan-innovation') || app.id.includes('rizwan-enovation')) {
-      window.open(APP_LINKS.rizwanInnovation, '_blank', 'noopener,noreferrer');
-      toastSuccess('Launching Rizwan Innovation', 'Opening official Rizwan Innovation platform.');
+    if (app.id === 'rexlify-ai' || app.url === '#rexlify-ai') {
+      setView('rexlify-ai');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // Upcoming apps (NeuraX, Noorax Vision, Rizwan P.A) open dedicated roadmap deep-dive
-    setSelectedAppModal(app);
-    setActiveTabInModal('roadmap');
+    if (app.id === 'rexlify-social' || app.url === '#rexlify-social') {
+      setView('rexlify-social');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (app.id === 'rexlify-institute' || app.url === '#institute') {
+      setView('institute');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (app.id === 'rexlify-hub' || app.url === '#projects') {
+      setView('projects');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Official external web application URLs
+    let targetUrl = app.url || app.downloadUrl || app.liveUrl || '';
+
+    if (app.id === 'sifra' && (!targetUrl || targetUrl === '#')) {
+      targetUrl = APP_LINKS.sifra;
+    } else if (app.id === 'neurax' && (!targetUrl || targetUrl === '#')) {
+      targetUrl = APP_LINKS.neurax;
+    } else if (app.id === 'noorax' && (!targetUrl || targetUrl === '#')) {
+      targetUrl = APP_LINKS.noorax;
+    } else if (app.id === 'maya-connect' && (!targetUrl || targetUrl === '#')) {
+      targetUrl = 'https://maya.rexlify.com';
+    }
+
+    if (targetUrl.startsWith('http')) {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    if (targetUrl.startsWith('#')) {
+      const viewName = targetUrl.replace(/^#/, '');
+      setView(viewName);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Default fallback
+    if (app.id === 'sifra') {
+      window.open(APP_LINKS.sifra, '_blank', 'noopener,noreferrer');
+    } else if (app.id === 'neurax') {
+      window.open(APP_LINKS.neurax, '_blank', 'noopener,noreferrer');
+    } else {
+      setView('home');
+    }
   };
 
-  // Handle proposal submission
-  const handleSubmitProposal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!proposerName.trim() || !proposerEmail.trim() || !proposalText.trim()) {
-      toastError('Missing Fields', 'Please complete your name, email, and proposal details.');
+  // Handle application launch with authentication gating
+  const handleLaunchApp = (app: Application) => {
+    const user = getCurrentUser();
+    if (!user) {
+      // User is not logged in: prompt registration/login modal
+      setPendingAppToLaunch(app);
+      setAuthModalOpen(true);
       return;
     }
 
-    setIsSubmittingProposal(true);
-    setTimeout(() => {
-      const newReq: CommunityRequest = {
-        id: `req-${Date.now()}`,
-        name: proposerName.trim(),
-        email: proposerEmail.trim(),
-        targetApp,
-        category: proposalCategory,
-        proposal: proposalText.trim(),
-        votes: 1,
-        date: 'Just now',
-        status: 'Under Review'
-      };
-
-      setCommunityRequests(prev => [newReq, ...prev]);
-      setVotedIds(prev => [...prev, newReq.id]);
-      setIsSubmittingProposal(false);
-      setProposalText('');
-      toastSuccess('Proposal Transmitted', 'Your feature proposal has been registered with the REXLIFY engineering team!');
-    }, 600);
+    // User is already logged in: proceed directly!
+    executeLaunch(app);
   };
 
-  const handleVote = (reqId: string) => {
-    if (votedIds.includes(reqId)) {
-      toastError('Already Endorsed', 'You have already upvoted this community feature request.');
-      return;
+  // Render appropriate clean line-icon or official logo
+  const renderCardIcon = (app: Application) => {
+    const key = (app.icon || app.logo || app.id || '').toLowerCase();
+
+    if (key.includes('sifra')) {
+      return <SifraLogo size={28} showText={false} />;
+    }
+    if (key.includes('neurax')) {
+      return <NeuraxLogo size={28} />;
+    }
+    if (key.includes('rodp')) {
+      return <RodpLogo size={28} showText={false} />;
+    }
+    if (key.includes('social')) {
+      return (
+        <div className="text-rose-600 flex items-center justify-center">
+          <Layers size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('institute')) {
+      return (
+        <div className="text-sky-600 flex items-center justify-center">
+          <Globe size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('hub')) {
+      return (
+        <div className="text-purple-600 flex items-center justify-center">
+          <BrainCircuit size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('noorax')) {
+      return (
+        <div className="text-teal-600 flex items-center justify-center">
+          <Moon size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('profile') || key.includes('rizwan')) {
+      return (
+        <div className="text-emerald-600 flex items-center justify-center">
+          <UserCheck size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('maya') || key.includes('connect')) {
+      return (
+        <div className="text-blue-600 flex items-center justify-center">
+          <Share2 size={22} className="stroke-[1.8]" />
+        </div>
+      );
+    }
+    if (key.includes('rexlify-ai')) {
+      return (
+        <div className="text-pink-600 flex items-center justify-center">
+          <Sparkles size={22} className="stroke-[1.8]" />
+        </div>
+      );
     }
 
-    setCommunityRequests(prev => prev.map(r => r.id === reqId ? { ...r, votes: r.votes + 1 } : r));
-    setVotedIds(prev => [...prev, reqId]);
-    toastSuccess('Vote Recorded', 'Thank you for prioritizing this ecosystem feature!');
+    // Default clean line icon
+    return (
+      <div className="text-slate-700 flex items-center justify-center">
+        <Cpu size={22} className="stroke-[1.8]" />
+      </div>
+    );
   };
 
   return (
-    <div className="w-full space-y-16 py-4 animate-fadeIn select-none text-left">
-      
-      {/* -------------------- HERO / HUB HEADER -------------------- */}
-      <section className="relative rounded-[2.5rem] p-8 md:p-12 border border-white/10 bg-gradient-to-b from-white/[0.04] to-black/60 shadow-2xl backdrop-blur-xl overflow-hidden">
-        {/* Glow ambient orbs */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-rose-600/15 blur-[90px] rounded-full pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-500/10 blur-[90px] rounded-full pointer-events-none" />
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#f8fafd] via-[#edf3f9] to-[#f4f7fb] text-slate-800 select-none py-12 px-4 sm:px-6 lg:px-8"
+      style={{
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      }}
+    >
+      {/* -------------------- 50% OPACITY BACKGROUND VIDEO -------------------- */}
+      {/* 1000172565_gwr_video_mvp.mp4 playing with 50% visibility as strictly specified */}
+      <div className="absolute inset-0 -z-30 overflow-hidden pointer-events-none">
+        <video
+          src="/1000172565_gwr_video_mvp.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover opacity-50 filter saturate-[1.05]"
+        />
+        {/* Soft light diffusion layer over video to match reference image tone */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/70 backdrop-blur-[2px]" />
+      </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-          <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300 font-mono text-[11px] uppercase tracking-widest font-bold">
-              <Compass size={13} className="text-amber-400" />
-              REXLIFY APPS ECOSYSTEM & BULL; DIRECTORY & ROADMAP
-            </div>
+      {/* -------------------- ABSTRACT 3D LUMINOUS SHAPES & LIGHT CURVES (MATCHING REFERENCE) -------------------- */}
+      <div className="absolute inset-0 -z-20 pointer-events-none overflow-hidden">
+        {/* Soft warm light streak curve in center-left */}
+        <div 
+          className="absolute top-1/4 left-1/3 w-[550px] h-[550px] rounded-full bg-amber-300/18 blur-[110px] transition-transform duration-700 ease-out"
+          style={{
+            transform: `translate(${mousePos.x * 0.8}px, ${mousePos.y * 0.8}px)`
+          }}
+        />
 
-            <h1 className="font-sora text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-              Explore Applications &amp; Cognitive Engines
-            </h1>
+        {/* Soft pale blue 3D curve on right */}
+        <div 
+          className="absolute top-10 right-0 w-[620px] h-[620px] rounded-full bg-blue-300/22 blur-[130px] transition-transform duration-700 ease-out"
+          style={{
+            transform: `translate(${-mousePos.x * 0.7}px, ${-mousePos.y * 0.7}px)`
+          }}
+        />
 
-            <p className="text-gray-300 text-sm md:text-base font-light leading-relaxed">
-              Launch published live applications, inspect architectural blueprints, and track developmental milestones across the REXLIFY neural matrix designed by Rizwan Roushan Rownaq (Rizwan RR).
-            </p>
-          </div>
+        {/* Soft pale violet light reflection */}
+        <div 
+          className="absolute bottom-1/4 left-10 w-[500px] h-[500px] rounded-full bg-indigo-200/25 blur-[120px] transition-transform duration-700 ease-out"
+          style={{
+            transform: `translate(${mousePos.x * 0.5}px, ${mousePos.y * 0.5}px)`
+          }}
+        />
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 shrink-0 font-mono text-center">
-            <div className="px-3 py-2">
-              <span className="block text-2xl md:text-3xl font-extrabold text-white font-sora">
-                {applications.length}
+        {/* Pure white highlight ribbons */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-white/70 blur-[90px] rounded-full" />
+      </div>
+
+      {/* -------------------- MAIN CONTENT WRAPPER -------------------- */}
+      <div className="max-w-6xl mx-auto relative z-10 space-y-10 sm:space-y-12">
+        
+        {/* Top bar with Navigation & User Session Indicator */}
+        <div className="flex items-center justify-between pt-2 px-2">
+          <button
+            onClick={() => setView('home')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 text-xs font-mono font-bold tracking-wider uppercase border border-white/80 shadow-sm transition-all cursor-pointer backdrop-blur-md"
+          >
+            &larr; Back to Home
+          </button>
+
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs font-mono font-medium flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                <span>{currentUser.name}</span>
               </span>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block mt-1">
-                Ecosystem Cores
-              </span>
+              <button
+                onClick={() => {
+                  logoutUser();
+                  setCurrentUser(null);
+                }}
+                className="text-[11px] font-mono text-slate-500 hover:text-rose-600 underline cursor-pointer"
+                title="Switch User / Log Out"
+              >
+                Switch
+              </button>
             </div>
-            <div className="px-3 py-2 border-x border-white/10">
-              <span className="block text-2xl md:text-3xl font-extrabold text-emerald-400 font-sora flex items-center justify-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                2
-              </span>
-              <span className="text-[10px] text-emerald-400 uppercase tracking-wider block mt-1 font-bold">
-                Live Online
-              </span>
-            </div>
-            <div className="px-3 py-2">
-              <span className="block text-2xl md:text-3xl font-extrabold text-amber-400 font-sora">
-                4
-              </span>
-              <span className="text-[10px] text-amber-400 uppercase tracking-wider block mt-1">
-                In Pipeline
-              </span>
-            </div>
-          </div>
+          ) : (
+            <button
+              onClick={() => {
+                setPendingAppToLaunch(null);
+                setAuthModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/80 hover:bg-white text-slate-800 text-xs font-mono font-bold tracking-wider uppercase border border-white shadow-sm transition-all hover:scale-105 cursor-pointer backdrop-blur-md"
+            >
+              <Sparkles size={13} className="text-pink-500" />
+              <span>Register / Login</span>
+            </button>
+          )}
         </div>
 
-        {/* Search & Category Filter Controls */}
-        <div className="mt-10 pt-8 border-t border-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          
-          {/* Search Box */}
-          <div className="relative w-full md:max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={15} className="text-gray-400" />
-            </div>
+        {/* -------------------- TOP HEADING (EXACT REFERENCE TYPOGRAPHY) -------------------- */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-center pt-2 sm:pt-4 space-y-3"
+        >
+          <h1 className="font-sora font-semibold text-3xl sm:text-5xl md:text-6xl text-[#2b2d38] tracking-tight leading-none">
+            Rexlifys All Applications
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-sans font-normal max-w-xl mx-auto leading-relaxed">
+            Autonomous AI co-pilots, distributed platforms, and connected digital experiences engineered by Rexlify.
+          </p>
+        </motion.div>
+
+        {/* -------------------- SEARCH BAR (ROUNDED PILL GLASS DESIGN) -------------------- */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+          className="max-w-xl mx-auto px-4"
+        >
+          <div className="relative flex items-center w-full">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by app, capability, neural tag..."
-              id="explore-apps-search-input"
-              className="w-full text-xs font-mono px-4 py-3 pl-10 pr-9 rounded-2xl border border-white/10 bg-black/60 text-white placeholder-gray-400 focus:outline-none focus:border-rose-500/60 focus:bg-black/80 transition-all shadow-inner"
+              placeholder="Search for applications..."
+              id="rexlify-all-apps-search-input"
+              aria-label="Search for applications"
+              className="w-full h-12 sm:h-14 pl-6 pr-14 rounded-full bg-white/75 backdrop-blur-xl border border-white/90 shadow-[0_4px_24px_rgba(30,40,60,0.06),0_1px_3px_rgba(0,0,0,0.02)] text-slate-800 placeholder:text-slate-400 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-slate-300/70 focus:bg-white/90 transition-all duration-200"
             />
-            {searchQuery && (
+            
+            {/* Search Icon & Clear Button */}
+            <div className="absolute right-4 flex items-center gap-1.5">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Clear search"
+                  aria-label="Clear search query"
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <div className="p-1.5 text-slate-400 pointer-events-none">
+                <Search size={18} className="stroke-[2]" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* -------------------- 3-COLUMN APPLICATION CARDS GRID (EXACT REFERENCE COMPOSITION) -------------------- */}
+        <div className="pt-2">
+          {visibleApplications.length === 0 ? (
+            /* Clean Empty State */
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-md mx-auto py-16 px-6 text-center rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/80 shadow-lg space-y-4"
+            >
+              <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <Search size={24} />
+              </div>
+              <h2 className="font-sora text-lg font-bold text-slate-700">No applications found</h2>
+              <p className="text-xs text-slate-500 font-sans">
+                No published ecosystem applications matched "{searchQuery}".
+              </p>
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
+                className="px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold font-sans tracking-wide transition-colors cursor-pointer"
               >
-                <X size={14} />
+                Clear Search Filter
               </button>
-            )}
-          </div>
-
-          {/* Filter Pills */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'all', label: 'All Architectures' },
-              { id: 'live', label: '🟢 Live Apps' },
-              { id: 'upcoming', label: '⏳ In Pipeline' },
-              { id: 'ai', label: '🧠 Neural & AI' },
-              { id: 'islamic', label: '🌙 Islamic AI' },
-              { id: 'infra', label: '⚡ Cloud & Infra' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedFilter(tab.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-medium tracking-wide transition-all cursor-pointer ${
-                  selectedFilter === tab.id
-                    ? 'bg-gradient-to-r from-[#881337] to-[#be123c] text-white shadow-md shadow-rose-950/40 border border-rose-400/30'
-                    : 'bg-white/5 text-gray-300 hover:text-white border border-white/5 hover:border-white/20'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------- APPLICATIONS GRID -------------------- */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="font-sora text-xl sm:text-2xl font-bold text-white tracking-tight">
-              Ecosystem Applications Matrix
-            </h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-mono text-xs">
-              {filteredApps.length}
-            </span>
-          </div>
-
-          <span className="text-xs font-mono text-gray-400 hidden sm:inline-block">
-            Click any card for deep specifications &amp; roadmap
-          </span>
-        </div>
-
-        {filteredApps.length === 0 ? (
-          <div className="py-20 text-center space-y-4 rounded-3xl border border-dashed border-white/10 bg-white/[0.02]">
-            <Search className="text-gray-500 mx-auto" size={36} />
-            <div className="space-y-1">
-              <p className="font-sora font-semibold text-white text-lg">No applications match your criteria</p>
-              <p className="font-mono text-xs text-gray-400">Try resetting filters or searching with another keyword.</p>
-            </div>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedFilter('all');
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.08
+                  }
+                }
               }}
-              className="px-4 py-2 rounded-xl bg-white/10 text-white font-mono text-xs hover:bg-white/20 transition-all cursor-pointer"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8"
             >
-              Reset Filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredApps.map((app) => {
-              const isLive = app.status === 'Active';
-              const isSifra = app.id === 'sifra';
-              const isNeuraX = app.id === 'neurax';
-              const isNoorax = app.id === 'noorax';
+              {visibleApplications.map((app, index) => {
+                const shades = getStripShades(app.accentColor, index);
+                const displayNum = app.displayOrder || (index + 1);
 
-              return (
-                <motion.div
-                  key={app.id}
-                  layout
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  onClick={() => {
-                    setSelectedAppModal(app);
-                    setActiveTabInModal('overview');
-                  }}
-                  className="group relative bg-[#090a12] rounded-[2.2rem] p-7 border border-white/10 hover:border-rose-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-[0_0_35px_rgba(225,29,72,0.15)]"
-                >
-                  {/* Subtle hover gradient background */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 via-amber-500/0 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                return (
+                  <motion.div
+                    key={app.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 25 },
+                      visible: { 
+                        opacity: 1, 
+                        y: 0,
+                        transition: { duration: 0.45, ease: "easeOut" }
+                      }
+                    }}
+                    whileHover={{ 
+                      y: -6, 
+                      transition: { duration: 0.22, ease: "easeOut" } 
+                    }}
+                    onClick={() => handleLaunchApp(app)}
+                    className="group relative flex flex-row rounded-[2rem] bg-white/75 hover:bg-white/90 backdrop-blur-2xl border border-white/90 shadow-[0_12px_36px_rgba(30,40,60,0.06),0_2px_8px_rgba(30,40,60,0.02)] hover:shadow-[0_22px_48px_rgba(30,40,60,0.12),0_4px_14px_rgba(30,40,60,0.04)] transition-all duration-300 cursor-pointer overflow-hidden min-h-[220px]"
+                    title={`Click to open ${app.name}`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleLaunchApp(app);
+                      }
+                    }}
+                  >
+                    {/* LEFT CONTENT AREA */}
+                    <div className="flex-1 p-6 sm:p-7 flex flex-col justify-between text-left">
+                      <div>
+                        {/* Upper Icon Container (Circular outline matching reference) */}
+                        <div className="w-12 h-12 rounded-full border border-slate-300/80 bg-white/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:border-slate-400 transition-transform duration-300">
+                          {renderCardIcon(app)}
+                        </div>
 
-                  {/* Top Header & Status Badges */}
-                  <div className="space-y-5 relative z-10">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="p-3 bg-white/5 border border-white/10 rounded-2xl group-hover:scale-105 transition-transform">
-                        {renderAppLogo(app, 44)}
+                        {/* Application Name (Dark charcoal uppercase typography) */}
+                        <h2 className="font-sora font-bold text-sm sm:text-base text-slate-800 uppercase tracking-wide mt-4 truncate">
+                          {app.name}
+                        </h2>
+
+                        {/* Subtle Divider Line (Thin line under the name matching reference) */}
+                        <div className="border-b border-slate-200/80 my-2.5 w-full" />
+
+                        {/* Short Description */}
+                        <p className="text-xs leading-relaxed text-slate-600 font-sans font-normal line-clamp-4 min-h-[4rem]">
+                          {app.shortDescription || app.fullDescription}
+                        </p>
                       </div>
 
-                      {/* Ecosystem Status Badges */}
-                      {isLive ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-mono text-[11px] font-bold uppercase tracking-wider shadow-sm">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                          <span>LIVE ONLINE</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-bold uppercase tracking-wider">
-                          <Clock size={11} className="text-amber-400" />
-                          <span>{app.progress ? `${app.progress}% IN DEV` : 'COMING SOON'}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* App Title & Category */}
-                    <div className="space-y-1">
-                      <span className="font-mono text-[10px] font-bold text-rose-400 uppercase tracking-widest block">
-                        {app.category}
-                      </span>
-                      <h3 className="font-sora text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
-                        {app.name}
-                      </h3>
-                    </div>
-
-                    {/* Short Description */}
-                    <p className="text-gray-300 text-xs font-light leading-relaxed line-clamp-3">
-                      {app.shortDescription}
-                    </p>
-
-                    {/* Milestone Progress Bar for Upcoming Apps */}
-                    {!isLive && app.progress !== undefined && (
-                      <div className="space-y-1.5 pt-2">
-                        <div className="flex justify-between text-[10px] font-mono text-gray-400">
-                          <span>Milestone Readiness</span>
-                          <span className="text-amber-300 font-bold">{app.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div 
-                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all duration-1000"
-                            style={{ width: `${app.progress}%` }}
-                          />
+                      {/* Launch Indicator Action */}
+                      <div className="pt-3 flex items-center justify-between text-[11px] font-semibold text-slate-400 group-hover:text-slate-800 transition-colors">
+                        <span className="flex items-center gap-1">
+                          <span>Launch Application</span>
+                        </span>
+                        <div 
+                          className="w-6 h-6 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                          style={{ color: shades.base }}
+                        >
+                          <ArrowUpRight size={14} className="stroke-[2.5]" />
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Bottom Action Footer */}
-                  <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between gap-3 relative z-10">
-                    {isSifra ? (
-                      <a
-                        href={SIFRA_AI_LIVE_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#881337] to-[#be123c] hover:from-[#9f1239] hover:to-[#e11d48] text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                      >
-                        <ExternalLink size={13} />
-                        <span>Launch Sifra AI</span>
-                      </a>
-                    ) : isNeuraX ? (
-                      <a
-                        href={APP_LINKS.neurax}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                      >
-                        <ExternalLink size={13} />
-                        <span>Open NeuraX</span>
-                      </a>
-                    ) : isNoorax ? (
-                      <a
-                        href={APP_LINKS.noorax}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                      >
-                        <ExternalLink size={13} />
-                        <span>Open NoorAX</span>
-                      </a>
-                    ) : isLive ? (
-                      <button
-                        type="button"
-                        onClick={(e) => handleAppPrimaryAction(app, e)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                      >
-                        <ArrowUpRight size={14} />
-                        <span>Open Platform</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedAppModal(app);
-                          setActiveTabInModal('roadmap');
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 hover:text-amber-200 font-mono text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer"
-                      >
-                        <Clock size={13} />
-                        <span>View Roadmap</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedAppModal(app);
-                        setActiveTabInModal('specs');
-                      }}
-                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                      title="View System Specifications"
+                    {/* RIGHT VERTICAL ACCENT STRIP (EXACT REFERENCE 2-TONE COLOR BLOCK WITH NUMBER) */}
+                    <div 
+                      className="w-14 sm:w-16 flex flex-col shrink-0 rounded-r-[2rem] overflow-hidden"
+                      style={{ backgroundColor: shades.base }}
                     >
-                      <Terminal size={15} />
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                      {/* Upper Section: Number block with slightly deeper shade */}
+                      <div 
+                        className="h-14 flex items-center justify-center text-white font-sans font-bold text-lg select-none shadow-sm"
+                        style={{ backgroundColor: shades.dark }}
+                      >
+                        {displayNum}
+                      </div>
 
-      {/* -------------------- ECOSYSTEM PIPELINE & ROADMAP MATRIX -------------------- */}
-      <section className="rounded-[2.5rem] p-8 md:p-12 border border-white/10 bg-[#07080d] shadow-2xl relative overflow-hidden space-y-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-8">
-          <div className="space-y-3 max-w-2xl text-left">
-            <span className="px-3.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-mono tracking-widest uppercase inline-block font-bold">
-              Engineering Pipeline
-            </span>
-            <h2 className="font-sora text-3xl md:text-4xl font-bold text-white tracking-tight">
-              Ecosystem Roadmap &amp; Milestones
-            </h2>
-            <p className="text-gray-300 text-sm font-light leading-relaxed">
-              Transparent development trajectory of next-generation cognitive engines, distributed infrastructure, and ethical knowledge frameworks.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Pipeline Updated: Q3/Q4 2026</span>
-          </div>
+                      {/* Lower Section: Solid vibrant accent tone with subtle glass shine */}
+                      <div className="flex-1 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
         </div>
 
-        {/* Milestone Detail Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* NeuraX Milestone Visualizer */}
-          <div className="bg-black/60 rounded-[2rem] p-6 sm:p-8 border border-white/10 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <NeuraxLogo size={36} />
-                <div>
-                  <h3 className="font-sora text-xl font-bold text-white">NeuraX Cognitive AI</h3>
-                  <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Flagship Neural Model</span>
-                </div>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold">
-                65% Complete
-              </span>
-            </div>
-
-            {/* Overall Progress bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-mono text-gray-300">
-                <span>Overall Development Readiness</span>
-                <span className="text-amber-400 font-bold">65% Target Q4 2026</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 w-[65%]" />
-              </div>
-            </div>
-
-            {/* Completed Architecture Items */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider font-bold block">
-                ✓ Completed Architecture (100%)
-              </span>
-              <div className="space-y-2">
-                {[
-                  'Core Engine Architecture (100%)',
-                  'UI/UX Interface Design System (100%)',
-                  'Core Adaptive Intelligence Modules (100%)'
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 text-xs text-gray-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* In-Progress Workstreams */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider font-bold block">
-                ⚡ Active In-Progress Workstreams
-              </span>
-              <div className="space-y-2">
-                {[
-                  { name: 'Final Backend Integration', prog: 45 },
-                  { name: 'API Fine-Tuning & Parameter Streaming', prog: 35 },
-                  { name: 'Edge Mobile Deployment & NPU Bounds', prog: 20 }
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                    <div className="flex justify-between text-xs text-gray-300">
-                      <span>{item.name}</span>
-                      <span className="text-amber-300 font-mono text-[11px]">{item.prog}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full bg-amber-400 rounded-full" style={{ width: `${item.prog}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Noorax Vision Milestone Visualizer */}
-          <div className="bg-black/60 rounded-[2rem] p-6 sm:p-8 border border-white/10 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <NooraxLogo size={36} />
-                <div>
-                  <h3 className="font-sora text-xl font-bold text-white">Noorax Vision</h3>
-                  <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Islamic AI Knowledge Engine</span>
-                </div>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold">
-                38% Complete
-              </span>
-            </div>
-
-            {/* Overall Progress bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-mono text-gray-300">
-                <span>Project Readiness</span>
-                <span className="text-amber-400 font-bold">38% Target Q1 2027</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500 w-[38%]" />
-              </div>
-            </div>
-
-            {/* Completed Architecture Items */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider font-bold block">
-                ✓ Completed Architecture
-              </span>
-              <div className="space-y-2">
-                {[
-                  'Conceptualization & UI/UX Design System (95%)',
-                  'Ontological Knowledge Mapping & Schema (90%)'
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 text-xs text-gray-300 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* In-Progress Workstreams */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider font-bold block">
-                ⚡ Active In-Progress Workstreams
-              </span>
-              <div className="space-y-2">
-                {[
-                  { name: 'Backend Core & Vector Pipeline', prog: 35 },
-                  { name: 'Authentic Knowledge Database Structuring', prog: 30 },
-                  { name: 'Knowledge Verification & Sanad Cross-Check', prog: 25 }
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                    <div className="flex justify-between text-xs text-gray-300">
-                      <span>{item.name}</span>
-                      <span className="text-amber-300 font-mono text-[11px]">{item.prog}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full bg-amber-400 rounded-full" style={{ width: `${item.prog}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Pipeline Notice */}
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-light leading-relaxed">
-              *In active engineering pipeline — scheduled release following core infrastructure rollouts.*
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------- COMMUNITY FEATURE REQUEST & FEEDBACK MATRIX -------------------- */}
-      <section className="rounded-[2.5rem] p-8 md:p-12 border border-white/10 bg-gradient-to-b from-black/80 to-black/95 shadow-2xl space-y-10">
-        
-        <div className="text-left space-y-3 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] font-mono tracking-widest uppercase font-bold">
-            <MessageSquare size={12} />
-            COMMUNITY ARCHITECTURE MATRIX
-          </div>
-
-          <h2 className="font-sora text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">
-            Architect the Future with REXLIFY
-          </h2>
-
-          <p className="text-gray-300 text-sm font-light leading-relaxed">
-            Have a feature you want in <strong className="text-white font-semibold">NeuraX</strong>, <strong className="text-white font-semibold">Sifra AI</strong>, <strong className="text-white font-semibold">Noorax Vision</strong>, or the general REXLIFY Ecosystem? Submit your idea, and our engineering team will architect it into future builds.
+        {/* -------------------- BOTTOM SUMMARY / ARCHITECTURE FOOTNOTE -------------------- */}
+        <div className="pt-6 pb-12 text-center space-y-2 border-t border-slate-200/60">
+          <p className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
+            Rexlify Sovereign Technology Ecosystem &bull; Real-Time Connected Hub
+          </p>
+          <p className="text-xs text-slate-500 font-sans font-light">
+            Dynamic application manifests securely managed and synchronized via Central Admin Control.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Submission Form */}
-          <form onSubmit={handleSubmitProposal} className="lg:col-span-6 bg-white/[0.02] border border-white/10 p-6 sm:p-8 rounded-3xl space-y-5 shadow-xl">
-            <h3 className="font-sora text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-400" />
-              Propose an Ecosystem Feature
-            </h3>
+      </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">Your Name</label>
-                <input
-                  type="text"
-                  required
-                  value={proposerName}
-                  onChange={(e) => setProposerName(e.target.value)}
-                  placeholder="e.g. Tariq Al-Mansoor"
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-rose-500 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">Your Email</label>
-                <input
-                  type="email"
-                  required
-                  value={proposerEmail}
-                  onChange={(e) => setProposerEmail(e.target.value)}
-                  placeholder="e.g. developer@rexlify.io"
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-rose-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">Target Architecture</label>
-                <select
-                  value={targetApp}
-                  onChange={(e) => setTargetApp(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/80 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-rose-500 cursor-pointer"
-                >
-                  <option value="NeuraX">NeuraX (Cognitive AI)</option>
-                  <option value="Sifra AI">Sifra AI (Autonomous Assistant)</option>
-                  <option value="Noorax Vision">Noorax Vision (Islamic AI)</option>
-                  <option value="RODP">RODP (Cloud Infrastructure)</option>
-                  <option value="Rizwan P.A">Rizwan P.A (Personal Core)</option>
-                  <option value="REXLIFY Core">REXLIFY Platform Core</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">Category</label>
-                <select
-                  value={proposalCategory}
-                  onChange={(e) => setProposalCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/80 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-rose-500 cursor-pointer"
-                >
-                  <option value="AI Reasoning / Logic">AI Reasoning / Logic</option>
-                  <option value="UI/UX Experience">UI/UX Experience</option>
-                  <option value="Mobile Performance">Mobile Performance</option>
-                  <option value="API & Cloud Integration">API &amp; Cloud Integration</option>
-                  <option value="Security & Privacy">Security &amp; Privacy</option>
-                  <option value="Ethical Knowledge">Ethical Knowledge</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">Detailed Feature Proposal</label>
-              <textarea
-                required
-                rows={4}
-                value={proposalText}
-                onChange={(e) => setProposalText(e.target.value)}
-                placeholder="Describe your requested feature, technical edge case, or user workflow enhancement..."
-                className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-rose-500 transition-colors leading-relaxed"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmittingProposal}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-[#881337] to-[#be123c] hover:from-[#9f1239] hover:to-[#e11d48] text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Send size={14} className={isSubmittingProposal ? 'animate-bounce' : ''} />
-              <span>{isSubmittingProposal ? 'Transmitting Idea...' : 'Submit Feature Proposal'}</span>
-            </button>
-          </form>
-
-          {/* Upvoted Community Ideas List */}
-          <div className="lg:col-span-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-sora text-lg font-bold text-white flex items-center gap-2">
-                <ThumbsUp size={16} className="text-emerald-400" />
-                Trending Community Feature Requests
-              </h3>
-              <span className="text-[11px] font-mono text-gray-400">
-                {communityRequests.length} active ideas
-              </span>
-            </div>
-
-            <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
-              {communityRequests.map((req) => (
-                <div 
-                  key={req.id}
-                  className="bg-white/[0.02] border border-white/10 hover:border-white/20 p-5 rounded-2xl space-y-3 transition-colors text-left"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 font-mono text-[10px] font-bold">
-                          {req.targetApp}
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 text-gray-300 font-mono text-[10px]">
-                          {req.category}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-gray-400 font-mono block">
-                        Proposed by {req.name} &bull; {req.date}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleVote(req.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
-                        votedIds.includes(req.id)
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
-                      }`}
-                    >
-                      <ThumbsUp size={12} className={votedIds.includes(req.id) ? 'text-emerald-400' : ''} />
-                      <span>{req.votes}</span>
-                    </button>
-                  </div>
-
-                  <p className="text-gray-200 text-xs font-light leading-relaxed">
-                    {req.proposal}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1 border-t border-white/5">
-                    <span className="text-amber-400 font-medium">Status: {req.status}</span>
-                    <span>Reviewed by REXLIFY Team</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------- DEDICATED APP SPECIFICATION & ROADMAP MODAL -------------------- */}
-      <AnimatePresence>
-        {selectedAppModal && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedAppModal(null)}
-              className="fixed inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-3xl bg-[#090a12] border border-rose-500/30 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_60px_rgba(225,29,72,0.2)] text-white overflow-hidden z-10 my-auto max-h-[90vh] flex flex-col justify-between"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="flex items-start justify-between border-b border-white/10 pb-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
-                    {renderAppLogo(selectedAppModal, 48)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-sora text-2xl font-bold text-white">
-                        {selectedAppModal.name}
-                      </h2>
-                      {selectedAppModal.status === 'Active' ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-mono text-[10px] font-bold">
-                          LIVE ONLINE
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-bold">
-                          {selectedAppModal.progress ? `${selectedAppModal.progress}% IN DEV` : 'IN PIPELINE'}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-mono text-xs text-rose-400 uppercase tracking-widest block mt-0.5">
-                      {selectedAppModal.category} &bull; v{selectedAppModal.version}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedAppModal(null)}
-                  className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Navigation Tabs in Modal */}
-              <div className="flex border-b border-white/10 gap-2 mb-6 overflow-x-auto pb-1">
-                {[
-                  { id: 'overview', label: 'Architecture Overview' },
-                  { id: 'roadmap', label: 'Milestone Roadmap' },
-                  { id: 'specs', label: 'Telemetry & Specs' },
-                  { id: 'changelog', label: 'Changelog History' }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTabInModal(t.id as any)}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
-                      activeTabInModal === t.id
-                        ? 'bg-gradient-to-r from-[#881337] to-[#be123c] text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Modal Body Content (Scrollable) */}
-              <div className="overflow-y-auto pr-2 space-y-6 max-h-[48vh] text-left">
-                
-                {/* OVERVIEW TAB */}
-                {activeTabInModal === 'overview' && (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <h4 className="font-sora font-semibold text-sm text-gray-300 uppercase tracking-wider">
-                        Core System Narrative
-                      </h4>
-                      <p className="text-gray-300 text-sm font-light leading-relaxed">
-                        {selectedAppModal.fullDescription}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="font-sora font-semibold text-sm text-amber-300 uppercase tracking-wider">
-                        Key Architectural Features
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedAppModal.features.map((feat, idx) => (
-                          <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-gray-300">
-                            <CheckCircle2 size={15} className="text-rose-400 shrink-0 mt-0.5" />
-                            <span>{feat}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {selectedAppModal.developerNotes && (
-                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-light text-amber-200 leading-relaxed italic">
-                        &ldquo;{selectedAppModal.developerNotes}&rdquo;
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ROADMAP TAB */}
-                {activeTabInModal === 'roadmap' && (
-                  <div className="space-y-6">
-                    <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2">
-                      <div className="flex justify-between items-center text-xs font-mono">
-                        <span className="text-gray-400">Total Development Readiness</span>
-                        <span className="text-amber-300 font-bold text-sm">
-                          {selectedAppModal.progress !== undefined ? `${selectedAppModal.progress}%` : '100%'}
-                        </span>
-                      </div>
-                      <div className="w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500" 
-                          style={{ width: `${selectedAppModal.progress !== undefined ? selectedAppModal.progress : 100}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Completed Milestones */}
-                    {selectedAppModal.completedMilestones && selectedAppModal.completedMilestones.length > 0 && (
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold block">
-                          ✓ Completed Milestones (100%)
-                        </span>
-                        <div className="space-y-2">
-                          {selectedAppModal.completedMilestones.map((m, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-gray-300">
-                              <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                              <span>{m}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* In-Progress Milestones */}
-                    {selectedAppModal.inProgressMilestones && selectedAppModal.inProgressMilestones.length > 0 && (
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-mono text-amber-400 uppercase tracking-wider font-bold block">
-                          ⚡ In-Progress Workstreams
-                        </span>
-                        <div className="space-y-2">
-                          {selectedAppModal.inProgressMilestones.map((m, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-gray-300">
-                              <Clock size={14} className="text-amber-400 shrink-0" />
-                              <span>{m}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Upcoming Milestones */}
-                    {selectedAppModal.upcomingMilestones && selectedAppModal.upcomingMilestones.length > 0 && (
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-mono text-gray-400 uppercase tracking-wider font-bold block">
-                          🎯 Upcoming Release Horizons
-                        </span>
-                        <div className="space-y-2">
-                          {selectedAppModal.upcomingMilestones.map((m, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-gray-400">
-                              <ChevronRight size={14} className="text-gray-500 shrink-0" />
-                              <span>{m}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* SPECS TAB */}
-                {activeTabInModal === 'specs' && (
-                  <div className="space-y-4">
-                    <div className="bg-black/60 rounded-2xl border border-white/10 p-5 space-y-3 font-mono text-xs">
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-gray-400">Version Build</span>
-                        <span className="text-white font-bold">{selectedAppModal.version}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-gray-400">Release Target / Status</span>
-                        <span className="text-emerald-400 font-bold">{selectedAppModal.releaseDate}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-gray-400">Bundle Footprint</span>
-                        <span className="text-white">{selectedAppModal.apkInfo.size}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span className="text-gray-400">Platform Compatibility</span>
-                        <span className="text-white">{selectedAppModal.apkInfo.compatibility}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Runtime Security Protocol</span>
-                        <span className="text-rose-400 font-bold">SOVEREIGN_ENCRYPTED</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* CHANGELOG TAB */}
-                {activeTabInModal === 'changelog' && (
-                  <div className="space-y-4">
-                    {selectedAppModal.apkInfo.changelog.map((log, idx) => (
-                      <div key={idx} className="bg-white/[0.02] p-4 rounded-2xl border border-white/5 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-mono text-sm font-bold text-amber-400">v{log.version}</span>
-                          <span className="font-mono text-[10px] text-gray-500">{log.date}</span>
-                        </div>
-                        <ul className="space-y-1 text-xs text-gray-300 list-disc list-inside">
-                          {log.changes.map((c, ci) => (
-                            <li key={ci}>{c}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              </div>
-
-              {/* Modal Footer Actions */}
-              <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-                <span className="text-[11px] font-mono text-gray-400">
-                  REXLIFY Architecture Catalog &bull; Rizwan RR
-                </span>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {selectedAppModal.id === 'sifra' ? (
-                    <a
-                      href={APP_LINKS.sifra}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
-                    >
-                      <ExternalLink size={14} />
-                      Launch Sifra AI
-                    </a>
-                  ) : selectedAppModal.id === 'neurax' ? (
-                    <a
-                      href={APP_LINKS.neurax}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
-                    >
-                      <ExternalLink size={14} />
-                      Launch NeuraX AI
-                    </a>
-                  ) : selectedAppModal.id === 'noorax' ? (
-                    <a
-                      href={APP_LINKS.noorax}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
-                    >
-                      <ExternalLink size={14} />
-                      Launch NoorAX AI
-                    </a>
-                  ) : selectedAppModal.id.includes('rizwan-innovation') || selectedAppModal.id.includes('rizwan-enovation') ? (
-                    <a
-                      href={APP_LINKS.rizwanInnovation}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
-                    >
-                      <ExternalLink size={14} />
-                      Launch Rizwan Innovation
-                    </a>
-                  ) : selectedAppModal.id === 'rodp' ? (
-                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                      <button
-                        onClick={() => {
-                          setSelectedAppModal(null);
-                          setView('rodp');
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer active:scale-95"
-                      >
-                        <ArrowUpRight size={14} />
-                        Launch RODP Application
-                      </button>
-                    </div>
-                  ) : selectedAppModal.id === 'rexlify-ai' ? (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        setView('rexlify-ai');
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg shadow-pink-500/25 transition-all cursor-pointer active:scale-95"
-                    >
-                      <Sparkles size={14} />
-                      Launch REXLIFY AI Software
-                    </button>
-                  ) : selectedAppModal.status === 'Active' ? (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        setView('home');
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg transition-all cursor-pointer"
-                    >
-                      <ArrowUpRight size={14} />
-                      Open Portal
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setSelectedAppModal(null);
-                        toastSuccess('Milestone Logged', `You are tracking ${selectedAppModal.name} in the ecosystem roadmap.`);
-                      }}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
-                    >
-                      <Clock size={14} />
-                      Coming Soon (Tracking)
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => setSelectedAppModal(null)}
-                    className="px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-mono font-medium transition-colors cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
+      {/* -------------------- REXLIFY REGISTRATION & LOGIN MODAL (REFERENCE-MATCHED) -------------------- */}
+      <RexlifyAuthModal
+        isOpen={authModalOpen}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setPendingAppToLaunch(null);
+        }}
+        targetFeatureName={pendingAppToLaunch?.name}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          if (pendingAppToLaunch) {
+            executeLaunch(pendingAppToLaunch);
+            setPendingAppToLaunch(null);
+          }
+        }}
+      />
     </div>
   );
 };

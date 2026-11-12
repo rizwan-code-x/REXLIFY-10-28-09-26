@@ -29,6 +29,8 @@ import { TeacherDashboard } from './components/TeacherDashboard';
 import { SecurityCheckpoint } from './components/SecurityCheckpoint';
 import { AdditionalSystemsPage } from './components/AdditionalSystemsPage';
 import { RexlifySocialMedia } from './components/RexlifySocialMedia';
+import { RexlifyAuthModal } from './components/RexlifyAuthModal';
+import { getCurrentUser, trackFeatureUsage, markUserLeft, RegisteredUser } from './services/userService';
 
 import { 
   Application, Update, Project, DocArticle, UserMessage, SEOSettings, WebsiteContent,
@@ -165,9 +167,51 @@ const TopScrollProgressBar: React.FC<{ view: ActiveView }> = ({ view }) => {
 
 export type ThemeMode = 'deep-space' | 'neon-cyber' | 'premium-mixed';
 
+const VALID_VIEWS: Set<string> = new Set([
+  'home', 'portfolio', 'services', 'products', 'blog', 'showcase', 'sponsors',
+  'about', 'applications', 'projects', 'updates', 'documentation', 'faq',
+  'contact', 'dashboard', 'quantexa', 'privacy', 'terms', 'security-checkpoint',
+  'admin-login', 'admin-dashboard', 'image-analyzer', 'institute', 'faculty',
+  'explore-system', 'additional-systems', 'rexlify-social', 'customer-care',
+  'help-centre', 'sara-chat', 'sara-voice', 'rodp', 'rexlify-ai',
+  'rexlify-ai-login', 'sifra', 'neurax', 'rizwan-innovation', 'institute-intro',
+  'institute-portal', 'teacher-dashboard'
+]);
+
+// Ecosystem Feature Views that require Name Registration before usage
+export const GATED_FEATURE_VIEWS: Record<string, string> = {
+  'sifra': 'Sifra AI Studio',
+  'neurax': 'NeuraX AI Engine',
+  'rodp': 'RODP Platform',
+  'rizwan-innovation': 'Rizwan R.R. Innovation',
+  'rexlify-ai': 'Rexlify AI Assistant',
+  'institute-portal': 'Student Portal'
+};
+
+function getInitialView(): ActiveView {
+  try {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+    if (hash && VALID_VIEWS.has(hash)) {
+      return hash as ActiveView;
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramView = urlParams.get('view')?.trim().toLowerCase();
+    if (paramView && VALID_VIEWS.has(paramView)) {
+      return paramView as ActiveView;
+    }
+    const saved = localStorage.getItem('rexlify_current_view')?.trim().toLowerCase();
+    if (saved && VALID_VIEWS.has(saved)) {
+      return saved as ActiveView;
+    }
+  } catch (err) {
+    console.warn('Initial route resolution notice:', err);
+  }
+  return 'home';
+}
+
 function AppContent() {
-  // Routing View state
-  const [view, setView] = useState<ActiveView>('home');
+  // Routing View state - Initialized synchronously from Hash, Search params or LocalStorage
+  const [view, setView] = useState<ActiveView>(getInitialView);
 
   // Translation & Subscribers states
   const [language, setLanguage] = useState<Language>('en');
@@ -217,7 +261,13 @@ function AppContent() {
   const [applications, setApplications] = useState<Application[]>(() => {
     try {
       const s = localStorage.getItem('rexlify_apps');
-      return s ? JSON.parse(s) : INITIAL_APPLICATIONS;
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.some((a: any) => a.accentColor)) {
+          return parsed;
+        }
+      }
+      return INITIAL_APPLICATIONS;
     } catch { return INITIAL_APPLICATIONS; }
   });
   const [updates, setUpdates] = useState<Update[]>(() => {
@@ -313,19 +363,31 @@ function AppContent() {
   const [apkDownloadLink, setApkDownloadLink] = useState<string>('');
   const [maintenanceMode, setMaintenanceMode] = useState<{ enabled: boolean; message: string }>({ enabled: false, message: 'This application is currently undergoing system calibration.' });
 
-  // Authentication state
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
-  const [adminRole, setAdminRole] = useState<'ceo' | 'teacher' | 'rexlify-ai' | 'rodp-admin' | null>(null);
+  // Authentication state - Initialized synchronously to prevent reload race conditions
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('rexlify_auth_status') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [adminRole, setAdminRole] = useState<'ceo' | 'teacher' | 'rexlify-ai' | 'rodp-admin' | null>(() => {
+    try {
+      return (localStorage.getItem('rexlify_admin_role') as any) || null;
+    } catch {
+      return null;
+    }
+  });
 
   // Dynamic custom UI components
   const [customUiComponents, setCustomUiComponents] = useState<any[]>([]);
 
   // 1. Initial State Loading with Google Cloud Firestore dynamic sync & localStorage fallback
   useEffect(() => {
-    // Check auth
+    // Check auth sync
     if (localStorage.getItem('rexlify_auth_status') === 'true') {
       setIsAdminLoggedIn(true);
-      const role = localStorage.getItem('rexlify_admin_role') as 'ceo' | 'teacher';
+      const role = localStorage.getItem('rexlify_admin_role') as 'ceo' | 'teacher' | 'rexlify-ai' | 'rodp-admin';
       if (role) {
         setAdminRole(role);
       }
@@ -441,7 +503,16 @@ function AppContent() {
       const storedMaintenance = localStorage.getItem('rexlify_maintenance');
       const storedCustomUi = localStorage.getItem('rexlify_custom_ui_components');
 
-      setApplications(storedApps ? JSON.parse(storedApps) : initialApps);
+      let resolvedApps = initialApps;
+      if (storedApps) {
+        try {
+          const parsed = JSON.parse(storedApps);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.some((a: any) => a.accentColor)) {
+            resolvedApps = parsed;
+          }
+        } catch (_) {}
+      }
+      setApplications(resolvedApps);
       setUpdates(storedUpdates ? JSON.parse(storedUpdates) : initialUpdates);
       setProjects(storedProjects ? JSON.parse(storedProjects) : initialProjects);
       setDocuments(storedDocs ? JSON.parse(storedDocs) : initialDocs);
@@ -828,11 +899,22 @@ function AppContent() {
     setAdminRole(role);
     localStorage.setItem('rexlify_auth_status', 'true');
     localStorage.setItem('rexlify_admin_role', role);
+    if (role === 'ceo') {
+      setView('admin-dashboard');
+    } else if (role === 'teacher') {
+      setView('teacher-dashboard');
+    } else if (role === 'rexlify-ai') {
+      setView('rexlify-ai');
+    } else if (role === 'rodp-admin') {
+      setView('rodp');
+    }
   };
 
   const handleLogout = () => {
     setIsAdminLoggedIn(false);
+    setAdminRole(null);
     localStorage.removeItem('rexlify_auth_status');
+    localStorage.removeItem('rexlify_admin_role');
     setView('home');
   };
 
@@ -921,6 +1003,63 @@ function AppContent() {
     }
   };
 
+  // URL Hash & History Synchronization for back/forward navigation and reload persistence
+  useEffect(() => {
+    try {
+      localStorage.setItem('rexlify_current_view', view);
+      const currentHash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+      if (currentHash !== view) {
+        window.history.replaceState(null, '', `#${view}`);
+      }
+    } catch (_) {}
+  }, [view]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+      if (hash && VALID_VIEWS.has(hash)) {
+        setView(hash as ActiveView);
+      } else if (!hash) {
+        setView('home');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, []);
+
+  // User Departure and Telemetry Listener
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      markUserLeft();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        markUserLeft();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Real-time track feature usage when logged-in user navigates into an ecosystem application
+  useEffect(() => {
+    if (GATED_FEATURE_VIEWS[view]) {
+      const user = getCurrentUser();
+      if (user) {
+        trackFeatureUsage(GATED_FEATURE_VIEWS[view], '#' + view);
+      }
+    }
+  }, [view]);
+
   // Determine active view render path
   const renderViewContent = () => {
     if (maintenanceMode.enabled && view !== 'admin-login' && view !== 'admin-dashboard') {
@@ -999,8 +1138,12 @@ function AppContent() {
 
     if (view === 'teacher-dashboard') {
       if (!isAdminLoggedIn || adminRole !== 'teacher') {
-        setView('admin-login');
-        return null;
+        return (
+          <AdminLogin 
+            setView={setView} 
+            onLoginSuccess={handleLoginSuccess} 
+          />
+        );
       }
       return (
         <TeacherDashboard 
@@ -1012,9 +1155,12 @@ function AppContent() {
 
     if (view === 'admin-dashboard') {
       if (!isAdminLoggedIn || adminRole !== 'ceo') {
-        // Safe security redirect if attempting bypass
-        setView('admin-login');
-        return null;
+        return (
+          <AdminLogin 
+            setView={setView} 
+            onLoginSuccess={handleLoginSuccess} 
+          />
+        );
       }
       return (
         <AdminPanel
@@ -1074,6 +1220,23 @@ function AppContent() {
       );
     }
 
+    // Feature Gatekeeping: Gated ecosystem applications require minimal name entry before interaction
+    if (GATED_FEATURE_VIEWS[view] && !getCurrentUser() && !isAdminLoggedIn) {
+      return (
+        <RexlifyAuthModal
+          isOpen={true}
+          onClose={() => {
+            setView('applications');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          targetFeatureName={GATED_FEATURE_VIEWS[view]}
+          onSuccess={() => {
+            trackFeatureUsage(GATED_FEATURE_VIEWS[view], '#' + view);
+          }}
+        />
+      );
+    }
+
     if (view === 'rodp') {
       if (!loading && !status.rodp) return renderDisabledBlock('RODP Platform');
       return (
@@ -1096,6 +1259,7 @@ function AppContent() {
           onSuccess={() => {
             setIsAdminLoggedIn(true);
             setAdminRole('rexlify-ai');
+            setView('rexlify-ai');
           }}
         />
       );
@@ -1104,8 +1268,16 @@ function AppContent() {
     if (view === 'rexlify-ai') {
       if (!loading && !status.rexlify_ai) return renderDisabledBlock('Rexlify AI');
       if (!isAdminLoggedIn || (adminRole !== 'ceo' && adminRole !== 'rexlify-ai')) {
-        setView('rexlify-ai-login');
-        return null;
+        return (
+          <RexlifyAiLogin 
+            setView={setView}
+            onSuccess={() => {
+              setIsAdminLoggedIn(true);
+              setAdminRole('rexlify-ai');
+              setView('rexlify-ai');
+            }}
+          />
+        );
       }
       return (
         <RexlifyAiApp 

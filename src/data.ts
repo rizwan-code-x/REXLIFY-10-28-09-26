@@ -32,37 +32,31 @@ export const INITIAL_APPLICATIONS: Application[] = [
     id: 'sifra',
     name: 'Sifra AI',
     logo: 'sifra',
-    shortDescription: 'Your Personalized Autonomous Assistant and Contextual Task Executor',
-    fullDescription: 'Sifra AI (also known as Sifra Core) is a futuristic personal assistant crafted to serve as an intelligent, conversational auxiliary layer for human workflows. Designed with a custom peach-pink gradient typography, it acts as a highly adaptive co-pilot that integrates seamlessly with your schedules, document archives, and custom task queues to automate your digital life.',
-    version: '1.0.2-Beta',
-    category: 'Autonomous AI Assistant',
-    status: 'Active',
-    releaseDate: '2026-05-20',
-    developerNotes: 'Sifra is live and accessible online! Connected to our enterprise cloud runtime with sub-second latency and intelligent memory retention.',
+    icon: 'sifra',
+    shortDescription: 'Your personal AI assistant for conversations, guidance, voice interaction and everyday tasks.',
+    fullDescription: 'Your personal AI assistant for conversations, guidance, voice interaction and everyday tasks.',
+    accentColor: '#F5A623',
+    url: 'https://sifrar.ai.studio',
     downloadUrl: 'https://sifrar.ai.studio',
     liveUrl: 'https://sifrar.ai.studio',
+    displayOrder: 1,
+    isPublished: true,
+    openInNewTab: true,
+    status: 'Active',
+    version: '1.0.2-Beta',
+    category: 'Autonomous AI Assistant',
+    releaseDate: '2026-05-20',
+    developerNotes: 'Official Sifra AI personal assistant runtime connected to cloud execution with conversational voice synthesis.',
     progress: 100,
-    completedMilestones: [
-      'Conversational Agentic Pipeline (100%)',
-      'Contextual Scheduling System (100%)',
-      'Multi-Format Document Parsing (100%)',
-      'Live Cloud Deployment on Google Cloud Run (100%)'
-    ],
-    inProgressMilestones: [
-      'Persistent Cross-Platform Vector Sync',
-      'Voice Synthesis Integration'
-    ],
-    tags: ['Live App', 'Autonomous AI', 'Productivity', 'Agentic Workflows', 'Cloud Run'],
+    tags: ['Live App', 'AI Assistant', 'Voice Interaction', 'Guidance'],
     features: [
-      'Sleek Conversational Agentic Flow: Chat naturally and let Sifra schedule, summarize, or query databases.',
-      'Active Context Hooks: Learns your task patterns and proactively alerts you about deadlines.',
-      'Full Document Ingestion Pipeline: Drop PDF, markdown, or text logs directly to build a personal vector index.',
-      'Futuristic Glassmorphic Interfacing: Designed with visual precision using rich glowing accents.',
-      'Encrypted Cloud-Sync Bridge: Ready for persistent Firebase Firestore backups across devices.'
+      'Conversational Guidance & Adaptive Task Planning',
+      'Real-time Voice Interaction with Sub-Second Latency',
+      'Contextual Knowledge Ingestion Pipeline',
+      'Secure End-to-End Encrypted Cloud Synchronization'
     ],
     screenshots: [
-      'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1618005198143-d3667564d96a?auto=format&fit=crop&q=80&w=600'
+      'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&q=80&w=600'
     ],
     apkInfo: {
       size: '18.2 MB',
@@ -72,381 +66,365 @@ export const INITIAL_APPLICATIONS: Application[] = [
         {
           version: '1.0.2-Beta',
           date: '2026-05-20',
-          changes: [
-            'First public release of the personalized scheduling engine.',
-            'Integrated custom glassmorphism visual layout.',
-            'Deployed live high-speed cloud execution engine.'
-          ]
+          changes: ['Production release of Sifra personal assistant.']
         }
       ]
     },
-    seoTitle: 'Sifra AI - Live Futuristic Personal Assistant | REXLIFY',
-    seoDescription: 'Experience Sifra AI live online. Personalized autonomous assistant with proactive contextual task execution.'
-  },
-  {
-    id: 'rexlify-ai',
-    name: 'REXLIFY AI SOFTWARE',
-    logo: 'rexlify-ai',
-    shortDescription: 'Intelligent Multimodal AI Workspace for Thinking, Creating, Analyzing, and Getting Things Done',
-    fullDescription: 'REXLIFY AI SOFTWARE is a premium, intelligent, multimodal AI productivity and creation platform crafted for CEO Rizwan and modern creators. Deep reasoning, instant execution, multimodal uploads (PDF, Excel, Images, Code), Assignment Studio, Study & Notes system, Voice AI, and Personalized CEO Mode with transparent memory.',
-    version: '2.4.0-Live',
-    category: 'Multimodal AI Workspace',
-    status: 'Active',
-    releaseDate: '2026-06-12',
-    developerNotes: 'Live enterprise multimodal AI workspace featuring server-side Gemini intelligence, interactive Voice AI orb, dedicated Assignment Studio with PDF export, and luminous pink & purple glassmorphic UI.',
-    downloadUrl: '#',
-    liveUrl: '#',
-    progress: 100,
-    completedMilestones: [
-      'Multimodal AI Engine & CEO Mode (100%)',
-      'PDF & Spreadsheet Analytical Workspaces (100%)',
-      'Assignment Studio & Study Notes System (100%)',
-      'Voice AI with Interactive Orb & Audio Synthesis (100%)',
-      'Coding Assistant & UI/UX Architect (100%)'
-    ],
-    inProgressMilestones: [
-      'Enterprise Team Federation Bridge',
-      'Cross-Device Autonomous Mobile Sync'
-    ],
-    tags: ['Live App', 'Multimodal AI', 'CEO Workspace', 'Productivity', 'Voice AI', 'Assignment Studio'],
-    features: [
-      'Personalized CEO Mode: Tailored for CEO Rizwan with contextual memory and instant execution shortcuts.',
-      'Multimodal Chat & Uploads: Seamless support for Text, High-Resolution Images, PDFs, and Excel/CSV spreadsheets.',
-      'Dedicated Assignment Studio: Generates rigorous academic assignments with titles, structured sections, and PDF export.',
-      'Study & Notes Suite: Automatic chapter identification, structured revision points, mnemonics, and test mode with scoring.',
-      'Voice AI Interface: Animated interactive orb with voice-to-text recognition and natural speech synthesis.',
-      'Code & UI/UX Assistants: Code generation, syntax highlighting, refactoring, and full UI/UX component hierarchy planning.'
-    ],
-    screenshots: [
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&q=80&w=600'
-    ],
-    apkInfo: {
-      size: '14.8 MB',
-      downloadCount: 6840,
-      compatibility: 'Web, Windows, macOS, Android & iOS',
-      changelog: [
-        {
-          version: '2.4.0-Live',
-          date: '2026-06-12',
-          changes: [
-            'Public launch of REXLIFY AI SOFTWARE multimodal workspace.',
-            'Added Assignment Studio with instant PDF export engine.',
-            'Integrated interactive Voice AI with waveform visualizer.',
-            'Implemented light pink & purple glassmorphic design architecture.'
-          ]
-        }
-      ]
-    },
-    seoTitle: 'REXLIFY AI SOFTWARE - Intelligent Multimodal Productivity Platform',
-    seoDescription: 'Access REXLIFY AI SOFTWARE for multimodal chat, voice AI, assignment creation, study notes, and spreadsheet analysis.'
-  },
-  {
-    id: 'rexlify',
-    name: 'REXLIFY Platform',
-    logo: 'rexlify',
-    shortDescription: 'Signature of Elegance: Unified Digital Architecture & Engineering Ecosystem Hub',
-    fullDescription: 'REXLIFY is the sovereign centralized technology portal and distribution matrix created by Rizwan Roushan Rownaq (Rizwan RR). It orchestrates neural intelligence modules, client software, secure vaults, and next-generation developer tooling.',
-    version: '3.4.2',
-    category: 'Ecosystem & Core Portal',
-    status: 'Active',
-    releaseDate: '2026-06-01',
-    developerNotes: 'Central portal running with high-contrast dual themes, offline-first architectures, and multi-tier encryption.',
-    downloadUrl: '/',
-    liveUrl: '/',
-    progress: 100,
-    completedMilestones: [
-      'Sovereign Architecture Design (100%)',
-      'Dual-Theme High Contrast System (100%)',
-      'Firebase Cloud Sync & Security Rules (100%)',
-      'Integrated Video Pipeline & Portfolio Matrix (100%)'
-    ],
-    tags: ['Live Platform', 'Core Architecture', 'Neural Hub', 'Ecosystem'],
-    features: [
-      'Dual High-Contrast Theme Engine with Soft Pink and Golden Palette accents.',
-      'Universal Search & Deep Semantic Navigation across all ecosystem nodes.',
-      'Encrypted Storage Vault with Firestore backup synchronization.',
-      'Real-time Service Specifications & System Diagnostics.'
-    ],
-    screenshots: [
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600'
-    ],
-    apkInfo: {
-      size: '12.4 MB',
-      downloadCount: 8940,
-      compatibility: 'Web & Universal Responsive',
-      changelog: [
-        {
-          version: '3.4.2',
-          date: '2026-06-01',
-          changes: [
-            'Implemented Explore Apps Hub with real-time status routing.',
-            'Integrated official Rexlify feather signature branding.',
-            'Enhanced 404 security diagnostic matrix.'
-          ]
-        }
-      ]
-    },
-    seoTitle: 'REXLIFY - Signature of Elegance Technology Ecosystem',
-    seoDescription: 'Explore REXLIFY official digital platform by Rizwan Roushan Rownaq.'
-  },
-  {
-    id: 'rodp',
-    name: 'ROD Platform (RODP)',
-    logo: 'rodp',
-    shortDescription: 'Enterprise Digital Service Center Management Platform for Cyber Cafes, CSC Centers & Citizen Services',
-    fullDescription: 'Rizwan Online Dreams Platform (RODP) is an enterprise-grade digital service management platform for shops like Cyber Cafes, CSC Centers, Aadhaar/PAN Centers, and multi-service digital kiosks across India. Features multi-role access, modular services, smart appointment scheduling, daily task managers, billing and invoicing with GST, staff management, document vaults, finance tracking, Gemini AI receipt OCR, and Sifra AI Copilot.',
-    version: '2.4.0',
-    category: 'Enterprise Shop SaaS & CSC Hub',
-    status: 'Active',
-    releaseDate: '2026-06-24',
-    developerNotes: 'Complete source repository with full 25+ view modules, offline-first SQLite/Firestore caching, and dual-language Sifra AI engine. Active and production ready.',
-    downloadUrl: 'https://github.com/rizwan-code-x/Rizwan-online-dreams-platform-.git',
-    liveUrl: 'https://github.com/rizwan-code-x/Rizwan-online-dreams-platform-.git',
-    progress: 100,
-    completedMilestones: [
-      'Super Admin & Multi-Branch Management (100%)',
-      'Smart Invoicing with Dynamic GST Billing (100%)',
-      'Appointment Scheduler & Token Queue Matrix (100%)',
-      'Receipt Proof OCR Extraction with Gemini AI (100%)',
-      'Customer Portal & Public Digital Services (100%)',
-      'Direct GitHub Codebase Replication & Deployment Ready (100%)'
-    ],
-    inProgressMilestones: [],
-    tags: ['Live App', 'CSC & Cyber Cafe', 'GST Billing', 'Gemini AI OCR', 'Enterprise', 'Cloud Sync'],
-    features: [
-      'Smart Billing & Invoicing: Real-time GST calculation, itemized service pricing, and printable PDF invoices.',
-      'Multi-Role Access Control: Super Admin, Branch Manager, Staff Operator, and Citizen Customer portals.',
-      'Intelligent Token Queues & Appointments: Automated customer queue scheduling with time slots and SMS notifications.',
-      'Gemini AI Powered OCR Receipt Parser: Upload customer proof screenshots to automatically extract application IDs and dates.',
-      'Integrated Sifra AI Concierge: Multi-lingual voice and text assistant trained on Indian citizen welfare schemes and services.',
-      'Secure Document Vault & Trash Recovery: Encrypted cloud document vault with instant undelete and audit logs.'
-    ],
-    screenshots: [
-      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600'
-    ],
-    apkInfo: {
-      size: '24.8 MB',
-      downloadCount: 6120,
-      compatibility: 'Web, Android 8.0+ & Progressive Web App',
-      changelog: [
-        {
-          version: '2.4.0',
-          date: '2026-06-24',
-          changes: [
-            'Full repository release with multi-branch synchronization.',
-            'Integrated Gemini 2.5 Flash OCR and auto-booking engine.',
-            'Direct GitHub repository link and production packaging.'
-          ]
-        }
-      ]
-    },
-    seoTitle: 'ROD Platform - Enterprise Digital Service Center Platform | REXLIFY',
-    seoDescription: 'Rizwan Online Dreams Platform (RODP), the enterprise-grade digital service center management platform.'
-  },
-  {
-    id: 'rizwan-innovation',
-    name: 'Rizwan Innovation',
-    logo: 'rizwan-innovation',
-    shortDescription: 'Advanced Technology Innovation & Cognitive Systems Lab by Rizwan Roushan Rownaq',
-    fullDescription: 'Rizwan Innovation (Rizwan Enovation) is the dedicated research and conceptual innovation laboratory of Rizwan Roushan Rownaq, exploring futuristic cognitive technologies, autonomous multi-agent pipelines, and next-generation human-AI workflows.',
-    version: '1.0.0-Concept',
-    category: 'Innovation & Research Lab',
-    status: 'Active',
-    releaseDate: '2026-06-25',
-    developerNotes: 'Experimental research initiative and digital innovation think-tank.',
-    downloadUrl: 'https://rizwanr.ai.studio',
-    liveUrl: 'https://rizwanr.ai.studio',
-    progress: 100,
-    completedMilestones: [
-      'Innovation Directive Formulated (100%)',
-      'Advanced Research Prototyping (100%)'
-    ],
-    inProgressMilestones: [],
-    tags: ['Innovation', 'R&D', 'Cognitive Systems', 'Ecosystem'],
-    features: [
-      'Autonomous system prototyping and next-generation cognitive models.',
-      'Sovereign edge device intelligence architectures.',
-      'Advanced multi-agent collaboration frameworks.'
-    ],
-    screenshots: [
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600'
-    ],
-    apkInfo: {
-      size: 'Concept Lab',
-      downloadCount: 1420,
-      compatibility: 'Universal Web',
-      changelog: [
-        {
-          version: '1.0.0-Concept',
-          date: '2026-06-25',
-          changes: ['Initiated Rizwan Innovation R&D lab.']
-        }
-      ]
-    },
-    seoTitle: 'Rizwan Innovation - Advanced Technology & Cognitive Systems Lab',
-    seoDescription: 'Explore Rizwan Innovation by Rizwan Roushan Rownaq.'
+    seoTitle: 'Sifra AI - Personal AI Assistant | REXLIFY',
+    seoDescription: 'Your personal AI assistant for conversations, guidance, voice interaction and everyday tasks.'
   },
   {
     id: 'neurax',
     name: 'NeuraX',
     logo: 'neurax',
-    shortDescription: 'Advanced Neural Cognitive Engine & Adaptive Intelligence Model',
-    fullDescription: 'NeuraX is REXLIFY\'s flagship intelligent cognitive runtime system designed carefully to optimize personal task automation, contextual semantic parsing, and logic execution on mobile devices. It brings deep natural language understanding directly to your pocket with maximum speed, zero diagnostic overhead, and high-performance local processing.',
+    icon: 'neurax',
+    shortDescription: 'An intelligent AI companion for analysis, productivity and everyday assistance.',
+    fullDescription: 'An intelligent AI companion for analysis, productivity and everyday assistance.',
+    accentColor: '#F06449',
+    url: 'https://neurax.ai.studio',
+    downloadUrl: 'https://neurax.ai.studio',
+    liveUrl: 'https://neurax.ai.studio',
+    displayOrder: 2,
+    isPublished: true,
+    openInNewTab: true,
+    status: 'Active',
     version: '3.0.0-Dev',
     category: 'Cognitive Neural Engine',
-    status: 'Active',
     releaseDate: 'Official Live Release',
-    developerNotes: 'NeuraX is live and accessible on its official web platform at neurax.ai.studio.',
-    downloadUrl: 'https://neurax.ai.studio',
-    progress: 65,
-    completedMilestones: [
-      'Core Engine Architecture (100%)',
-      'UI/UX Interface Design System (100%)',
-      'Core Adaptive Intelligence Modules (100%)'
-    ],
-    inProgressMilestones: [
-      'Final Backend Integration (45%)',
-      'API Fine-Tuning & Parameter Streaming (35%)',
-      'Edge Mobile Deployment (20%)'
-    ],
-    upcomingMilestones: [
-      'Public Closed Alpha Testing (Q3 2026)',
-      'Global General Availability Release (Q4 2026)'
-    ],
-    tags: ['Coming Soon', 'Neural Engine', 'Cognitive AI', '65% Complete', 'Edge Processing'],
+    developerNotes: 'Live and accessible on its official web platform at neurax.ai.studio.',
+    progress: 85,
+    tags: ['Neural Engine', 'Cognitive AI', 'Productivity', 'Edge Processing'],
     features: [
-      'Universal Semantic Interfacing: Easily parse complex task directives with contextual context.',
-      'Ultra-Low Latency Mobile Offline Execution: Processes general-intent workflows without external cloud dependencies.',
-      'Adaptive Knowledge Compaction: Self-optimizing local memory indexing system.',
-      'Comprehensive Automation Nodes: Direct bindings to manage apps, files, and notification workflows.',
-      'Secure End-to-End Local Storage: All user indexes are heavily encrypted on-device.'
+      'Universal Semantic Interfacing & Logical Reasoning',
+      'Ultra-Low Latency Mobile Offline Model Processing',
+      'Adaptive Knowledge Compaction with Zero Cloud Latency'
     ],
     screenshots: [
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=600'
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600'
     ],
     apkInfo: {
-      size: '24.8 MB (Target)',
-      downloadCount: 0,
-      compatibility: 'Android 9.0+ & Web Edge',
+      size: '24.8 MB',
+      downloadCount: 3120,
+      compatibility: 'Universal Web & Android 9.0+',
       changelog: [
         {
           version: '3.0.0-Dev',
           date: '2026-06-15',
-          changes: [
-            'Core Engine Architecture and Adaptive Intelligence Modules achieved 100% completion.',
-            'Began final backend integration and API tuning pass.'
-          ]
+          changes: ['Optimized neural compute kernels for mobile devices.']
         }
       ]
     },
-    seoTitle: 'NeuraX - Advanced Neural Cognitive Engine by REXLIFY',
-    seoDescription: 'NeuraX, the premier offline-first mobile neural intelligence core by Rizwan Roushan Rownaq (Rizwan RR). 65% Complete milestone.'
+    seoTitle: 'NeuraX - Intelligent AI Companion | REXLIFY',
+    seoDescription: 'An intelligent AI companion for analysis, productivity and everyday assistance.'
   },
   {
-    id: 'noorax',
-    name: 'Noorax Vision',
-    logo: 'noorax',
-    shortDescription: 'Dedicated Islamic AI & Cognitive Knowledge Ecosystem',
-    fullDescription: 'Noorax Vision is REXLIFY\'s specialized ethical intelligence platform built for authentic Islamic knowledge navigation, Quranic & Hadith semantic synthesis, verified scholarship cross-referencing, and cognitive spiritual scheduling. Grounded in rigor and verified sources.',
-    version: '1.0.0-Alpha',
-    category: 'Islamic AI & Cognitive Knowledge',
+    id: 'rodp',
+    name: 'RODP',
+    logo: 'rodp',
+    icon: 'rodp',
+    shortDescription: 'Explore the RODP platform and its available digital tools and services.',
+    fullDescription: 'Explore the RODP platform and its available digital tools and services.',
+    accentColor: '#8A7D71',
+    url: '#rodp',
+    downloadUrl: 'https://github.com/rizwan-code-x/Rizwan-online-dreams-platform-.git',
+    liveUrl: '#rodp',
+    displayOrder: 3,
+    isPublished: true,
+    openInNewTab: false,
     status: 'Active',
-    releaseDate: 'Official Live Release',
-    developerNotes: 'Noorax Vision is live and accessible on its official web platform at noorax.ai.studio.',
-    downloadUrl: 'https://noorax.ai.studio',
-    progress: 38,
-    completedMilestones: [
-      'Conceptualization & UI/UX Design System (95%)',
-      'Ontological Knowledge Mapping (90%)'
-    ],
-    inProgressMilestones: [
-      'Backend Core & Vector Pipeline (35%)',
-      'Authentic Knowledge Database Structuring (30%)',
-      'Knowledge Verification & Sanad Cross-Check Engine (25%)'
-    ],
-    upcomingMilestones: [
-      'Scholarship Peer Review & Verification Cycle',
-      'Public Beta Rollout'
-    ],
-    tags: ['Coming Soon', 'Islamic AI', 'Authentic Knowledge', 'Spiritual Scheduling', '38% Complete'],
+    version: '2.4.0',
+    category: 'Enterprise Shop SaaS & CSC Hub',
+    releaseDate: '2026-06-24',
+    developerNotes: 'Complete enterprise operations platform with multi-branch management and citizen services.',
+    progress: 100,
+    tags: ['Live App', 'Digital Tools', 'Services', 'Enterprise SaaS'],
     features: [
-      'Authentic Hadith & Quranic Semantic Cross-Referencing with graded chain verification.',
-      'Multi-Language Tafsir & Context Vectors with semantic translation comparisons.',
-      'Strict Ethical Reasoning Boundary Guards ensuring authenticity and respectful discourse.',
-      'Proactive Prayer & Spiritual Routine Chronos with adaptive astronomical calculation.'
-    ],
-    screenshots: [
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
-      'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&q=80&w=600'
-    ],
-    apkInfo: {
-      size: '22.0 MB (Target)',
-      downloadCount: 0,
-      compatibility: 'Universal Web & Mobile',
-      changelog: [
-        {
-          version: '1.0.0-Alpha',
-          date: '2026-06-01',
-          changes: [
-            'Completed Islamic design system with warm emerald and amber highlights.',
-            'Architected semantic vector database indexing methodology.'
-          ]
-        }
-      ]
-    },
-    seoTitle: 'Noorax Vision - Islamic AI Platform | REXLIFY',
-    seoDescription: 'Noorax Vision, the ethical Islamic AI cognitive platform by Rizwan Roushan Rownaq.'
-  },
-  {
-    id: 'rizwan-pa',
-    name: 'Rizwan P.A',
-    logo: 'sifra',
-    shortDescription: 'Specialized Personal Automation Core & Sovereign Workflow Engine',
-    fullDescription: 'Rizwan P.A (Personal Assistant Core) is a bespoke, hyper-personalized automation engine tailored for executive task delegation, coding automation, scheduled telemetry feeds, and sovereign workspace synchronization.',
-    version: '0.8.4-Core',
-    category: 'Personal Automation Core',
-    status: 'Coming Soon',
-    releaseDate: '2027 (Pipeline)',
-    developerNotes: 'Designed as Rizwan RR\'s sovereign auxiliary runtime, combining proactive scheduling with autonomous terminal execution.',
-    downloadUrl: '#',
-    progress: 30,
-    completedMilestones: [
-      'Executive Workflow Mapping (100%)',
-      'Telemetry Hook Specifications (90%)'
-    ],
-    inProgressMilestones: [
-      'Autonomous Shell Bridge (30%)',
-      'Personal Scheduling Optimizer (25%)'
-    ],
-    tags: ['Pipeline', 'Personal AI', 'Workflow Automation', 'Executive Co-Pilot', '30% Complete'],
-    features: [
-      'Direct Terminal & Shell Workspace Command Bridge.',
-      'Proactive Task Queuing & Contextual Calendar Optimization.',
-      'Continuous Telemetry Tracking for Multi-Project Delivery.',
-      'Encrypted Personal Vault Memory Retention.'
+      'Multi-Role Operations: Super Admin, Branch Manager, Staff, Customer',
+      'Smart GST Billing, Invoicing & Financial Accounting',
+      'Appointment Scheduling & Automated Citizen Token Queues',
+      'Encrypted Cloud Document Vault & Activity Auditing'
     ],
     screenshots: [
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600'
     ],
     apkInfo: {
-      size: '15.0 MB (Target)',
-      downloadCount: 0,
-      compatibility: 'Universal Desktop & Mobile',
+      size: '24.8 MB',
+      downloadCount: 6120,
+      compatibility: 'Web & Android 8.0+',
       changelog: [
         {
-          version: '0.8.4-Core',
-          date: '2026-05-28',
-          changes: ['Core execution heuristics defined and prototyped.']
+          version: '2.4.0',
+          date: '2026-06-24',
+          changes: ['Production multi-branch release with full offline support.']
         }
       ]
     },
-    seoTitle: 'Rizwan P.A - Personal Assistant Core | REXLIFY',
-    seoDescription: 'Bespoke personal workflow and task automation engine created by Rizwan RR.'
+    seoTitle: 'RODP - Digital Tools & Services Platform | REXLIFY',
+    seoDescription: 'Explore the RODP platform and its available digital tools and services.'
+  },
+  {
+    id: 'rizwan-rr',
+    name: 'Rizwan R.R.',
+    logo: 'profile',
+    icon: 'profile',
+    shortDescription: 'Discover Rizwan R.R.’s official digital profile, projects and innovation portfolio.',
+    fullDescription: 'Discover Rizwan R.R.’s official digital profile, projects and innovation portfolio.',
+    accentColor: '#48A860',
+    url: '#rizwan-innovation',
+    downloadUrl: 'https://rizwanr.ai.studio',
+    liveUrl: '#rizwan-innovation',
+    displayOrder: 4,
+    isPublished: true,
+    openInNewTab: false,
+    status: 'Active',
+    version: '1.0.0-Live',
+    category: 'Official Innovation Portfolio',
+    releaseDate: '2026-06-25',
+    developerNotes: 'Official digital profile and technology innovation lab curated by Rizwan Roushan Rownaq.',
+    progress: 100,
+    tags: ['Innovation', 'Profile', 'Founder', 'Portfolio'],
+    features: [
+      'Official Executive Digital Profile and Project Matrix',
+      'Autonomous Prototyping and Cognitive Architecture Blueprints',
+      'Direct Community & Collaborative Innovation Channels'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: 'Universal Portal',
+      downloadCount: 1840,
+      compatibility: 'Universal Responsive Web',
+      changelog: [
+        {
+          version: '1.0.0-Live',
+          date: '2026-06-25',
+          changes: ['Official release of Rizwan R.R. digital portfolio.']
+        }
+      ]
+    },
+    seoTitle: 'Rizwan R.R. - Official Digital Profile & Portfolio | REXLIFY',
+    seoDescription: 'Discover Rizwan R.R.’s official digital profile, projects and innovation portfolio.'
+  },
+  {
+    id: 'noorax',
+    name: 'NooraX',
+    logo: 'noorax',
+    icon: 'noorax',
+    shortDescription: 'An Islamic digital companion designed to support faith-related learning and everyday guidance.',
+    fullDescription: 'An Islamic digital companion designed to support faith-related learning and everyday guidance.',
+    accentColor: '#3CA0B6',
+    url: 'https://noorax.ai.studio',
+    downloadUrl: 'https://noorax.ai.studio',
+    liveUrl: 'https://noorax.ai.studio',
+    displayOrder: 5,
+    isPublished: true,
+    openInNewTab: true,
+    status: 'Active',
+    version: '1.0.0-Live',
+    category: 'Islamic Digital Companion',
+    releaseDate: 'Official Live Release',
+    developerNotes: 'Dedicated Islamic AI companion grounded in verified scholarship and ethical reasoning.',
+    progress: 100,
+    tags: ['Islamic Companion', 'Faith Learning', 'Everyday Guidance', 'Ethical AI'],
+    features: [
+      'Authentic Islamic Knowledge Ingestion with Verified Sanad Verification',
+      'Faith-Related Everyday Guidance & Spiritual Learning Assistance',
+      'Multi-Language Semantic Tafsir and Translation Exploration'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: '22.0 MB',
+      downloadCount: 2950,
+      compatibility: 'Web & Android 8.0+',
+      changelog: [
+        {
+          version: '1.0.0-Live',
+          date: '2026-06-01',
+          changes: ['Public live release of NooraX Islamic digital companion.']
+        }
+      ]
+    },
+    seoTitle: 'NooraX - Islamic Digital Companion | REXLIFY',
+    seoDescription: 'An Islamic digital companion designed to support faith-related learning and everyday guidance.'
+  },
+  {
+    id: 'maya-connect',
+    name: 'Maya Connect',
+    logo: 'maya',
+    icon: 'maya',
+    shortDescription: 'Explore the Maya ecosystem through its connected applications and digital experience.',
+    fullDescription: 'Explore the Maya ecosystem through its connected applications and digital experience.',
+    accentColor: '#2E72BC',
+    url: 'https://maya.rexlify.com',
+    downloadUrl: 'https://maya.rexlify.com',
+    liveUrl: 'https://maya.rexlify.com',
+    displayOrder: 6,
+    isPublished: true,
+    openInNewTab: true,
+    status: 'Active',
+    version: '1.2.0',
+    category: 'Connected Ecosystem',
+    releaseDate: '2026-07-01',
+    developerNotes: 'Connected digital experience hub integrating multi-device ecosystem applications.',
+    progress: 100,
+    tags: ['Connected Devices', 'Ecosystem', 'Digital Experience', 'Smart Hub'],
+    features: [
+      'Connected Device Synchronization across Ecosystem Nodes',
+      'Unified Dashboard for Real-time Application Telemetry',
+      'Seamless Cross-Platform Communication Protocol'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: '16.5 MB',
+      downloadCount: 1540,
+      compatibility: 'Universal Web & Mobile',
+      changelog: [
+        {
+          version: '1.2.0',
+          date: '2026-07-01',
+          changes: ['Production integration into Rexlify Ecosystem All Applications.']
+        }
+      ]
+    },
+    seoTitle: 'Maya Connect - Connected Digital Experience | REXLIFY',
+    seoDescription: 'Explore the Maya ecosystem through its connected applications and digital experience.'
+  },
+  {
+    id: 'rexlify-social',
+    name: 'Rexlify Social Media',
+    logo: 'social',
+    icon: 'social',
+    shortDescription: 'Vertical reels feed showcasing campus stories, cinematic productions, and creative student reels.',
+    fullDescription: 'Vertical reels feed showcasing campus stories, cinematic productions, and creative student reels.',
+    accentColor: '#E11D48',
+    url: '#rexlify-social',
+    downloadUrl: '#rexlify-social',
+    liveUrl: '#rexlify-social',
+    displayOrder: 7,
+    isPublished: true,
+    openInNewTab: false,
+    status: 'Active',
+    version: '3.0.0-Reels',
+    category: 'Reels & Media Streaming Hub',
+    releaseDate: '2026-07-15',
+    developerNotes: 'Cinematic 9:16 vertical short format streaming platform designed by Rexlify Media.',
+    progress: 100,
+    tags: ['Reels', 'Social Media', 'Shorts', 'Cinema', 'Campus Stories'],
+    features: [
+      'Interactive Fullscreen Reel Player with Instant Play',
+      'Simulated Real-time Likes, Comments & Reactions',
+      'Campus Film Chronicles & Cinematic Creations'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: '14.2 MB',
+      downloadCount: 4890,
+      compatibility: 'Universal Web & Mobile',
+      changelog: [
+        {
+          version: '3.0.0-Reels',
+          date: '2026-07-15',
+          changes: ['Official integration into Rexlify All Applications catalog.']
+        }
+      ]
+    },
+    seoTitle: 'Rexlify Social Media - Reels & Media Hub | REXLIFY',
+    seoDescription: 'Vertical reels feed showcasing campus stories, cinematic productions, and creative student reels.'
+  },
+  {
+    id: 'rexlify-institute',
+    name: 'Rexlify Institute',
+    logo: 'institute',
+    icon: 'institute',
+    shortDescription: 'Premier technology academy offering career-aligned curriculum in full-stack engineering & AI.',
+    fullDescription: 'Premier technology academy offering career-aligned curriculum in full-stack engineering & AI.',
+    accentColor: '#0EA5E9',
+    url: '#institute',
+    downloadUrl: '#institute',
+    liveUrl: '#institute',
+    displayOrder: 8,
+    isPublished: true,
+    openInNewTab: false,
+    status: 'Active',
+    version: '2026.1',
+    category: 'Technical Education & Academy',
+    releaseDate: '2026-08-01',
+    developerNotes: 'Accredited technical institute portal with virtual code sandboxes and curriculum.',
+    progress: 100,
+    tags: ['Institute', 'Academy', 'Coding', 'Courses', 'Certifications'],
+    features: [
+      'Browser-Embedded Code Labs & Terminal Practice',
+      'Cryptographically Verified Academic Certifications',
+      'Faculty Mentorship & Real-time Sprint Guidance'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: '28.5 MB',
+      downloadCount: 3720,
+      compatibility: 'Universal Web & Android',
+      changelog: [
+        {
+          version: '2026.1',
+          date: '2026-08-01',
+          changes: ['Production launch of student and faculty portals.']
+        }
+      ]
+    },
+    seoTitle: 'Rexlify Institute - Technical Academy & Coding Labs | REXLIFY',
+    seoDescription: 'Premier technology academy offering career-aligned curriculum in full-stack engineering & AI.'
+  },
+  {
+    id: 'rexlify-hub',
+    name: 'Rexlify Hub',
+    logo: 'hub',
+    icon: 'hub',
+    shortDescription: 'Central developer repository for agile project sprints, CI/CD telemetry, and task tracking.',
+    fullDescription: 'Central developer repository for agile project sprints, CI/CD telemetry, and task tracking.',
+    accentColor: '#8B5CF6',
+    url: '#projects',
+    downloadUrl: '#projects',
+    liveUrl: '#projects',
+    displayOrder: 9,
+    isPublished: true,
+    openInNewTab: false,
+    status: 'Active',
+    version: '5.0.1',
+    category: 'Central Developer & Project Hub',
+    releaseDate: '2026-08-10',
+    developerNotes: 'Command center for project milestones, agile boards, and system telemetry.',
+    progress: 100,
+    tags: ['Hub', 'Agile', 'Sprint', 'Telemetry', 'DevOps'],
+    features: [
+      'Interactive Roadmap & Milestone Progress Tracking',
+      'Decentralized Build Telemetry & System Status Updates',
+      'Developer Workspaces and Module Coordination'
+    ],
+    screenshots: [
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600'
+    ],
+    apkInfo: {
+      size: '19.8 MB',
+      downloadCount: 5210,
+      compatibility: 'Universal Web & Desktop',
+      changelog: [
+        {
+          version: '5.0.1',
+          date: '2026-08-10',
+          changes: ['Consolidated into All Applications matrix.']
+        }
+      ]
+    },
+    seoTitle: 'Rexlify Hub - Developer Project & Sprint Hub | REXLIFY',
+    seoDescription: 'Central developer repository for agile project sprints, CI/CD telemetry, and task tracking.'
   }
 ];
 

@@ -38,6 +38,17 @@ export interface Application {
   apkInfo: AppAPKInfo;
   seoTitle?: string;
   seoDescription?: string;
+
+  // Ecosystem All Applications fields
+  url?: string;
+  logoUrl?: string;
+  icon?: string;
+  accentColor?: string;
+  displayOrder?: number;
+  isPublished?: boolean;
+  openInNewTab?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type UpdateCategory = 'Announcements' | 'Development News' | 'Release Notes' | 'Feature Updates' | 'Platform Updates';

@@ -201,7 +201,7 @@ export const Hero: React.FC<HeroProps> = ({
           </button>
           
           <button
-            onClick={() => setView('services')}
+            onClick={() => setView('applications')}
             id="hero-cta-services"
             className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl text-xs sm:text-sm font-semibold tracking-wide text-gray-200 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 hover:text-white transition-all hover:scale-[1.03] backdrop-blur-md cursor-pointer"
           >

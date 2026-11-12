@@ -218,6 +218,10 @@ export default function App({ onBack }: AppProps = {}) {
       localStorage.removeItem('rodp_target_tab');
       return target;
     }
+    const savedTab = localStorage.getItem('rodp_active_tab');
+    if (savedTab && TAB_ORDER.includes(savedTab)) {
+      return savedTab;
+    }
     const raw = localStorage.getItem('rodp_logged_in_user');
     if (raw) {
       try {
@@ -227,6 +231,12 @@ export default function App({ onBack }: AppProps = {}) {
     }
     return 'dashboard';
   });
+
+  useEffect(() => {
+    if (currentTab) {
+      localStorage.setItem('rodp_active_tab', currentTab);
+    }
+  }, [currentTab]);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);

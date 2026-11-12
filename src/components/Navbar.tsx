@@ -4,11 +4,14 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles, Users, ArrowUpRight } from 'lucide-react';
+import { Box, Menu, X, ShieldAlert, Cpu, Globe, Search, Moon, Zap, Sun, LogIn, LogOut, UserCheck, ChevronDown, Check, ArrowLeft, Sparkles, Users, ArrowUpRight, User, AlertCircle } from 'lucide-react';
 import { RexlifyLogo, NeuraxLogo, SifraLogo } from './Logo';
 import { Language, TRANSLATIONS, SUPPORTED_LANGUAGES, LanguageOption } from '../translations';
 import { Application, Project, BlogItem, DocArticle } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { RexlifyAuthModal } from './RexlifyAuthModal';
+import { getCurrentUser, logoutUser, RegisteredUser } from '../services/userService';
+import { useToast } from '../context/ToastContext';
 
 export type ActiveView = 
   | 'home' 
@@ -91,6 +94,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [navSearch, setNavSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<RegisteredUser | null>(() => getCurrentUser());
+  const [betaNoticeOpen, setBetaNoticeOpen] = useState(false);
+  const { info: toastInfo } = useToast();
   const t = TRANSLATIONS[language];
   const { user, signInWithGoogle, logout: authLogout } = useAuth();
   
@@ -224,33 +231,37 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const currentLangOption = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
 
-  const menuItems: { id: ActiveView | 'meet-members'; label: string; isExternal?: boolean; href?: string }[] = [
+  const menuItems: { id: ActiveView | 'meet-members'; label: string; isExternal?: boolean; href?: string; isBetaNotice?: boolean }[] = [
     { id: 'home', label: t.ecoGateway },
-    { id: 'meet-members', label: '👥 Meet Our Members (Official Portal)', isExternal: true, href: 'https://sites.google.com/view/rexlifymini/home' },
-    { id: 'additional-systems', label: '📱 Explore Our Additional Systems' },
+    { id: 'applications', label: '📱 Explore Applications (All Apps)' },
+    { id: 'institute', label: '🎓 Rexlify Institute' },
+    { id: 'explore-system', label: '🚀 Explore Our System' },
+    { id: 'faculty', label: '💼 Teach (Hiring Active - Beta)', isBetaNotice: true },
     { id: 'rexlify-social', label: '🎬 Rexlify Social Media (Reels)' },
     { id: 'portfolio', label: `✨ ${t.portfolio}` },
-    { id: 'institute', label: `🎓 Rexlify Institute` },
-    { id: 'faculty', label: `💼 Teach at Rexlify (Hiring)` },
+    { id: 'meet-members', label: '👥 Meet Our Members (Official Portal)', isExternal: true, href: 'https://sites.google.com/view/rexlifymini/home' },
     { id: 'image-analyzer', label: `📷 ${t.imageAnalyzer}` },
     { id: 'faq', label: `❓ ${t.faq}` },
     { id: 'services', label: t.services },
     { id: 'products', label: t.products },
     { id: 'blog', label: t.blog },
     { id: 'showcase', label: t.media },
-    { id: 'sponsors', label: t.sponsors },
     { id: 'dashboard', label: t.dashboard || t.userPortal },
     { id: 'quantexa', label: t.quantexa },
     { id: 'projects', label: t.roadmap },
     { id: 'updates', label: t.updates },
     { id: 'documentation', label: t.docs },
     { id: 'about', label: t.about },
-    { id: 'explore-system', label: '🚀 Explore Our System' },
     { id: 'contact', label: t.contact },
   ];
 
   const handleNavClick = (view: ActiveView) => {
     try { sessionStorage.setItem('rexlify_user_gesture', 'true'); } catch (_) {}
+    if (view === 'faculty') {
+      setBetaNoticeOpen(true);
+      toastInfo('Faculty Recruitment Notice', 'Teacher Hiring portal is currently in Beta version / Under scheduled system maintenance.');
+      setTimeout(() => setBetaNoticeOpen(false), 7000);
+    }
     setView(view);
     setIsOpen(false);
     setNavSearch('');
@@ -284,7 +295,35 @@ export const Navbar: React.FC<NavbarProps> = ({
     d.category.toLowerCase().includes(query)
   ).slice(0, 3) : [];
 
-  const hasAnyResults = matchedApps.length > 0 || matchedProjects.length > 0 || matchedBlogs.length > 0 || matchedDocs.length > 0;
+  // Searchable system features, tools, settings & pages (strictly public - zero admin/security endpoints)
+  const systemFeaturesList: { name: string; category: string; description: string; view: ActiveView }[] = [
+    { name: 'All Applications Catalog', category: 'Ecosystem', description: 'Explore all neural apps, mobile tools, and runtimes.', view: 'applications' },
+    { name: 'Rexlify Institute', category: 'Education', description: 'Technical courses, verifiable diplomas, and student portal.', view: 'institute' },
+    { name: 'Teach at Rexlify (Faculty)', category: 'Recruitment', description: 'Instructor hiring, syllabus review, and teaching applications.', view: 'faculty' },
+    { name: 'Rexlify Social Media (Reels)', category: 'Media', description: 'Vertical video reel feed, campus stories, and cinema series.', view: 'rexlify-social' },
+    { name: 'Explore Our System', category: 'Platform', description: 'Comprehensive system overview of all 26+ modules.', view: 'explore-system' },
+    { name: 'Sara AI Assistant & Customer Care', category: 'Support', description: '24/7 AI chat, voice interaction, and ticket desk.', view: 'customer-care' },
+    { name: 'Help Centre & Complaints Desk', category: 'Support', description: 'Submit inquiries, incident reports, and system assistance.', view: 'help-centre' },
+    { name: 'Sara Voice Mode', category: 'AI Suite', description: 'Real-time two-way voice streaming assistant.', view: 'sara-voice' },
+    { name: 'Image Analyzer Engine', category: 'AI Tools', description: 'Gemini-powered vision analysis, OCR, and object detection.', view: 'image-analyzer' },
+    { name: 'User Profile & Cloud Locker', category: 'Account', description: 'Manage saved apps, certificates, session, and cloud storage.', view: 'dashboard' },
+    { name: 'Master Portfolio Showcase', category: 'Portfolio', description: 'Executive portfolio matrix and neural system topology.', view: 'portfolio' },
+    { name: 'Frequently Asked Questions (FAQ)', category: 'Support', description: 'Knowledge base, common issues, and quick guides.', view: 'faq' },
+    { name: 'System Updates & Changelogs', category: 'Updates', description: 'Release notes, patch logs, and system versions.', view: 'updates' },
+    { name: 'Project Roadmap', category: 'Pipeline', description: 'Future roadmap milestones, progress tracking, and launchpad.', view: 'projects' },
+    { name: 'Documentation Manuals', category: 'Docs', description: 'API reference, installation guides, and architecture briefs.', view: 'documentation' },
+    { name: 'About Rizwan RR & Rexlify', category: 'About', description: 'Founding story, vision, creator bio, and core values.', view: 'about' },
+    { name: 'Contact & Feedback', category: 'Connect', description: 'Reach developer Rizwan Roushan Rownaq directly.', view: 'contact' },
+    { name: 'RODP Workspace', category: 'Tools', description: 'Citizen services portal, smart forms, and CSC suite.', view: 'rodp' },
+  ];
+
+  const matchedFeatures = query ? systemFeaturesList.filter(f =>
+    f.name.toLowerCase().includes(query) ||
+    f.category.toLowerCase().includes(query) ||
+    f.description.toLowerCase().includes(query)
+  ).slice(0, 3) : [];
+
+  const hasAnyResults = matchedApps.length > 0 || matchedProjects.length > 0 || matchedBlogs.length > 0 || matchedDocs.length > 0 || matchedFeatures.length > 0;
 
   const selectAppResult = (appId: string) => {
     setView('applications');
@@ -324,6 +363,33 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
+      {/* -------------------- FLOATING TOP BETA / MAINTENANCE ANNOUNCEMENT POPUP BANNER -------------------- */}
+      {betaNoticeOpen && (
+        <div 
+          id="navbar-beta-maintenance-popup"
+          className="relative z-[60] w-full bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-black py-2.5 px-4 shadow-xl flex items-center justify-between animate-fadeIn text-xs font-sora font-semibold"
+        >
+          <div className="flex items-center gap-2 mx-auto">
+            <span className="w-2.5 h-2.5 rounded-full bg-black/80 animate-ping inline-block" />
+            <AlertCircle size={15} className="text-black shrink-0" />
+            <span className="font-bold uppercase tracking-wider text-[11px] bg-black/10 px-2 py-0.5 rounded">
+              BETA VERSION // NOTICE
+            </span>
+            <span className="text-xs">
+              আমাদের <strong>Faculty Recruitment (Teach / Hiring Active)</strong> পোর্টালটি বর্তমানে বিটা ভার্সনে রয়েছে এবং সিস্টেমে ডেভেলপমেন্ট ও রক্ষণাবেক্ষণের কাজ চলছে।
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBetaNoticeOpen(false)}
+            className="text-black/80 hover:text-black font-mono text-base font-bold px-2 cursor-pointer leading-none"
+            title="Dismiss notice"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* -------------------- PRIMARY STICKY TOP NAVBAR -------------------- */}
       <nav className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl shadow-lg px-4 md:px-8 lg:px-12 py-2.5 transition-colors duration-300 ${
         isLightMode
@@ -519,6 +585,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                           ))}
                         </div>
                       )}
+
+                      {/* SYSTEM FEATURES, PAGES & TOOLS */}
+                      {matchedFeatures.length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="font-mono text-[8px] text-pink-600 uppercase tracking-widest font-extrabold block px-2 leading-none">
+                            System Features & Pages
+                          </span>
+                          {matchedFeatures.map((feat, fIdx) => (
+                            <div 
+                              key={fIdx} 
+                              onClick={() => handleNavClick(feat.view)}
+                              className={`p-2 rounded-xl transition-all cursor-pointer group ${
+                                isLightMode ? 'hover:bg-pink-50' : 'hover:bg-white/[0.03]'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center mb-0.5">
+                                <span className={`text-xs font-bold font-sora block ${isLightMode ? 'text-gray-900 group-hover:text-pink-600' : 'text-white group-hover:text-pink-400'} leading-tight`}>
+                                  {highlightMatch(feat.name, navSearch)}
+                                </span>
+                                <span className="text-[8px] font-mono text-gray-400 uppercase">{feat.category}</span>
+                              </div>
+                              <span className="text-[9px] text-gray-500 font-light block truncate">
+                                {highlightMatch(feat.description, navSearch)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -529,113 +623,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action Container: Language, Theme Toggle, Clean Menu Gateway */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             
-            {/* Multi-Language Switcher Dropdown */}
-            <div className="relative" ref={langDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                id="navbar-language-switcher-btn"
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none text-xs font-semibold ${
-                  isLightMode
-                    ? isLangDropdownOpen 
-                      ? 'border-pink-500 bg-pink-100 text-pink-900' 
-                      : 'border-pink-200 bg-white/80 hover:bg-pink-50 text-gray-800'
-                    : isLangDropdownOpen 
-                      ? 'border-purple-500/50 bg-purple-500/10 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.15)]' 
-                      : 'border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/20 text-gray-200'
-                }`}
-                aria-label="Select Language"
-                title="Select Interface Language"
-              >
-                <Globe size={14} className={isLightMode ? "text-pink-600 shrink-0" : "text-purple-400 shrink-0"} />
-                <span className="text-sm leading-none">{currentLangOption.flag}</span>
-                <span className="font-mono text-xs font-bold uppercase tracking-wider hidden sm:inline">{currentLangOption.code}</span>
-                <ChevronDown size={12} className={`text-gray-400 transition-transform duration-200 ${isLangDropdownOpen ? 'rotate-180 text-pink-500' : ''}`} />
-              </button>
-
-              {/* Language Dropdown Popover */}
-              {isLangDropdownOpen && (
-                <div 
-                  id="navbar-language-dropdown-menu"
-                  className={`absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl p-2 z-50 animate-fadeIn space-y-1 ${
-                    isLightMode
-                      ? 'bg-white/98 border-pink-200 text-gray-900 shadow-pink-500/15'
-                      : 'bg-[#07051a]/98 border-white/10 text-white'
-                  }`}
-                >
-                  <div className={`px-2.5 py-1.5 border-b flex items-center justify-between ${isLightMode ? 'border-pink-100' : 'border-white/5'}`}>
-                    <span className="font-mono text-[9px] text-gray-400 uppercase tracking-widest font-bold">
-                      {t.languageLabel || 'Language'}
-                    </span>
-                    <span className={`text-[10px] font-mono font-semibold ${isLightMode ? 'text-pink-600' : 'text-purple-400'}`}>10 Locales</span>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto space-y-0.5 no-scrollbar py-1">
-                    {SUPPORTED_LANGUAGES.map((opt) => {
-                      const isSelected = opt.code === language;
-                      return (
-                        <button
-                          key={opt.code}
-                          type="button"
-                          onClick={() => {
-                            setLanguage(opt.code);
-                            setIsLangDropdownOpen(false);
-                          }}
-                          id={`lang-option-${opt.code}`}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
-                            isSelected 
-                              ? isLightMode
-                                ? 'bg-pink-100/80 border border-pink-300 text-pink-900 font-bold'
-                                : 'bg-purple-600/15 border border-purple-500/30 text-purple-300 font-bold shadow-sm'
-                              : isLightMode
-                                ? 'text-gray-700 hover:text-gray-900 hover:bg-pink-50 border border-transparent'
-                                : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-base leading-none">{opt.flag}</span>
-                            <div className="text-left leading-tight">
-                              <span className="block font-medium">{opt.nativeName}</span>
-                              <span className="block text-[9px] text-gray-400 font-normal">{opt.name}</span>
-                            </div>
-                          </div>
-                          {isSelected && <Check size={14} className={isLightMode ? "text-pink-600 shrink-0" : "text-purple-400 shrink-0"} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Meet Our Members Navbar Action */}
-            <a
-              href="https://sites.google.com/view/rexlifymini/home"
-              target="_blank"
-              rel="noopener noreferrer"
-              id="navbar-meet-our-members-btn"
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all duration-200 text-xs font-semibold cursor-pointer ${
-                themeMode === 'premium-mixed'
-                  ? 'bg-gradient-to-r from-pink-500/15 via-white/80 to-amber-500/15 border-amber-400/40 text-black hover:border-amber-500 hover:shadow-md'
-                  : isLightMode
-                  ? 'border-pink-200 bg-white/80 hover:bg-pink-50 text-gray-800 hover:text-pink-600'
-                  : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-amber-400/40 text-gray-200 hover:text-amber-300'
-              }`}
-              title="Meet Our Members - Official Community"
-            >
-              <Users size={13} className="text-amber-400 shrink-0" />
-              <span>Meet Our Members</span>
-              <svg className="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-
-            {/* 3-Mode Theme Selector: 🌙 Dark | ☀️ Light | ✨ Premium */}
+            {/* 2-Mode Theme Selector: 🌙 Dark | ☀️ Light */}
             <div 
               id="navbar-theme-3mode-selector"
               className={`flex items-center p-0.5 rounded-xl border transition-all ${
-                themeMode === 'premium-mixed'
-                  ? 'bg-white/90 border-amber-300 shadow-sm'
-                  : isLightMode
+                isLightMode
                   ? 'bg-white/90 border-pink-200 shadow-sm'
                   : 'bg-black/50 border-white/10'
               }`}
@@ -646,7 +638,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
                   themeMode === 'deep-space'
                     ? 'bg-purple-600/30 text-purple-300 border border-purple-500/50 shadow-sm'
-                    : isLightMode || themeMode === 'premium-mixed'
+                    : isLightMode
                     ? 'text-gray-500 hover:text-gray-900'
                     : 'text-gray-400 hover:text-white'
                 }`}
@@ -662,7 +654,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
                   themeMode === 'neon-cyber'
                     ? 'bg-pink-500/20 text-pink-700 border border-pink-400/60 shadow-sm'
-                    : isLightMode || themeMode === 'premium-mixed'
+                    : isLightMode
                     ? 'text-gray-500 hover:text-gray-900'
                     : 'text-gray-400 hover:text-white'
                 }`}
@@ -671,26 +663,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Sun size={12} className={themeMode === 'neon-cyber' ? "text-amber-500" : "text-gray-400"} />
                 <span className="hidden xl:inline">Light</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectThemeMode ? onSelectThemeMode('premium-mixed') : toggleThemeMode()}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                  themeMode === 'premium-mixed'
-                    ? 'bg-gradient-to-r from-pink-500/25 via-amber-400/25 to-yellow-400/25 text-black border border-amber-400 font-extrabold shadow-sm'
-                    : isLightMode
-                    ? 'text-gray-500 hover:text-amber-600'
-                    : 'text-gray-400 hover:text-amber-400'
-                }`}
-                title="Switch to Premium Pink-Gold Mixed Mode"
-              >
-                <Sparkles size={12} className={themeMode === 'premium-mixed' ? "text-amber-500" : "text-gray-400"} />
-                <span className="hidden xl:inline">Premium</span>
-              </button>
             </div>
 
             {/* Admin Dashboard link if logged in */}
-            {isAdminLoggedIn ? (
+            {isAdminLoggedIn && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleNavClick('admin-dashboard')}
@@ -708,43 +684,63 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {t.logout}
                 </button>
               </div>
-            ) : isHomePage ? (
-              /* Persistent CTA Buttons displayed ONLY on Homepage to eliminate clutter on feature pages */
-              <div className="hidden lg:flex items-center gap-1.5 sm:gap-2">
-                <button
-                  onClick={() => handleNavClick('institute')}
-                  id="nav-rexlify-institute-btn"
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-cyan-600 dark:text-cyan-300 bg-cyan-500/15 border border-cyan-400/40 hover:bg-cyan-500/25 transition-all cursor-pointer whitespace-nowrap shadow-sm"
-                >
-                  🎓 Rexlify Institute
-                </button>
-                <button
-                  onClick={() => handleNavClick('faculty')}
-                  id="nav-join-faculty-btn"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  <span>Teach</span>
-                  <span className="bg-amber-400 text-black text-[8px] px-1 rounded font-bold uppercase">
-                    Hiring Active
+            )}
+
+            {/* Futuristic Professional User Profile / Register Gateway (Placed directly before Menu Bar) */}
+            {currentUser ? (
+              <div 
+                onClick={() => handleNavClick('dashboard')}
+                id="navbar-user-profile-badge"
+                className={`group flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all cursor-pointer shadow-sm select-none ${
+                  isLightMode
+                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-300 text-slate-800 hover:border-emerald-500'
+                    : 'bg-gradient-to-r from-emerald-950/40 via-black to-teal-950/30 border-emerald-500/40 text-emerald-300 hover:border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                }`}
+                title="Open Professional User Profile"
+              >
+                {/* Futuristic Hexagonal/Circular Avatar Badge with Status Indicator */}
+                <div className="relative w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 p-0.5 flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center text-emerald-300 text-[10px] font-bold font-mono">
+                    <User size={12} className="text-emerald-400" />
+                  </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-black animate-pulse" />
+                </div>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-emerald-500/80 font-bold hidden sm:block">
+                    PRO PROFILE
                   </span>
-                </button>
+                  <span className="text-xs font-sora font-semibold max-w-[110px] truncate text-white group-hover:text-emerald-300 transition-colors">
+                    {currentUser.name}
+                  </span>
+                </div>
                 <button
-                  onClick={() => handleNavClick('explore-system')}
-                  id="nav-explore-our-system"
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-purple-700 dark:text-purple-200 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    logoutUser();
+                    setCurrentUser(null);
+                  }}
+                  className="text-gray-400 hover:text-rose-400 text-sm ml-0.5 cursor-pointer leading-none px-1"
+                  title="Switch / Log Out"
                 >
-                  Explore
-                </button>
-                <button
-                  onClick={() => handleNavClick('additional-systems')}
-                  id="nav-cta-additional-systems"
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-pink-600 hover:bg-pink-500 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shadow-md shadow-pink-900/30 flex items-center gap-1.5"
-                >
-                  <Sparkles size={13} className="text-pink-200 animate-spin" />
-                  <span>Explore Our Additional Systems</span>
+                  &times;
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                id="navbar-pure-register-btn"
+                className={`flex items-center justify-center px-4 py-1.5 rounded-xl border text-xs font-sora font-semibold transition-all cursor-pointer select-none ${
+                  isLightMode
+                    ? 'bg-slate-900 hover:bg-black text-white border-slate-900 shadow-sm'
+                    : 'bg-white/10 hover:bg-white/15 text-white border-white/20 hover:border-white/40 shadow-sm'
+                }`}
+                title="Register"
+              >
+                <span>Register</span>
+              </button>
+            )}
 
             {/* Essential Hamburger / Fullscreen Menu Toggle */}
             <button
@@ -831,20 +827,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Sun size={13} className={themeMode === 'neon-cyber' ? "text-amber-500" : "text-gray-400"} />
                   <span className="text-[10px] hidden sm:inline">Light</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSelectThemeMode ? onSelectThemeMode('premium-mixed') : toggleThemeMode()}
-                  className={`p-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${
-                    themeMode === 'premium-mixed'
-                      ? 'bg-gradient-to-r from-pink-500/25 via-amber-400/25 to-yellow-400/25 text-black border border-amber-400 font-extrabold'
-                      : 'text-gray-400'
-                  }`}
-                  title="Premium Mixed Mode"
-                >
-                  <Sparkles size={13} className={themeMode === 'premium-mixed' ? "text-amber-500" : "text-gray-400"} />
-                  <span className="text-[10px] hidden sm:inline">Premium</span>
                 </button>
               </div>
 
@@ -1139,6 +1121,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Rexlify Registration & Login Modal */}
+      <RexlifyAuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(newUser) => {
+          setCurrentUser(newUser);
+        }}
+      />
     </>
   );
 };

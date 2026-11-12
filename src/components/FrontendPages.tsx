@@ -376,8 +376,8 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
   };
 
   // Render Application Logo based on metadata key
-  const renderLogo = (logoKey: string, size = 48) => {
-    const key = logoKey ? logoKey.toLowerCase() : '';
+  const renderLogo = (logoKey?: string, size = 48) => {
+    const key = (logoKey || '').toLowerCase();
     if (key === 'neurax') return <NeuraxLogo size={size} />;
     if (key === 'sifra') return <SifraLogo size={size} />;
     if (key === 'rexlify-ai' || key.includes('rexlify-ai')) {
@@ -401,14 +401,7 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
         </div>
       );
     }
-    return (
-      <div 
-        className="flex items-center justify-center rounded-2xl bg-amber-500 text-white font-sora font-bold uppercase"
-        style={{ width: size, height: size }}
-      >
-        {logoKey.slice(0, 2)}
-      </div>
-    );
+    return <RexlifyLogo size={size} showText={false} />;
   };
 
   // Helper for Status badges
@@ -520,95 +513,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Pillar 1: Next-Generation Technology */}
-              <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(16, 185, 129, 0.2)" className="h-full">
-                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="flex items-center justify-between">
-                      <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-black transition-all duration-300">
-                        <Cpu size={22} />
-                      </div>
-                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-emerald-400">
-                        NEURAL COMPUTE
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-emerald-300 transition-colors">
-                        Next-Generation Technology
-                      </h3>
-                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
-                        Bespoke client-side AI runtimes and hyper-efficient neural architectures engineered for instant responsiveness on any device.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
-                      <span>INFERENCE</span>
-                      <span className="text-emerald-400 font-bold">&lt; 10ms Native Edge</span>
-                    </div>
-                  </div>
-                </Interactive3DTiltCard>
-              </motion.div>
-
-              {/* Pillar 2: Sovereign Data Privacy */}
-              <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(245, 158, 11, 0.2)" className="h-full">
-                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="flex items-center justify-between">
-                      <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-black transition-all duration-300">
-                        <Sparkles size={22} />
-                      </div>
-                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-amber-400">
-                        EDGE & OFFLINE
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-amber-300 transition-colors">
-                        Sovereign Data Privacy
-                      </h3>
-                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
-                        Zero external telemetry. 100% offline-capable execution ensures personal summaries, schedules, and cryptographic keys remain strictly local and secure on device.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
-                      <span>SECURITY</span>
-                      <span className="text-amber-400 font-bold">Zero-Latency Edge</span>
-                    </div>
-                  </div>
-                </Interactive3DTiltCard>
-              </motion.div>
-
-              {/* Pillar 3: Refined Visual Craft & Scalable Core */}
-              <motion.div variants={fadeInUpVariants} className="h-full">
-                <Interactive3DTiltCard maxTilt={6} scaleOnHover={1.02} glowColor="rgba(244, 63, 94, 0.2)" className="h-full">
-                  <div className="bg-[#060614]/95 p-8 rounded-[2rem] border border-white/10 hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(244,63,94,0.18)] transition-all duration-300 space-y-6 flex flex-col justify-between h-full group">
-                    <div className="flex items-center justify-between">
-                      <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-black transition-all duration-300">
-                        <Sliders size={22} />
-                      </div>
-                      <span className="font-mono text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-rose-400">
-                        SCALABLE CORE
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="font-sora text-xl md:text-2xl font-bold text-white group-hover:text-rose-300 transition-colors">
-                        Refined Visual Craft
-                      </h3>
-                      <p className="text-gray-400 text-xs sm:text-sm font-light leading-relaxed">
-                        Obsidian visual hierarchy engineered with responsive typography, buttery-smooth 60fps micro-interactions, and modular scalable codebases.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
-                      <span>EXPERIENCE</span>
-                      <span className="text-rose-400 font-bold">60fps Fluid Motion</span>
-                    </div>
-                  </div>
-                </Interactive3DTiltCard>
-              </motion.div>
             </div>
           </motion.section>
 
@@ -662,49 +566,7 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
           </motion.section>
 
           {/* Quick Roadmaps Concept Overview */}
-          <motion.section 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-120px" }}
-            variants={fadeInUpVariants}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-[#050505] border border-white/10 p-10 rounded-[2.5rem]"
-          >
-            <div className="md:col-span-1 space-y-6 flex flex-col justify-center">
-              <h3 className="font-sora text-3xl font-semibold text-white tracking-tight leading-tight">
-                Active Roadmap
-              </h3>
-              <p className="text-gray-400 text-sm font-light leading-relaxed">
-                Rizwan RR keeps active progress parameters visible in real-time. Review upcoming releases in our Project matrix.
-              </p>
-              <button 
-                onClick={() => setView('projects')}
-                className="inline-flex items-center gap-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer w-fit"
-              >
-                Access Launchpad
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {projects.slice(0, 2).map((proj) => (
-                <div key={proj.id} className="space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5">
-                  <div className="flex justify-between items-center">
-                    <span className="font-sora font-semibold text-base text-white">{proj.name}</span>
-                    <span className="font-mono text-[10px] tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 uppercase">{proj.status}</span>
-                  </div>
-                  <div className="w-full bg-black h-2 rounded-full overflow-hidden border border-white/5">
-                    <div 
-                      className="bg-emerald-500 h-full rounded-full" 
-                      style={{ width: `${proj.progress}%` }}
-                    />
-                  </div>
-                  <p className="text-gray-400 text-xs font-light leading-relaxed line-clamp-2">
-                    {proj.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.section>
+          <section />
 
           {/* Collapsible FAQ Component */}
           <FAQSection faqs={faqs} onVoteHelpful={onVoteHelpfulFAQ} onOpenContact={() => setView('contact')} />
@@ -1242,16 +1104,6 @@ export const FrontendPages: React.FC<FrontendPagesProps> = ({
             </section>
           </div>
         </div>
-      )}
-
-      {/* -------------------- SERVICES PAGE (REPLACED WITH EXPLORE APPS HUB) -------------------- */}
-      {currentView === 'services' && (
-        <ExploreAppsHub
-          applications={applications}
-          setView={setView}
-          onSimulateDownload={handleTriggerAndSimulateDownload}
-          onIncrementDownload={onIncrementDownload}
-        />
       )}
 
       {/* -------------------- APPLICATIONS PAGE (EXPLORE APPS HUB & ROADMAP) -------------------- */}

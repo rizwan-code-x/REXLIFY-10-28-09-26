@@ -63,8 +63,8 @@ export interface FirestoreErrorInfo {
   };
 }
 
-// Custom error handler to wrap Firestore errors with necessary contextual diagnostics
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+// Custom error handler to safely capture Firestore errors with contextual diagnostics without crashing the application tree
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): FirestoreErrorInfo {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -81,8 +81,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.warn('Firestore Operation Diagnostic:', JSON.stringify(errInfo));
+  return errInfo;
 }
 
 // Validate Connection on Boot (as requested in Firestore Connection Check instruction)

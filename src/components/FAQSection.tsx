@@ -233,25 +233,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
       </div>
 
       {/* Still need help CTA */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-black to-purple-950/20 border border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-        <div className="space-y-1">
-          <h4 className="font-sora text-sm font-bold text-white">
-            Still have questions or need specialized support?
-          </h4>
-          <p className="text-xs text-gray-400 font-mono">
-            Get in touch with Rizwan RR and the Rexlify developer module directly.
-          </p>
-        </div>
-
-        {onOpenContact && (
-          <button
-            onClick={onOpenContact}
-            className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs uppercase font-bold tracking-wider transition-all shadow-md cursor-pointer shrink-0"
-          >
-            Contact Support
-          </button>
-        )}
-      </div>
+      <div />
 
     </section>
   );

@@ -237,18 +237,6 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li className="mt-3">
-                <button
-                  onClick={toggle3DMode}
-                  id="footer-3d-mode-toggle"
-                  className={`group flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-mono tracking-widest uppercase transition-all shadow-md cursor-pointer ${
-                    is3DMode
-                      ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/40'
-                      : 'border-white/10 bg-white/[0.02] text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Box size={13} className={is3DMode ? 'animate-pulse text-emerald-400' : 'text-gray-500'} />
-                  3D Mode: {is3DMode ? 'ACTIVE' : 'INACTIVE'}
-                </button>
               </li>
             </ul>
           </div>
